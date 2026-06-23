@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🔥 [레이아웃 최적화 CSS] ➕, ➖ 버튼을 없애고 문장과 터치바를 정돈
+# 🔥 [우측 밀착 + 세로 확장] 에너지바를 오른쪽 끝으로 밀고 길이를 늘리는 CSS
 st.markdown("""
     <style>
     /* 모바일 화면에서 무조건 한 줄(Row)로 배치되도록 강제 고정 */
@@ -22,12 +22,12 @@ st.markdown("""
         flex-wrap: nowrap !important;
         align-items: center !important;
         justify-content: space-between !important;
-        gap: 6px !important;
+        gap: 4px !important; /* 간격을 줄여 밀착 유도 */
     }
    
-    /* 🔍 [비율 재조정] 버튼이 빠진 자리를 문장 칸(7.5)으로 넓게 배정 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 7.5 1 0% !important; min-width: 0 !important; }
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 2.5 1 0% !important; min-width: 0 !important; }
+    /* 🔍 [비율 최적화] 문장에 8.2를 주고 에너지바 칸은 1.8만 줘서 오른쪽 끝으로 바짝 밀어붙임 */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.2 1 0% !important; min-width: 0 !important; }
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 1.8 1 0% !important; min-width: 0 !important; }
    
     /* 제목 스타일 */
     .custom-title {
@@ -64,20 +64,44 @@ st.markdown("""
         color: #f1c40f !important;
     }
    
-    /* 🔍 우측 터치형 에너지바 버튼 스타일 (흰색 바탕에 테두리 제거로 깔끔하게) */
+    /* 🔍 [투명 버튼 처리] 에너지바 구역을 보이지 않는 투명 버튼으로 만들어 순수 그래픽만 노출 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button {
-        background-color: #ffffff !important;
-        color: #ff4d4d !important;
+        background-color: transparent !important;
         border: none !important;
-        padding: 4px 0px !important;
+        padding: 0px !important;
+        margin: 0px !important;
         width: 100% !important;
+        height: 38px !important; /* 문장 상자 높이와 매칭 */
+        display: flex !important;
+        justify-content: flex-end !important; /* 오른쪽 정렬 밀착 */
+        align-items: center !important;
     }
     
-    /* 원어민 듣기 🔊 버튼 스타일 정돈 */
-    .audio-btn * {
+    /* 🔍 [롱 막대기 그래픽] 직접 그리는 촘촘하고 길쭉한 세로 막대기 디자인 */
+    .custom-bar-container {
+        display: flex !important;
+        justify-content: flex-end !important;
+        gap: 3px !important; /* 막대기 사이 간격 */
+        padding-right: 2px !important; /* 화면 맨 오른쪽 끝 여백 최소화 */
+    }
+    /* 💡 [길이 대폭 확장] 세로 길이를 28px로 대폭 늘려 시원하게 시각화 */
+    .custom-energy-bar {
+        width: 6px !important;       /* 막대기 가로 두께 */
+        height: 28px !important;     /* 👈 세로 길이를 아주 길쭉하게 키웠습니다! */
+        border-radius: 1px !important;
+    }
+    .bar-filled { background-color: #ff4d4d !important; } /* 채워진 칸: 불타는 빨간색 */
+    .bar-empty { background-color: #dcdde1 !important; }  /* 비어있는 칸: 은은한 연회색 */
+    
+    /* 원어민 듣기 🔊 버튼 우측 밀착 스타일 */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button.audio-style {
+        background-color: #ffffff !important;
+        border: 1px solid #dcdde1 !important;
+        padding: 6px 0px !important;
         font-size: 16px !important;
         color: #2c3e50 !important;
         font-weight: bold !important;
+        justify-content: center !important;
     }
    
     /* 구분선 및 전체 여백 촘촘하게 */
@@ -144,8 +168,7 @@ sheet = st.session_state[user_sheet_key]
 for i, r in enumerate(records):
     row_idx = i + 2
     
-    # 💡 컬럼을 3개에서 2개([7.5, 2.5])로 줄여 가로 폭을 깔끔하게 정돈!
-    col1, col2 = st.columns([7.5, 2.5])
+    col1, col2 = st.columns([8.2, 1.8])
     
     with col1:
         state_key = f"show_{selected_user}_{i}"
@@ -162,7 +185,10 @@ for i, r in enumerate(records):
             
     with col2:
         if is_english:
-            if st.button("🔊 듣기", key=f"audio_{selected_user}_{i}", help="audio-btn"):
+            # 영어 모드일 때는 오작동 방지를 위해 전용 클래스 부여
+            if st.button("🔊", key=f"audio_{selected_user}_{i}"):
+                # 버튼에 오디오 전용 스타일 강제 주입을 위한 임시 스크립트 대용 CSS 적용 (클래스 우회)
+                st.markdown("<style>div[key*='audio_'] > button { background-color: #ffffff !important; border: 1px solid #dcdde1 !important; font-size:16px !important; justify-content:center !important; }</style>", unsafe_allow_html=True)
                 tts = gTTS(text=r['en'], lang='en')
                 fp = io.BytesIO()
                 tts.write_to_fp(fp)
@@ -170,12 +196,16 @@ for i, r in enumerate(records):
                 st.audio(fp, format='audio/mp3', autoplay=True)
         else:
             energy_val = int(r['energy']) if r['energy'] != "" else 0
-            # 별표 대신 길쭉하고 직관적인 세로 직사각형 이모지 적용
-            rectangles = "▮" * energy_val + "▯" * (5 - energy_val)
             
-            # 🔍 에너지바 구역을 버튼으로 만들어 터치 시 늘어나도록 설정
-            if st.button(rectangles, key=f"bar_touch_{selected_user}_{i}"):
-                # 0칸에서 5칸까지 순차 증가, 5칸에서 누르면 다시 0칸으로 초기화!
+            # 🔍 직접 그리는 강력한 세로 막대 그래픽 HTML 생성
+            bar_html = "<div class='custom-bar-container'>"
+            for b in range(5):
+                bar_class = "bar-filled" if b < energy_val else "bar-empty"
+                bar_html += f"<div class='custom-energy-bar {bar_class}'></div>"
+            bar_html += "</div>"
+            
+            # 투명 버튼 위에 막대 그래픽을 얹어서 깔끔하게 터치 구현
+            if st.button(bar_html, key=f"bar_touch_{selected_user}_{i}"):
                 new_energy = energy_val + 1 if energy_val < 5 else 0
                 st.session_state[user_data_key][i]['energy'] = new_energy
                 if sheet:
