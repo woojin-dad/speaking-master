@@ -23,7 +23,7 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 🔥 [레이아웃 최적화 CSS] 깨짐 방지 및 우측 정렬 고정
+# 🔥 [레이아웃 안정화 CSS] 깨질 수 있는 수직 역정렬을 모두 제거하고 직관성을 높임
 st.markdown("""
     <style>
     /* 모바일 화면에서 무조건 한 줄(Row)로 배치되도록 강제 고정 */
@@ -36,9 +36,9 @@ st.markdown("""
         gap: 0px !important;
     }
    
-    /* [우측 밀착 비율] 문장 칸(8.4)과 빌딩 게이지 칸(1.6) 분배 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.4 1 0% !important; min-width: 0 !important; }
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 1.6 1 0% !important; min-width: 0 !important; }
+    /* [우측 밀착 비율] 문장 칸(8.2)과 게이지 칸(1.8) 분배 */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.2 1 0% !important; min-width: 0 !important; }
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 1.8 1 0% !important; min-width: 0 !important; }
    
     /* 제목 스타일 */
     .custom-title {
@@ -88,20 +88,14 @@ st.markdown("""
         align-items: center !important;
     }
    
-    /* 🔍 버튼 내부 줄바꿈 설정을 수직 위아래로 쌓이게 고정 */
+    /* 🔍 깨짐을 유발하던 복잡한 CSS를 지우고 순수 이모지 크기만 시원하게 키움 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button p,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button div,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button span,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button * {
-        display: flex !important;
-        flex-direction: column-reverse !important; /* 아래에서 위로 쌓기 */
-        align-items: center !important;
-        justify-content: center !important;
-        white-space: pre-line !important; /* 💡 줄바꿈(\\n) 인식 활성화 */
-        font-size: 20px !important; /* 막대 크기 최적화 */
-        font-weight: bold !important;
-        color: #2c3e50 !important; /* 단일 딥블루 톤으로 깔끔하게 통일 */
-        line-height: 0.65 !important; /* 층간 간격 촘촘하게 */
+        font-size: 18px !important; /* 이모지 블록들이 촘촘하게 한눈에 들어오는 최적 크기 */
+        white-space: nowrap !important; /* 절대 줄바꿈 금지 */
+        letter-spacing: -2px !important; /* 블록 사이 자간 밀착 */
     }
    
     /* 원어민 듣기 🔊 버튼 스타일 유지 */
@@ -109,7 +103,7 @@ st.markdown("""
         font-size: 16px !important;
         color: #2c3e50 !important;
         font-weight: bold !important;
-        flex-direction: row !important;
+        letter-spacing: normal !important;
     }
    
     /* 구분선 및 전체 여백 촘촘하게 */
@@ -184,7 +178,7 @@ def save_to_google_sheet(sheet_obj, row, col, val):
 for i, r in enumerate(records):
     row_idx = i + 2
     
-    col1, col2 = st.columns([8.4, 1.6])
+    col1, col2 = st.columns([8.2, 1.8])
     
     with col1:
         state_key = f"show_{selected_user}_{i}"
@@ -215,23 +209,18 @@ for i, r in enumerate(records):
             except:
                 energy_val = 0
             
-            # 🔍 [HTML 원천 차단] 줄바꿈 기호(\\n)와 순수 문자형 도형만 사용하여 렌더링 오류 원쇄
-            # 아래에서 위로 쌓이는 구조이므로 맨 뒤가 1층, 맨 앞이 4층입니다.
+            # 🔍 깨짐 원천 방지! 표준 컬러 이모지 사각형으로 순환 구성
             if energy_val == 0:
-                # 0점: 4층 꽉 찬 기둥
-                pure_stack_text = "▬\n▬\n▬\n▬"
+                color_block_text = "🟥🟥🟥🟥"  # 0점: 미암기 (빨강 4개)
             elif energy_val == 1:
-                # 1점: 3층 기둥 (맨 위층은 빈 기둥)
-                pure_stack_text = "▭\n▬\n▬\n▬"
+                color_block_text = "🟧🟧🟧"    # 1점: 위험 (주황 3개)
             elif energy_val == 2:
-                # 2점: 2층 기둥
-                pure_stack_text = "▭\n▭\n▬\n▬"
+                color_block_text = "🟨🟨"      # 2점: 보통 (노랑 2개)
             else:
-                # 3점: 1층 기둥 (완전 암기 완료)
-                pure_stack_text = "▭\n▭\n▭\n▬"
+                color_block_text = "🟩"        # 3점: 안심 (초록 1개)
             
-            # st.button에 다른 태그 없이 순수 문자열만 바로 전달
-            if st.button(pure_stack_text, key=f"bar_touch_{selected_user}_{i}"):
+            # 깨끗한 순수 문자열 버튼으로 출력하여 에러 차단
+            if st.button(color_block_text, key=f"bar_touch_{selected_user}_{i}"):
                 new_energy = energy_val + 1 if energy_val < 3 else 0
                 st.session_state[user_data_key][i]['energy'] = new_energy
                 
