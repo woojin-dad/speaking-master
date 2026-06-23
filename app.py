@@ -5,34 +5,34 @@ import json
 from gtts import gTTS
 import io
 
-# 1. 웹페이지 기본 설정 (모바일에서 꽉 차게 보이도록 레이아웃 변경)
+# 1. 웹페이지 기본 설정
 st.set_page_config(
     page_title="스피킹 마스터", 
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# 🔥 [모바일 초강력 최적화] 스마트폰에서도 한 줄로 고정하고 여백을 줄이는 CSS
+# 🔥 [노안 방지 / 모바일 초고가독성] 글자를 키우고 배경을 어둡게 하여 가독성을 극대화한 CSS
 st.markdown("""
     <style>
-    /* 1. 모바일 화면에서 무조건 한 줄(Row)로 배치되도록 강제 고정 */
+    /* 모바일 화면에서 무조건 한 줄(Row)로 배치되도록 강제 고정 */
     div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         align-items: center !important;
         justify-content: space-between !important;
-        gap: 8px !important;
+        gap: 6px !important;
     }
     
-    /* 2. 각 요소들의 모바일 가로 비율 강제 분배 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 5.5 1 0% !important; min-width: 0 !important; } /* 문장 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 2.5 1 0% !important; min-width: 0 !important; } /* 별 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(3) { flex: 2.0 1 0% !important; min-width: 0 !important; } /* ➕➖ */
+    /* 요소들의 가로 비율 분배 (문장 칸을 조금 더 넓게 확보) */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 6.0 1 0% !important; min-width: 0 !important; } 
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 2.2 1 0% !important; min-width: 0 !important; } 
+    div[data-testid="stHorizontalBlock"] > div:nth-child(3) { flex: 1.8 1 0% !important; min-width: 0 !important; } 
     
-    /* 3. 제목 글씨 크기 조정 */
+    /* 제목 스타일 */
     .custom-title {
-        font-size: 24px;
+        font-size: 26px;
         font-weight: bold;
         color: #2c3e50;
         text-align: center;
@@ -40,33 +40,36 @@ st.markdown("""
         padding-bottom: 5px;
     }
     
-    /* 4. 문장 버튼 스타일 슬림화 (여백 줄여서 많이 들어가게) */
+    /* 🔍 눈이 편한 문장 버튼 스타일 (대형 글자 + 진한 배경 + 흰색 글씨) */
     .stButton>button {
         width: 100%;
         text-align: left;
-        background-color: #ffffff;
-        color: #2c3e50;
-        border: 1px solid #dcdde1;
+        background-color: #2c3e50 !important; /* 눈이 부시지 않은 진한 남색 배경 */
+        color: #ffffff !important; /* 글씨는 선명한 순백색 */
+        border: none !important;
         border-radius: 8px;
-        padding: 8px 12px; /* 패딩을 줄여 상하 두께를 슬림하게 만들었습니다 */
-        font-size: 16px !important; /* 모바일에서 짤리지 않는 최적의 크기 */
-        font-weight: bold;
-        line-height: 1.3;
+        padding: 6px 10px !important; /* 위아래 두께를 최소화하여 촘촘함 유지 */
+        font-size: 21px !important; /* 💡 글자 크기를 모바일 최고 수준으로 확대! */
+        font-weight: 900 !important; /* 글씨 두께를 아주 두껍게 */
+        line-height: 1.2;
     }
     .stButton>button:hover {
-        border-color: #3498db;
-        color: #3498db;
+        background-color: #34495e !important;
+        color: #f1c40f !important; /* 마우스 올리거나 누르면 노란색 글씨로 하이라이트 */
     }
     
-    /* 5. ➕, ➖ 조절 버튼 및 듣기 버튼 미니화 */
+    /* ➕, ➖ 조절 버튼 및 듣기 버튼 미니화 */
     div[data-testid="stColumn"] .stButton>button {
-        padding: 6px 4px !important;
+        background-color: #ffffff !important; /* 조절 버튼은 구분되게 흰색 유지 */
+        color: #2c3e50 !important;
+        border: 1px solid #dcdde1 !important;
+        padding: 8px 4px !important;
         font-size: 14px !important;
         text-align: center;
     }
     
-    /* 6. 문장 사이의 구분선(hr)과 전체 여백 촘촘하게 조절 */
-    hr { margin: 8px 0px !important; padding: 0px !important; }
+    /* 구분선 및 전체 여백 촘촘하게 */
+    hr { margin: 6px 0px !important; padding: 0px !important; }
     .block-container { padding-top: 1rem !important; padding-bottom: 1rem !important; }
     
     /* 하단 플랫폼 메뉴 완벽 차단 */
@@ -83,7 +86,7 @@ st.markdown("""
 users = ["우진", "동탕"]
 selected_user = st.selectbox("👤 학습자를 선택하세요", users)
 
-# 👑 선택한 사용자에 따라 제목 변경
+# 👑 제목 설정
 st.markdown(f"<div class='custom-title'>👑 {selected_user}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
 st.write("---")
 
@@ -129,8 +132,7 @@ sheet = st.session_state[user_sheet_key]
 for i, r in enumerate(records):
     row_idx = i + 2
     
-    # 가로 배치용 컬럼 생성
-    col1, col2, col3 = st.columns([5.5, 2.5, 2])
+    col1, col2, col3 = st.columns([6.0, 2.2, 1.8])
     
     with col1:
         state_key = f"show_{selected_user}_{i}"
@@ -156,8 +158,8 @@ for i, r in enumerate(records):
         else:
             energy_val = int(r['energy']) if r['energy'] != "" else 0
             stars = "★" * energy_val + "☆" * (5 - energy_val)
-            # 모바일 화면 크기에 맞춰 별 크기를 16px로 소폭 조정하여 한 줄 고정 유도
-            st.write(f"<div style='color:#ff4d4d; font-size:16px; text-align:center; padding-top:6px;'>{stars}</div>", unsafe_allow_html=True)
+            # 글자 크기에 맞춰 별 크기도 살짝 보정
+            st.write(f"<div style='color:#ff4d4d; font-size:15px; text-align:center; padding-top:6px;'>{stars}</div>", unsafe_allow_html=True)
         
     with col3:
         b1, b2 = st.columns(2)
