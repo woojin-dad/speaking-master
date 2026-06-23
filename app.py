@@ -49,7 +49,7 @@ st.markdown("""
         border: none !important;
         border-radius: 8px !important;
         padding: 8px 10px !important;
-        font-size: 24px !important;
+        font-size: 30px !important;
         font-weight: 900 !important;
         line-height: 1.2 !important;
     }
