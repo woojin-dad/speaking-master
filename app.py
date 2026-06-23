@@ -23,7 +23,7 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 🔥 [수직 적층형 CSS] 가로 막대기를 위로 쌓고 색상을 다채롭게 제어
+# 🔥 [레이아웃 최적화 CSS] 깨짐 방지 및 우측 정렬 고정
 st.markdown("""
     <style>
     /* 모바일 화면에서 무조건 한 줄(Row)로 배치되도록 강제 고정 */
@@ -59,7 +59,7 @@ st.markdown("""
         padding: 8px 10px !important;
     }
    
-    /* 문장 버튼 내부의 글자 확대 (22px) */
+    /* 문장 버튼 내부의 글자 확대 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button p,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button div,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button span,
@@ -74,7 +74,7 @@ st.markdown("""
         color: #f1c40f !important;
     }
    
-    /* [우측 빌딩 게이지 버튼 정돈] 우측 정렬 및 투명화 */
+    /* [우측 게이지 버튼 정돈] 우측 바짝 정렬 및 투명화 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton {
         text-align: right !important;
     }
@@ -84,28 +84,24 @@ st.markdown("""
         padding: 0px !important;
         width: 100% !important;
         display: flex !important;
-        justify-content: flex-end !important; /* 오른쪽 끝 밀착 */
+        justify-content: flex-end !important;
         align-items: center !important;
     }
    
-    /* 버튼 내부 조각들을 수직 위아래(column-reverse)로 쌓기 */
+    /* 🔍 버튼 내부 줄바꿈 설정을 수직 위아래로 쌓이게 고정 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button p,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button div,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button span,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button * {
         display: flex !important;
-        flex-direction: column-reverse !important; /* 아래에서부터 위로 층층이 쌓임 */
+        flex-direction: column-reverse !important; /* 아래에서 위로 쌓기 */
         align-items: center !important;
         justify-content: center !important;
-        white-space: nowrap !important;
-        gap: 1px !important;
-    }
-    
-    /* 가로 두툼 막대기 글자 크기 최적화 */
-    .stack-bar {
-        font-size: 22px !important;
-        line-height: 0.6 !important;
-        display: block !important;
+        white-space: pre-line !important; /* 💡 줄바꿈(\\n) 인식 활성화 */
+        font-size: 20px !important; /* 막대 크기 최적화 */
+        font-weight: bold !important;
+        color: #2c3e50 !important; /* 단일 딥블루 톤으로 깔끔하게 통일 */
+        line-height: 0.65 !important; /* 층간 간격 촘촘하게 */
     }
    
     /* 원어민 듣기 🔊 버튼 스타일 유지 */
@@ -176,7 +172,7 @@ if user_data_key not in st.session_state:
 records = st.session_state[user_data_key]
 sheet = st.session_state[user_sheet_key]
 
-# 백그라운드 구글 시트 업데이트 함수 유지
+# 백그라운드 구글 시트 업데이트 함수
 def save_to_google_sheet(sheet_obj, row, col, val):
     if sheet_obj:
         try:
@@ -212,7 +208,6 @@ for i, r in enumerate(records):
                 fp.seek(0)
                 st.audio(fp, format='audio/mp3', autoplay=True)
         else:
-            # 구글 시트 데이터가 0~3 범위를 벗어날 경우를 대비한 안전 가드
             try:
                 energy_val = int(r['energy'])
                 if energy_val > 3: energy_val = 3
@@ -220,22 +215,23 @@ for i, r in enumerate(records):
             except:
                 energy_val = 0
             
-            # 🔍 [동탕님 지시사항: 딱 지정된 4가지 상태만 매칭]
+            # 🔍 [HTML 원천 차단] 줄바꿈 기호(\\n)와 순수 문자형 도형만 사용하여 렌더링 오류 원쇄
+            # 아래에서 위로 쌓이는 구조이므로 맨 뒤가 1층, 맨 앞이 4층입니다.
             if energy_val == 0:
-                # 0점: 4층 빨간색
-                stack_html = "".join(["<span class='stack-bar' style='color:#e74c3c;'>▬</span>"] * 4)
+                # 0점: 4층 꽉 찬 기둥
+                pure_stack_text = "▬\n▬\n▬\n▬"
             elif energy_val == 1:
-                # 1점: 3층 주황색
-                stack_html = "".join(["<span class='stack-bar' style='color:#e67e22;'>▬</span>"] * 3)
+                # 1점: 3층 기둥 (맨 위층은 빈 기둥)
+                pure_stack_text = "▭\n▬\n▬\n▬"
             elif energy_val == 2:
-                # 2점: 2층 노란색
-                stack_html = "".join(["<span class='stack-bar' style='color:#f1c40f;'>▬</span>"] * 2)
+                # 2점: 2층 기둥
+                pure_stack_text = "▭\n▭\n▬\n▬"
             else:
-                # 3점: 1층 초록색
-                stack_html = "<span class='stack-bar' style='color:#2ecc71;'>▬</span>"
+                # 3점: 1층 기둥 (완전 암기 완료)
+                pure_stack_text = "▭\n▭\n▭\n▬"
             
-            if st.button(stack_html, key=f"bar_touch_{selected_user}_{i}"):
-                # 💡 0 ➡️ 1 ➡️ 2 ➡️ 3 ➡️ 다시 0 순환 구조 잠금
+            # st.button에 다른 태그 없이 순수 문자열만 바로 전달
+            if st.button(pure_stack_text, key=f"bar_touch_{selected_user}_{i}"):
                 new_energy = energy_val + 1 if energy_val < 3 else 0
                 st.session_state[user_data_key][i]['energy'] = new_energy
                 
