@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🔥 [노안 방지 / 모바일 초고가독성] 글자를 키우고 배경을 어둡게 하여 가독성을 극대화한 CSS
+# [노안 방지 / 모바일 초고가독성] CSS 스타일링
 st.markdown("""
     <style>
     /* 모바일 화면에서 무조건 한 줄(Row)로 배치되도록 강제 고정 */
@@ -25,47 +25,48 @@ st.markdown("""
         gap: 6px !important;
     }
     
-    /* 요소들의 가로 비율 분배 (문장 칸을 조금 더 넓게 확보) */
+    /* 가로 비율 분배 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 6.0 1 0% !important; min-width: 0 !important; } 
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 2.2 1 0% !important; min-width: 0 !important; } 
     div[data-testid="stHorizontalBlock"] > div:nth-child(3) { flex: 1.8 1 0% !important; min-width: 0 !important; } 
     
     /* 제목 스타일 */
     .custom-title {
-        font-size: 26px;
-        font-weight: bold;
-        color: #2c3e50;
-        text-align: center;
-        padding-top: 5px;
-        padding-bottom: 5px;
+        font-size: 26px !important;
+        font-weight: bold !important;
+        color: #2c3e50 !important;
+        text-align: center !important;
+        padding-top: 5px !important;
+        padding-bottom: 5px !important;
     }
     
-    /* 🔍 눈이 편한 문장 버튼 스타일 (대형 글자 + 진한 배경 + 흰색 글씨) */
-    .stButton>button {
-        width: 100%;
-        text-align: left;
-        background-color: #2c3e50 !important; /* 눈이 부시지 않은 진한 남색 배경 */
-        color: #ffffff !important; /* 글씨는 선명한 순백색 */
+    /* 문장 버튼 스타일 (대형 글자 + 진한 배경 + 흰색 글씨) */
+    div.stButton > button {
+        width: 100% !important;
+        text-align: left !important;
+        background-color: #2c3e50 !important;
+        color: #ffffff !important;
         border: none !important;
-        border-radius: 8px;
-        padding: 6px 10px !important; /* 위아래 두께를 최소화하여 촘촘함 유지 */
-        font-size: 21px !important; /* 💡 글자 크기를 모바일 최고 수준으로 확대! */
-        font-weight: 900 !important; /* 글씨 두께를 아주 두껍게 */
-        line-height: 1.2;
+        border-radius: 8px !important;
+        padding: 8px 10px !important;
+        font-size: 24px !important;
+        font-weight: 900 !important;
+        line-height: 1.2 !important;
     }
-    .stButton>button:hover {
+    div.stButton > button:hover {
         background-color: #34495e !important;
-        color: #f1c40f !important; /* 마우스 올리거나 누르면 노란색 글씨로 하이라이트 */
+        color: #f1c40f !important;
     }
     
     /* ➕, ➖ 조절 버튼 및 듣기 버튼 미니화 */
-    div[data-testid="stColumn"] .stButton>button {
-        background-color: #ffffff !important; /* 조절 버튼은 구분되게 흰색 유지 */
+    div[data-testid="stColumn"]:nth-child(2) .stButton>button,
+    div[data-testid="stColumn"]:nth-child(3) .stButton>button {
+        background-color: #ffffff !important;
         color: #2c3e50 !important;
         border: 1px solid #dcdde1 !important;
         padding: 8px 4px !important;
         font-size: 14px !important;
-        text-align: center;
+        text-align: center !important;
     }
     
     /* 구분선 및 전체 여백 촘촘하게 */
@@ -82,8 +83,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 👥 사용자 선택 메뉴
-users = ["우진", "동탕"]
+# 👥 [순서 수정] 동탕님을 명단 맨 앞으로 배치하여 최초 실행 시 바로 뜨게 설정!
+users = ["동탕", "우진"]
 selected_user = st.selectbox("👤 학습자를 선택하세요", users)
 
 # 👑 제목 설정
@@ -158,7 +159,6 @@ for i, r in enumerate(records):
         else:
             energy_val = int(r['energy']) if r['energy'] != "" else 0
             stars = "★" * energy_val + "☆" * (5 - energy_val)
-            # 글자 크기에 맞춰 별 크기도 살짝 보정
             st.write(f"<div style='color:#ff4d4d; font-size:15px; text-align:center; padding-top:6px;'>{stars}</div>", unsafe_allow_html=True)
         
     with col3:
