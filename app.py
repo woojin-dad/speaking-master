@@ -4,7 +4,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import json
 from gtts import gTTS
 import io
-import threading  # 💡 반응속도를 기적적으로 올리기 위한 백그라운드 처리 모듈 추가!
+import threading  # 💡 반응속도 극대화를 위한 백그라운드 모듈 유지
 
 # 1. 웹페이지 기본 설정
 st.set_page_config(
@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🔥 [아이폰 가로 터짐 완벽 방지] 절대 줄바꿈 금지 및 자간 초밀착 CSS
+# 🔥 [신호등 최적화 CSS] 글씨 크기를 맞추고 아이폰 줄바꿈을 완벽 차단
 st.markdown("""
     <style>
     /* 모바일 화면에서 무조건 한 줄(Row)로 배치되도록 강제 고정 */
@@ -26,9 +26,9 @@ st.markdown("""
         gap: 0px !important;
     }
    
-    /* [우측 밀착 비율] 문장 칸과 에너지바 칸 분배 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.2 1 0% !important; min-width: 0 !important; }
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 1.8 1 0% !important; min-width: 0 !important; }
+    /* 🔍 [우측 밀착 비율] 문장 칸(8.0)과 신호등 칸(2.0) 분배 */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.0 1 0% !important; min-width: 0 !important; }
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 2.0 1 0% !important; min-width: 0 !important; }
    
     /* 제목 스타일 */
     .custom-title {
@@ -65,42 +65,38 @@ st.markdown("""
         color: #f1c40f !important;
     }
    
-    /* [에너지바 우측 밀착] 외부 여백 제로화 */
+    /* 🔍 [신호등 버튼 정돈] 우측 정렬 및 배경 초기화 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton {
         text-align: right !important;
     }
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button {
         background-color: #ffffff !important;
-        color: #ff4d4d !important;
         border: none !important;
-        padding: 4px 0px !important;
+        padding: 6px 0px !important;
         width: 100% !important;
         display: flex !important;
         justify-content: flex-end !important; /* 오른쪽 끝 바짝 밀착 */
         align-items: center !important;
     }
    
-    /* [초밀착 + 절대 줄바꿈 금지] 아이폰 줄바꿈 및 자간 공백 파괴 */
+    /* 🔍 신호등 문구 글자 크기 최적화 및 줄바꿈 절대 잠금 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button p,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button div,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button span,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button * {
-        font-size: 28px !important; 
-        font-weight: 900 !important;
-        white-space: nowrap !important; /* 아이폰에서 절대 줄바꿈 안 되도록 강제 잠금!! */
-        letter-spacing: -7px !important; /* 사각형 사이 간격을 극단적으로 조여 초촘촘하게 정렬! */
-        display: inline-block !important;
-        transform: scaleY(1.3) !important; /* 세로 길쭉한 스타일 고정 */
+        font-size: 15px !important; /* 💡 문구와 이모지가 아이폰에서 안 깨지도록 15px 최적화 */
+        font-weight: bold !important;
+        color: #2c3e50 !important;
+        white-space: nowrap !important; /* ❌ 절대 아래 줄로 쪼개지지 않음 */
+        letter-spacing: -0.5px !important;
     }
    
-    /* 원어민 듣기 🔊 버튼 스타일 정돈 */
+    /* 원어민 듣기 🔊 버튼 스타일 리셋 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[help="audio-btn"] * {
         font-size: 16px !important;
         color: #2c3e50 !important;
         font-weight: bold !important;
         white-space: nowrap !important;
-        letter-spacing: normal !important;
-        transform: none !important;
     }
    
     /* 구분선 및 전체 여백 촘촘하게 */
@@ -163,7 +159,7 @@ if user_data_key not in st.session_state:
 records = st.session_state[user_data_key]
 sheet = st.session_state[user_sheet_key]
 
-# 🔍 [마법의 비동기 함수] 구글 시트 업데이트를 별도 스레드에서 조용히 처리
+# 🔍 백그라운드 구글 시트 업데이트 함수 유지
 def save_to_google_sheet(sheet_obj, row, col, val):
     if sheet_obj:
         try:
@@ -175,7 +171,7 @@ def save_to_google_sheet(sheet_obj, row, col, val):
 for i, r in enumerate(records):
     row_idx = i + 2
     
-    col1, col2 = st.columns([8.2, 1.8])
+    col1, col2 = st.columns([8.0, 2.0])
     
     with col1:
         state_key = f"show_{selected_user}_{i}"
@@ -200,22 +196,28 @@ for i, r in enumerate(records):
                 st.audio(fp, format='audio/mp3', autoplay=True)
         else:
             energy_val = int(r['energy']) if r['energy'] != "" else 0
-            rectangles = "▮" * energy_val + "▯" * (5 - energy_val)
             
-            if st.button(rectangles, key=f"bar_touch_{selected_user}_{i}"):
+            # 🔍 [신호등 매칭 시스템 구동]
+            if energy_val == 0: status_icon = "🚨 미암기"
+            elif energy_val == 1: status_icon = "🔴 위험"
+            elif energy_val == 2: status_icon = "🟠 보통"
+            elif energy_val == 3: status_icon = "🟡 가물"
+            elif energy_val == 4: status_icon = "🟢 안심"
+            else: status_icon = "👑 마스터"
+            
+            # 신호등 라벨 버튼 클릭 시 즉시 비동기 업전환
+            if st.button(status_icon, key=f"bar_touch_{selected_user}_{i}"):
                 new_energy = energy_val + 1 if energy_val < 5 else 0
                 
-                # 1단계: 화면(세션 상태) 데이터 즉시 반영! (여기가 빨라집니다)
                 st.session_state[user_data_key][i]['energy'] = new_energy
                 
-                # 2단계: 구글 시트 저장은 백그라운드 '일꾼(Thread)'에게 던져버리고 대기 시간 없이 패스!
+                # 백그라운드 일꾼 작동 (속도 최상 유지)
                 threading.Thread(
                     target=save_to_google_sheet, 
                     args=(sheet, row_idx, 4, new_energy), 
                     daemon=True
                 ).start()
                 
-                # 3단계: 렉 없이 즉각 화면 새로고침
                 st.rerun()
                 
     st.write("---")
