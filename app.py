@@ -4,6 +4,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import json
 from gtts import gTTS
 import io
+import threading  # 💡 반응속도를 기적적으로 올리기 위한 백그라운드 처리 모듈 추가!
 
 # 1. 웹페이지 기본 설정
 st.set_page_config(
@@ -12,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🔥 [아이폰 가로 터짐 완벽 방지] 절대 줄바꿈 금지(nowrap) 및 초밀착 CSS
+# 🔥 [아이폰 가로 터짐 완벽 방지] 절대 줄바꿈 금지 및 자간 초밀착 CSS
 st.markdown("""
     <style>
     /* 모바일 화면에서 무조건 한 줄(Row)로 배치되도록 강제 고정 */
@@ -64,7 +65,7 @@ st.markdown("""
         color: #f1c40f !important;
     }
    
-    /* [에너지바 우측 밀착] */
+    /* [에너지바 우측 밀착] 외부 여백 제로화 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton {
         text-align: right !important;
     }
@@ -79,15 +80,15 @@ st.markdown("""
         align-items: center !important;
     }
    
-    /* 🔍 [초밀착 + 절대 줄바꿈 금지] 아이폰 가로폭 파괴 방지 구역 */
+    /* [초밀착 + 절대 줄바꿈 금지] 아이폰 줄바꿈 및 자간 공백 파괴 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button p,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button div,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button span,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button * {
-        font-size: 30px !important; /* 💡 한 줄 유지를 위해 대왕 크기를 32px에서 30px로 아주 살짝 최적화 */
+        font-size: 28px !important; 
         font-weight: 900 !important;
-        white-space: nowrap !important; /* ❌ 아이폰에서 절대 줄바꿈 안 되도록 강제 잠금!! */
-        letter-spacing: -6px !important; /* 💡 사각형 사이 간격을 기존보다 2배 더 촘촘하게 대밀착! */
+        white-space: nowrap !important; /* 아이폰에서 절대 줄바꿈 안 되도록 강제 잠금!! */
+        letter-spacing: -7px !important; /* 사각형 사이 간격을 극단적으로 조여 초촘촘하게 정렬! */
         display: inline-block !important;
         transform: scaleY(1.3) !important; /* 세로 길쭉한 스타일 고정 */
     }
@@ -162,25 +163,33 @@ if user_data_key not in st.session_state:
 records = st.session_state[user_data_key]
 sheet = st.session_state[user_sheet_key]
 
+# 🔍 [마법의 비동기 함수] 구글 시트 업데이트를 별도 스레드에서 조용히 처리
+def save_to_google_sheet(sheet_obj, row, col, val):
+    if sheet_obj:
+        try:
+            sheet_obj.update_cell(row, col, str(val))
+        except:
+            pass
+
 # 3. 화면에 문장 리스트 출력
 for i, r in enumerate(records):
     row_idx = i + 2
-   
+    
     col1, col2 = st.columns([8.2, 1.8])
-   
+    
     with col1:
         state_key = f"show_{selected_user}_{i}"
         if state_key not in st.session_state:
             st.session_state[state_key] = False
-           
+            
         is_english = st.session_state[state_key]
         text_content = r['en'] if is_english else r['kr']
         btn_label = f"{r['id']}. {text_content}"
-       
+        
         if st.button(btn_label, key=f"sentence_{selected_user}_{i}"):
             st.session_state[state_key] = not st.session_state[state_key]
             st.rerun()
-           
+            
     with col2:
         if is_english:
             if st.button("🔊", key=f"audio_{selected_user}_{i}", help="audio-btn"):
@@ -192,15 +201,21 @@ for i, r in enumerate(records):
         else:
             energy_val = int(r['energy']) if r['energy'] != "" else 0
             rectangles = "▮" * energy_val + "▯" * (5 - energy_val)
-           
+            
             if st.button(rectangles, key=f"bar_touch_{selected_user}_{i}"):
                 new_energy = energy_val + 1 if energy_val < 5 else 0
+                
+                # 1단계: 화면(세션 상태) 데이터 즉시 반영! (여기가 빨라집니다)
                 st.session_state[user_data_key][i]['energy'] = new_energy
-                if sheet:
-                    try:
-                        sheet.update_cell(row_idx, 4, str(new_energy))
-                    except:
-                        pass
+                
+                # 2단계: 구글 시트 저장은 백그라운드 '일꾼(Thread)'에게 던져버리고 대기 시간 없이 패스!
+                threading.Thread(
+                    target=save_to_google_sheet, 
+                    args=(sheet, row_idx, 4, new_energy), 
+                    daemon=True
+                ).start()
+                
+                # 3단계: 렉 없이 즉각 화면 새로고침
                 st.rerun()
-               
+                
     st.write("---")
