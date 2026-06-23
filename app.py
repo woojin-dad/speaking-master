@@ -102,4 +102,47 @@ for i, r in enumerate(records):
     
     with col1:
         state_key = f"show_{selected_user}_{i}"
-        if state_key not in st.
+        # 🛠️ 잘려 있던 st.session_state 부분을 빈틈없이 메웠습니다!
+        if state_key not in st.session_state:
+            st.session_state[state_key] = False
+            
+        text_content = r['en'] if st.session_state[state_key] else r['kr']
+        btn_label = f"{r['id']}. {text_content}"
+        
+        if st.button(btn_label, key=f"sentence_{selected_user}_{i}"):
+            st.session_state[state_key] = not st.session_state[state_key]
+            st.rerun()
+            
+    with col2:
+        energy_val = int(r['energy']) if r['energy'] != "" else 0
+        stars = "★" * energy_val + "☆" * (5 - energy_val)
+        st.write(f"<div style='color:#f1c40f; font-size:20px; text-align:center; padding-top:10px;'>{stars}</div>", unsafe_allow_html=True)
+        
+    with col3:
+        st.write("<div style='padding-top:4px;'></div>", unsafe_allow_html=True)
+        b1, b2 = st.columns(2)
+        with b1:
+            if st.button("➕", key=f"plus_{selected_user}_{i}"):
+                current_energy = int(r['energy']) if r['energy'] != "" else 0
+                if current_energy < 5:
+                    new_energy = current_energy + 1
+                    st.session_state[user_data_key][i]['energy'] = new_energy
+                    if sheet:
+                        try:
+                            sheet.update_cell(row_idx, 4, str(new_energy))
+                        except:
+                            pass
+                    st.rerun()
+        with b2:
+            if st.button("➖", key=f"minus_{selected_user}_{i}"):
+                current_energy = int(r['energy']) if r['energy'] != "" else 0
+                if current_energy > 0:
+                    new_energy = current_energy - 1
+                    st.session_state[user_data_key][i]['energy'] = new_energy
+                    if sheet:
+                        try:
+                            sheet.update_cell(row_idx, 4, str(new_energy))
+                        except:
+                            pass
+                    st.rerun()
+    st.write("---")
