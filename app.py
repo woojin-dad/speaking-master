@@ -2,7 +2,7 @@ import streamlit as st
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import json
-from gtts import gTTS  # 🔊 원어민 음성 변환 라이브러리 추가
+from gtts import gTTS
 import io
 
 # 1. 웹페이지 기본 설정
@@ -99,7 +99,6 @@ sheet = st.session_state[user_sheet_key]
 for i, r in enumerate(records):
     row_idx = i + 2
     
-    # 레이아웃 비율 조정 (듣기 버튼 공간 확보)
     col1, col2, col3 = st.columns([5.5, 2.5, 2])
     
     with col1:
@@ -116,47 +115,16 @@ for i, r in enumerate(records):
             st.rerun()
             
     with col2:
-        # 영어 정답 화면일 때만 듣기 버튼 노출, 아닐 때는 별 모양 노출
         if is_english:
             st.write("<div style='padding-top:4px;'></div>", unsafe_allow_html=True)
             if st.button("🔊 듣기", key=f"audio_{selected_user}_{i}"):
-                # 구글 음성 생성 (영어 발음)
                 tts = gTTS(text=r['en'], lang='en')
                 fp = io.BytesIO()
                 tts.write_to_fp(fp)
                 fp.seek(0)
-                # 스트림릿 오디오 컴포넌트로 자동 재생 효과
                 st.audio(fp, format='audio/mp3', autoplay=True)
         else:
             energy_val = int(r['energy']) if r['energy'] != "" else 0
             stars = "★" * energy_val + "☆" * (5 - energy_val)
-            st.write(f"<div style='color:#f1c40f; font-size:20px; text-align:center; padding-top:10px;'>{stars}</div>", unsafe_allow_html=True)
-        
-    with col3:
-        st.write("<div style='padding-top:4px;'></div>", unsafe_allow_html=True)
-        b1, b2 = st.columns(2)
-        with b1:
-            if st.button("➕", key=f"plus_{selected_user}_{i}"):
-                current_energy = int(r['energy']) if r['energy'] != "" else 0
-                if current_energy < 5:
-                    new_energy = current_energy + 1
-                    st.session_state[user_data_key][i]['energy'] = new_energy
-                    if sheet:
-                        try:
-                            sheet.update_cell(row_idx, 4, str(new_energy))
-                        except:
-                            pass
-                    st.rerun()
-        with b2:
-            if st.button("➖", key=f"minus_{selected_user}_{i}"):
-                current_energy = int(r['energy']) if r['energy'] != "" else 0
-                if current_energy > 0:
-                    new_energy = current_energy - 1
-                    st.session_state[user_data_key][i]['energy'] = new_energy
-                    if sheet:
-                        try:
-                            sheet.update_cell(row_idx, 4, str(new_energy))
-                        except:
-                            pass
-                    st.rerun()
-    st.write("---")
+            # 🔍 [색상 수정] #f1c40f(노란색)를 #ff4d4d(강렬한 빨간색)으로 전격 변경!
+            st.write(f"<div style='color:#ff4d4d; font-size:20px; text-align:center; padding-top:10px;'>{stars}</div>", unsafe_
