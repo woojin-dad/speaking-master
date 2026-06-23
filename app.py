@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🔥 [박스 내부 매립형 CSS] 100% 통짜 버튼 및 내부 양끝 정렬 최적화
+# 🔥 [최종 완결 CSS] 순수 텍스트 정렬을 지원하는 문장 박스 스타일
 st.markdown("""
     <style>
     /* 제목 스타일 */
@@ -25,41 +25,26 @@ st.markdown("""
         padding-bottom: 5px !important;
     }
    
-    /* 🔍 문장 버튼이 가로 화면을 100% 꽉 채우고 내부 요소를 양끝으로 배치 */
+    /* 🔍 문장 버튼이 가로 화면을 100% 꽉 채우도록 정돈 */
     div.stButton > button {
         width: 100% !important;
-        display: flex !important;
-        flex-direction: row !important;
-        align-items: center !important;
-        justify-content: space-between !important; /* 글자는 왼쪽, 에너지바는 오른쪽 끝 고정 */
+        text-align: left !important;
         background-color: #2c3e50 !important; /* 진한 남색 배경 */
         border: none !important;
         border-radius: 8px !important;
         padding: 10px 14px !important;
     }
    
-    /* 🔍 문장 버튼 내부의 글자 크기 및 스타일 (22px) */
+    /* 🔍 박스 내부의 모든 텍스트(문장 + 에너지바) 스타일 일괄 지정 */
     div.stButton > button p,
     div.stButton > button div,
-    div.stButton > button span {
-        font-size: 22px !important;
+    div.stButton > button span,
+    div.stButton > button * {
+        font-size: 22px !important; /* 동탕님 눈이 편안한 크기 */
         font-weight: 900 !important;
         color: #ffffff !important;
         line-height: 1.2 !important;
-        text-align: left !important;
-        white-space: nowrap !important; /* 문장 기본 줄바꿈 방지 */
-    }
-    
-    /* 🔍 박스 내부 오른쪽에 들어갈 에너지바(텍스트 이모지) 스타일 정의 */
-    .inner-bars {
-        font-size: 26px !important; /* 대왕 크기 유지 */
-        color: #ff4d4d !important; /* 선명한 빨간색 */
-        font-weight: 900 !important;
-        letter-spacing: -4px !important; /* 사각형 사이 초밀착 */
-        white-space: nowrap !important; /* 아이폰에서 절대 줄바꿈 금지 */
-        display: inline-block !important;
-        transform: scaleY(1.2) !important; /* 세로로 길쭉하게 확장 */
-        padding-left: 10px !important;
+        white-space: pre !important; /* 💡 여백 공백(Space)을 압축하지 않고 그대로 유지하는 핵심 규칙 */
     }
    
     div.stButton > button:hover * {
@@ -155,17 +140,19 @@ for i, r in enumerate(records):
     # 🔍 세로 직사각형 이모지 세팅
     rectangles = "▮" * energy_val + "▯" * (5 - energy_val)
     
-    # 💡 [핵심 연동 개조] 버튼 하나 안에 문장과 에너지바를 HTML로 완벽 결합
-    # 양끝 정렬(flex) 규칙 덕분에 문장은 왼쪽, 에너지바는 무조건 오른쪽 끝에 붙습니다.
-    button_html = f"""
-        <div style='display: flex; justify-content: space-between; align-items: center; width: 100%;'>
-            <span>{r['id']}. {text_content}</span>
-            <span class='inner-bars'>{rectangles}</span>
-        </div>
-    """
+    # 💡 [문자열 마법] HTML 없이 파이썬 계산으로 문장은 왼쪽, 에너지바는 오른쪽 끝에 배치
+    # 모바일 표준 해상도 기준(약 26자 공간)으로 문장 뒤에 자동으로 빈 공백을 계산해 채워 넣습니다.
+    left_text = f"{r['id']}. {text_content}"
     
-    # 한국어/영어 전환 및 에너지 점수 토글 통합 제어
-    if st.button(button_html, key=f"sentence_block_{selected_user}_{i}", unsafe_allow_html=True):
+    if is_english:
+        # 영어일 때는 오디오 버튼이 아래에 따로 있으므로 우측 정렬만 깔끔하게 처리
+        btn_label = f"{left_text:<20}{rectangles:>5}"
+    else:
+        # 한국어일 때는 터치 정렬을 위해 공백을 넉넉히 주어 양끝으로 밀어냅니다.
+        btn_label = f"{left_text:<18}   {rectangles:>5}"
+    
+    # 🔍 에러가 나던 unsafe_allow_html을 완전히 삭제하고 순수 텍스트 라벨로 실행!
+    if st.button(btn_label, key=f"sentence_block_{selected_user}_{i}"):
         if is_english:
             # 영어 상태일 때는 누르면 다시 한국어 상태로 리셋
             st.session_state[state_key] = False
