@@ -50,7 +50,7 @@ st.markdown("""
         padding: 6px 10px !important;
     }
    
-    /* 🔍 [2단계] 버튼 내부의 모든 글자 텍스트 태그들을 30px로 강제 확대!! */
+    /* 🔍 [2단계] 버튼 내부의 모든 글자 텍스트 태그들을 22px로 강제 확대!! */
     div.stButton > button p,
     div.stButton > button div,
     div.stButton > button span,
@@ -66,7 +66,7 @@ st.markdown("""
         color: #f1c40f !important;
     }
    
-    /* ➕, ➖ 조절 버튼 및 듣기 버튼 미니화 (여기는 작게 유지해야 문장 칸이 넓어집니다) */
+    /* ➕, ➖ 조절 버튼 및 듣기 버튼 미니화 */
     div[data-testid="stColumn"]:nth-child(2) .stButton>button,
     div[data-testid="stColumn"]:nth-child(3) .stButton>button {
         background-color: #ffffff !important;
@@ -143,22 +143,22 @@ sheet = st.session_state[user_sheet_key]
 # 3. 화면에 문장 리스트 출력
 for i, r in enumerate(records):
     row_idx = i + 2
-   
+    
     col1, col2, col3 = st.columns([6.0, 2.2, 1.8])
-   
+    
     with col1:
         state_key = f"show_{selected_user}_{i}"
         if state_key not in st.session_state:
             st.session_state[state_key] = False
-           
+            
         is_english = st.session_state[state_key]
         text_content = r['en'] if is_english else r['kr']
         btn_label = f"{r['id']}. {text_content}"
-       
+        
         if st.button(btn_label, key=f"sentence_{selected_user}_{i}"):
             st.session_state[state_key] = not st.session_state[state_key]
             st.rerun()
-           
+            
     with col2:
         if is_english:
             if st.button("🔊 듣기", key=f"audio_{selected_user}_{i}"):
@@ -169,9 +169,11 @@ for i, r in enumerate(records):
                 st.audio(fp, format='audio/mp3', autoplay=True)
         else:
             energy_val = int(r['energy']) if r['energy'] != "" else 0
-            stars = "★" * energy_val + "☆" * (5 - energy_val)
-            st.write(f"<div style='color:#ff4d4d; font-size:15px; text-align:center; padding-top:6px;'>{stars}</div>", unsafe_allow_html=True)
-       
+            # 🔍 [변경 완료] 별표 대신 선명하고 눈에 잘 띄는 세로 직사각형(▮, ▯) 주입!
+            rectangles = "▮" * energy_val + "▯" * (5 - energy_val)
+            # 사각형이 더 두툼하게 잘 보이도록 글씨 크기를 18px로 소폭 키우고 자간을 좁혔습니다.
+            st.write(f"<div style='color:#ff4d4d; font-size:18px; text-align:center; padding-top:4px; letter-spacing:-1px;'>{rectangles}</div>", unsafe_allow_html=True)
+        
     with col3:
         b1, b2 = st.columns(2)
         with b1:
