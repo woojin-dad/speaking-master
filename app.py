@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# [노안 방지 / 모바일 초고가독성] CSS 스타일링
+# 🔥 [글자 크기 초강력 강제 적용] 모든 루트를 차단하고 문장 글씨를 무조건 키우는 CSS
 st.markdown("""
     <style>
     /* 모바일 화면에서 무조건 한 줄(Row)로 배치되도록 강제 고정 */
@@ -40,33 +40,44 @@ st.markdown("""
         padding-bottom: 5px !important;
     }
     
-    /* 문장 버튼 스타일 (대형 글자 + 진한 배경 + 흰색 글씨) */
+    /* 🔍 [1단계] 문장 버튼 자체 크기 강제 고정 */
     div.stButton > button {
         width: 100% !important;
         text-align: left !important;
-        background-color: #2c3e50 !important;
-        color: #ffffff !important;
+        background-color: #2c3e50 !important; /* 진한 남색 배경 */
         border: none !important;
         border-radius: 8px !important;
-        padding: 8px 10px !important;
-        font-size: 30px !important;
-        font-weight: 900 !important;
+        padding: 6px 10px !important;
+    }
+    
+    /* 🔍 [2단계] 버튼 내부의 모든 글자 텍스트 태그들을 30px로 강제 확대!! */
+    div.stButton > button p,
+    div.stButton > button div,
+    div.stButton > button span,
+    div.stButton > button * {
+        font-size: 30px !important; /* 💡 시원시원한 대형 글자 크기 주입! */
+        font-weight: 900 !important; /* 아주 두껍게 */
+        color: #ffffff !important; /* 흰색 글씨 */
         line-height: 1.2 !important;
     }
-    div.stButton > button:hover {
-        background-color: #34495e !important;
+    
+    /* 마우스 올렸을 때 하이라이트 */
+    div.stButton > button:hover * {
         color: #f1c40f !important;
     }
     
-    /* ➕, ➖ 조절 버튼 및 듣기 버튼 미니화 */
+    /* ➕, ➖ 조절 버튼 및 듣기 버튼 미니화 (여기는 작게 유지해야 문장 칸이 넓어집니다) */
     div[data-testid="stColumn"]:nth-child(2) .stButton>button,
     div[data-testid="stColumn"]:nth-child(3) .stButton>button {
         background-color: #ffffff !important;
-        color: #2c3e50 !important;
         border: 1px solid #dcdde1 !important;
         padding: 8px 4px !important;
+    }
+    div[data-testid="stColumn"]:nth-child(2) .stButton>button *,
+    div[data-testid="stColumn"]:nth-child(3) .stButton>button * {
         font-size: 14px !important;
-        text-align: center !important;
+        color: #2c3e50 !important;
+        font-weight: normal !important;
     }
     
     /* 구분선 및 전체 여백 촘촘하게 */
@@ -83,7 +94,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 👥 [순서 수정] 동탕님을 명단 맨 앞으로 배치하여 최초 실행 시 바로 뜨게 설정!
+# 👥 사용자 선택 메뉴
 users = ["동탕", "우진"]
 selected_user = st.selectbox("👤 학습자를 선택하세요", users)
 
