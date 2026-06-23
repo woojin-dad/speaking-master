@@ -17,7 +17,7 @@ st.markdown("""
     <style>
     /* 👑 제목 글씨 크기 조정 및 스타일 */
     .custom-title {
-        font-size: 28px; /* 기존보다 크기를 적당하게 줄였습니다 */
+        font-size: 28px;
         font-weight: bold;
         color: #2c3e50;
         text-align: center;
@@ -57,11 +57,13 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+st.title("👑 스피킹 마스터 👑")
+
 # 사용자 선택 메뉴 (타이틀 연동을 위해 위로 배치)
 users = ["우진", "동탕"]
 selected_user = st.selectbox("👤 학습자를 선택하세요", users)
 
-# 👑 선택한 사용자에 따라 제목이 바뀌도록 설정 (글씨 크기 축소 반영)
+# 👑 선택한 사용자에 따라 제목이 바뀌도록 설정
 st.markdown(f"<div class='custom-title'>👑 {selected_user}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
 
 st.write(f"💡 **{selected_user}**의 문장 리스트입니다. 문장을 누르면 영어로 변환됩니다.")
@@ -108,61 +110,3 @@ sheet = st.session_state[user_sheet_key]
 # 3. 화면에 문장 리스트 출력
 for i, r in enumerate(records):
     row_idx = i + 2
-    
-    col1, col2, col3 = st.columns([5.5, 2.5, 2])
-    
-    with col1:
-        state_key = f"show_{selected_user}_{i}"
-        if state_key not in st.session_state:
-            st.session_state[state_key] = False
-            
-        is_english = st.session_state[state_key]
-        text_content = r['en'] if is_english else r['kr']
-        btn_label = f"{r['id']}. {text_content}"
-        
-        if st.button(btn_label, key=f"sentence_{selected_user}_{i}"):
-            st.session_state[state_key] = not st.session_state[state_key]
-            st.rerun()
-            
-    with col2:
-        if is_english:
-            st.write("<div style='padding-top:4px;'></div>", unsafe_allow_html=True)
-            if st.button("🔊 듣기", key=f"audio_{selected_user}_{i}"):
-                tts = gTTS(text=r['en'], lang='en')
-                fp = io.BytesIO()
-                tts.write_to_fp(fp)
-                fp.seek(0)
-                st.audio(fp, format='audio/mp3', autoplay=True)
-        else:
-            energy_val = int(r['energy']) if r['energy'] != "" else 0
-            stars = "★" * energy_val + "☆" * (5 - energy_val)
-            st.write(f"<div style='color:#2ecc71; font-size:20px; text-align:center; padding-top:10px;'>{stars}</div>", unsafe_allow_html=True)
-        
-    with col3:
-        st.write("<div style='padding-top:4px;'></div>", unsafe_allow_html=True)
-        b1, b2 = st.columns(2)
-        with b1:
-            if st.button("➕", key=f"plus_{selected_user}_{i}"):
-                current_energy = int(r['energy']) if r['energy'] != "" else 0
-                if current_energy < 5:
-                    new_energy = current_energy + 1
-                    st.session_state[user_data_key][i]['energy'] = new_energy
-                    if sheet:
-                        try:
-                            sheet.update_cell(row_idx, 4, str(new_energy))
-                        except:
-                            pass
-                    st.rerun()
-        with b2:
-            if st.button("➖", key=f"minus_{selected_user}_{i}"):
-                current_energy = int(r['energy']) if r['energy'] != "" else 0
-                if current_energy > 0:
-                    new_energy = current_energy - 1
-                    st.session_state[user_data_key][i]['energy'] = new_energy
-                    if sheet:
-                        try:
-                            sheet.update_cell(row_idx, 4, str(new_energy))
-                        except:
-                            pass
-                    st.rerun()
-    st.write("---")
