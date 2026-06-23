@@ -13,7 +13,18 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🔥 [순수 대왕 아이콘 CSS] 글씨를 제거하고 아이콘 크기만 32px로 정돈
+# 💡 [핵심 추가] 스마트폰에서 손가락으로 화면을 쭉쭉 확대(Zoom)할 수 있도록 허용하는 메타 태그 주입!
+# user-scalable=yes 설정을 주어 모바일 브라우저의 확대 잠금을 강제로 해제합니다.
+st.markdown("""
+    <script>
+        var meta = document.createElement('meta');
+        meta.name = 'viewport';
+        meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
+        document.getElementsByTagName('head')[0].appendChild(meta);
+    </script>
+""", unsafe_allow_html=True)
+
+# 🔥 [순수 대왕 아이콘 CSS] 스타일 유지
 st.markdown("""
     <style>
     /* 모바일 화면에서 무조건 한 줄(Row)로 배치되도록 강제 고정 */
@@ -26,7 +37,7 @@ st.markdown("""
         gap: 0px !important;
     }
    
-    /* 🔍 [우측 밀착 비율] 문장 칸(8.5)과 신호등 칸(1.5) 분배 (가로폭 추가 절약) */
+    /* [우측 밀착 비율] 문장 칸(8.5)과 신호등 칸(1.5) 분배 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.5 1 0% !important; min-width: 0 !important; }
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 1.5 1 0% !important; min-width: 0 !important; }
    
@@ -75,16 +86,16 @@ st.markdown("""
         padding: 4px 0px !important;
         width: 100% !important;
         display: flex !important;
-        justify-content: flex-end !important; /* 오른쪽 끝 바짝 밀착 */
+        justify-content: flex-end !important;
         align-items: center !important;
     }
    
-    /* 🔍 아이콘 폰트 크기만 32px 대왕 크기로 고정 */
+    /* 아이콘 폰트 크기 32px 대왕 크기 고정 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button p,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button div,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button span,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button * {
-        font-size: 32px !important; /* 💡 아이콘 크기 웅장하게 확대 */
+        font-size: 32px !important;
         white-space: nowrap !important;
         display: inline-block !important;
     }
@@ -194,7 +205,6 @@ for i, r in enumerate(records):
         else:
             energy_val = int(r['energy']) if r['energy'] != "" else 0
             
-            # 🔍 글씨를 완전히 빼버리고 순수 이모지만 깔끔하게 할당!
             if energy_val == 0: status_icon = "🚨"
             elif energy_val == 1: status_icon = "🔴"
             elif energy_val == 2: status_icon = "🟠"
@@ -206,7 +216,6 @@ for i, r in enumerate(records):
                 new_energy = energy_val + 1 if energy_val < 5 else 0
                 st.session_state[user_data_key][i]['energy'] = new_energy
                 
-                # 비동기 백그라운드 처리 유지
                 threading.Thread(
                     target=save_to_google_sheet, 
                     args=(sheet, row_idx, 4, new_energy), 
