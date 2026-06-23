@@ -55,7 +55,7 @@ st.markdown("""
     div.stButton > button div,
     div.stButton > button span,
     div.stButton > button * {
-        font-size: 30px !important; /* 💡 시원시원한 대형 글자 크기 주입! */
+        font-size: 22px !important; /* 💡 시원시원한 대형 글자 크기 주입! */
         font-weight: 900 !important; /* 아주 두껍게 */
         color: #ffffff !important; /* 흰색 글씨 */
         line-height: 1.2 !important;
