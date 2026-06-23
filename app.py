@@ -23,7 +23,7 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 🔥 [간격 조절 CSS] 문장 박스와 우측 탑 사이의 여백(gap)을 넓힘
+# 🔥 [레이아웃 미세 조정 CSS] 박스 간격을 넓히고 에너지를 우측 끝으로 완전히 밀착
 st.markdown("""
     <style>
     /* 모바일 화면에서 무조건 한 줄(Row)로 배치되도록 강제 고정 */
@@ -33,12 +33,12 @@ st.markdown("""
         flex-wrap: nowrap !important;
         align-items: center !important;
         justify-content: space-between !important;
-        gap: 15px !important; /* 💡 너무 밀착되지 않도록 두 구역 사이 간격을 15px로 기분 좋게 벌림 */
+        gap: 25px !important; /* 💡 두 구역 사잇간격을 25px로 대폭 늘려 숨통을 확실히 틔움 */
     }
    
-    /* 🔍 [비율 최적화] 여백이 생긴 만큼 문장 칸(8.0)과 우측 탑 칸(2.0)을 안정적으로 분배 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.0 1 0% !important; min-width: 0 !important; }
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 2.0 1 0% !important; min-width: 0 !important; }
+    /* 🔍 [공간 재분배] 문장 칸(7.8)과 우측 탑 칸(2.2)의 비율을 조절하여 탑이 오른쪽 끝으로 가도록 유도 */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 7.8 1 0% !important; min-width: 0 !important; }
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 2.2 1 0% !important; min-width: 0 !important; }
    
     /* 제목 스타일 */
     .custom-title {
@@ -77,6 +77,7 @@ st.markdown("""
     /* [우측 게이지 버튼 정돈] 우측 정렬 및 투명화 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton {
         text-align: right !important;
+        width: 100% !important;
     }
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button {
         background-color: #ffffff !important;
@@ -84,7 +85,7 @@ st.markdown("""
         padding: 0px !important;
         width: 100% !important;
         display: flex !important;
-        justify-content: flex-end !important; /* 오른쪽 정렬 유지 */
+        justify-content: flex-end !important; /* 💡 무조건 우측 끝 벽면 밀착 */
         align-items: center !important;
     }
    
@@ -97,7 +98,7 @@ st.markdown("""
         white-space: pre-line !important;
         line-height: 1.0 !important;
         text-align: center !important;
-        padding-right: 4px !important; /* 💡 화면 오른쪽 끝에 완전히 닿지 않도록 미세한 오른쪽 마진 추가 */
+        padding-right: 0px !important; /* 내부 마진을 없애 오른쪽 끝 라인에 딱 붙도록 수정 */
     }
    
     /* 원어민 듣기 🔊 버튼 스타일 유지 */
@@ -180,7 +181,7 @@ def save_to_google_sheet(sheet_obj, row, col, val):
 for i, r in enumerate(records):
     row_idx = i + 2
     
-    col1, col2 = st.columns([8.0, 2.0])
+    col1, col2 = st.columns([7.8, 2.2])
     
     with col1:
         state_key = f"show_{selected_user}_{i}"
