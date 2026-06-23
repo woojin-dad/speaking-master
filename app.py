@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🔥 [글자 크기 초강력 강제 적용] 모든 루트를 차단하고 문장 글씨를 무조건 키우는 CSS
+# 🔥 [여백 파괴] 문장 박스와 막대기 사이의 공백을 최소화하는 CSS
 st.markdown("""
     <style>
     /* 모바일 화면에서 무조건 한 줄(Row)로 배치되도록 강제 고정 */
@@ -22,13 +22,13 @@ st.markdown("""
         flex-wrap: nowrap !important;
         align-items: center !important;
         justify-content: space-between !important;
-        gap: 6px !important;
+        gap: 4px !important; /* 요소 사이의 간격을 4px로 극단적으로 줄임 */
     }
    
-    /* 가로 비율 분배 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 6.0 1 0% !important; min-width: 0 !important; }
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 2.2 1 0% !important; min-width: 0 !important; }
-    div[data-testid="stHorizontalBlock"] > div:nth-child(3) { flex: 1.8 1 0% !important; min-width: 0 !important; }
+    /* 🔍 [비율 대조정] 문장 칸을 7.5로 대폭 늘리고, 막대기와 조절 버튼 칸을 빽빽하게 밀착 */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 7.5 1 0% !important; min-width: 0 !important; }
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 1.3 1 0% !important; min-width: 0 !important; }
+    div[data-testid="stHorizontalBlock"] > div:nth-child(3) { flex: 1.2 1 0% !important; min-width: 0 !important; }
    
     /* 제목 스타일 */
     .custom-title {
@@ -40,7 +40,7 @@ st.markdown("""
         padding-bottom: 5px !important;
     }
    
-    /* 🔍 [1단계] 문장 버튼 자체 크기 강제 고정 */
+    /* 문장 버튼 자체 크기 강제 고정 */
     div.stButton > button {
         width: 100% !important;
         text-align: left !important;
@@ -50,14 +50,14 @@ st.markdown("""
         padding: 6px 10px !important;
     }
    
-    /* 🔍 [2단계] 버튼 내부의 모든 글자 텍스트 태그들을 22px로 강제 확대!! */
+    /* 버튼 내부의 모든 글자 텍스트 태그들을 22px로 강제 확대!! */
     div.stButton > button p,
     div.stButton > button div,
     div.stButton > button span,
     div.stButton > button * {
-        font-size: 22px !important; /* 💡 시원시원한 대형 글자 크기 주입! */
-        font-weight: 900 !important; /* 아주 두껍게 */
-        color: #ffffff !important; /* 흰색 글씨 */
+        font-size: 22px !important; 
+        font-weight: 900 !important; 
+        color: #ffffff !important; 
         line-height: 1.2 !important;
     }
    
@@ -71,7 +71,7 @@ st.markdown("""
     div[data-testid="stColumn"]:nth-child(3) .stButton>button {
         background-color: #ffffff !important;
         border: 1px solid #dcdde1 !important;
-        padding: 8px 4px !important;
+        padding: 8px 2px !important; /* 가로 패딩을 줄여 공간 확보 */
     }
     div[data-testid="stColumn"]:nth-child(2) .stButton>button *,
     div[data-testid="stColumn"]:nth-child(3) .stButton>button * {
@@ -79,6 +79,22 @@ st.markdown("""
         color: #2c3e50 !important;
         font-weight: normal !important;
     }
+    
+    /* 직접 그리는 세로 막대기 디자인 컨테이너 */
+    .bar-container {
+        display: flex !important;
+        justify-content: center !important;
+        gap: 2px !important; /* 막대기 사이 간격도 촘촘하게 */
+        padding-top: 4px !important;
+    }
+    /* 세로 길이 조절 구역 */
+    .energy-bar {
+        width: 6px !important;       /* 가로 두께를 살짝 줄여 공간 절약 */
+        height: 26px !important;     /* 세로 길이는 웅장하게 유지 */
+        border-radius: 1px !important;
+    }
+    .bar-filled { background-color: #ff4d4d !important; } /* 채워진 칸: 불타는 빨간색 */
+    .bar-empty { background-color: #dcdde1 !important; }  /* 비어있는 칸: 은은한 연회색 */
    
     /* 구분선 및 전체 여백 촘촘하게 */
     hr { margin: 6px 0px !important; padding: 0px !important; }
@@ -144,7 +160,8 @@ sheet = st.session_state[user_sheet_key]
 for i, r in enumerate(records):
     row_idx = i + 2
     
-    col1, col2, col3 = st.columns([6.0, 2.2, 1.8])
+    # 💡 비율을 [6.0, 2.2, 1.8]에서 [7.5, 1.3, 1.2]로 획기적으로 조정한 칸 배치!
+    col1, col2, col3 = st.columns([7.5, 1.3, 1.2])
     
     with col1:
         state_key = f"show_{selected_user}_{i}"
@@ -161,7 +178,7 @@ for i, r in enumerate(records):
             
     with col2:
         if is_english:
-            if st.button("🔊 듣기", key=f"audio_{selected_user}_{i}"):
+            if st.button("🔊", key=f"audio_{selected_user}_{i}"): # 글자를 '🔊'로 축소하여 밀착 유도
                 tts = gTTS(text=r['en'], lang='en')
                 fp = io.BytesIO()
                 tts.write_to_fp(fp)
@@ -169,10 +186,14 @@ for i, r in enumerate(records):
                 st.audio(fp, format='audio/mp3', autoplay=True)
         else:
             energy_val = int(r['energy']) if r['energy'] != "" else 0
-            # 🔍 [변경 완료] 별표 대신 선명하고 눈에 잘 띄는 세로 직사각형(▮, ▯) 주입!
-            rectangles = "▮" * energy_val + "▯" * (5 - energy_val)
-            # 사각형이 더 두툼하게 잘 보이도록 글씨 크기를 18px로 소폭 키우고 자간을 좁혔습니다.
-            st.write(f"<div style='color:#ff4d4d; font-size:18px; text-align:center; padding-top:4px; letter-spacing:-1px;'>{rectangles}</div>", unsafe_allow_html=True)
+            
+            bar_html = "<div class='bar-container'>"
+            for b in range(5):
+                bar_class = "bar-filled" if b < energy_val else "bar-empty"
+                bar_html += f"<div class='energy-bar {bar_class}'></div>"
+            bar_html += "</div>"
+            
+            st.write(bar_html, unsafe_allow_html=True)
         
     with col3:
         b1, b2 = st.columns(2)
