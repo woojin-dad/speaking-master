@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🔥 [버튼 최소화 및 터치형 게이지] ➕, ➖를 제거하고 막대기 클릭 스타일을 입힌 CSS
+# 🔥 [스타일 최적화] HTML 직접 주입형 터치 게이지 레이아웃 CSS
 st.markdown("""
     <style>
     /* 모바일 화면에서 무조건 한 줄(Row)로 배치되도록 강제 고정 */
@@ -25,9 +25,9 @@ st.markdown("""
         gap: 6px !important;
     }
    
-    /* 🔍 [공간 효율 극대화] 문장 칸에 8.5를 몰아주고 막대기 칸은 1.5만 차지 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.5 1 0% !important; min-width: 0 !important; }
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 1.5 1 0% !important; min-width: 0 !important; }
+    /* [비율 고정] 문장 칸과 우측 터치 게이지 칸 분배 */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.3 1 0% !important; min-width: 0 !important; }
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 1.7 1 0% !important; min-width: 0 !important; }
    
     /* 제목 스타일 */
     .custom-title {
@@ -59,22 +59,19 @@ st.markdown("""
         color: #ffffff !important; 
         line-height: 1.2 !important;
     }
-    
-    /* 🔍 터치 버튼(세로 막대기 구역) 스타일 투명 껍데기화 */
-    div[data-testid="stColumn"]:nth-child(2) .stButton>button {
-        background-color: transparent !important;
-        border: none !important;
-        padding: 0px !important;
-        margin: 0px !important;
-        width: 100% !important;
-        height: 38px !important;
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
-    }
    
     div.stButton > button:hover * {
         color: #f1c40f !important;
+    }
+    
+    /* 🔍 깨짐 방지용 새로운 링크형 터치 구역 디자인 */
+    .touch-link {
+        display: block !important;
+        text-decoration: none !important;
+        width: 100% !important;
+        height: 38px !important;
+        padding-top: 6px !important;
+        cursor: pointer;
     }
     
     /* 직접 그리는 세로 막대기 디자인 컨테이너 */
@@ -156,8 +153,7 @@ sheet = st.session_state[user_sheet_key]
 for i, r in enumerate(records):
     row_idx = i + 2
     
-    # 💡 컬럼을 3개에서 2개([8.5, 1.5])로 줄여 가로 폭을 시원하게 통일!
-    col1, col2 = st.columns([8.5, 1.5])
+    col1, col2 = st.columns([8.3, 1.7])
     
     with col1:
         state_key = f"show_{selected_user}_{i}"
@@ -183,16 +179,26 @@ for i, r in enumerate(records):
         else:
             energy_val = int(r['energy']) if r['energy'] != "" else 0
             
-            # HTML로 세로 막대기 그래픽 생성
+            # 🔍 깨짐 현상을 완전히 방지하기 위해 HTML 순수 코드로 화면을 그리고 스트림릿 버튼 기능 연동
             bar_html = "<div class='bar-container'>"
             for b in range(5):
                 bar_class = "bar-filled" if b < energy_val else "bar-empty"
                 bar_html += f"<div class='energy-bar {bar_class}'></div>"
             bar_html += "</div>"
             
-            # 🔍 막대기 구역 자체를 하나의 큰 버튼으로 만들어 터치 인식!
-            if st.button(bar_html, key=f"bar_touch_{selected_user}_{i}"):
-                # 💡 0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 다시 0점 순환 구조
+            # 스트림릿 내장 버튼 대신 투명 껍데기 레이블을 활용해 깨짐을 완벽 방지하고 터치 감지
+            if st.button("", key=f"bar_touch_{selected_user}_{i}", help="에너지 조절"):
+                pass # CSS 처리를 위해 빈 버튼 생성
+                
+            # 실제 눈에 보이는 그래픽을 버튼 위에 깨끗하게 덮어씌우고 터치 이벤트는 아래 영역에서 낚아챔
+            st.markdown(f"""
+                <div style='margin-top: -38px; position: relative; z-index: 999;'>
+                    {bar_html}
+                </div>
+            """, unsafe_allow_html=True)
+            
+            # 투명 버튼을 감지하여 에너지를 1씩 올리거나 0으로 리셋하는 로직 (코드 분리 안전화)
+            if st.session_state.get(f"bar_touch_{selected_user}_{i}"):
                 new_energy = energy_val + 1 if energy_val < 5 else 0
                 st.session_state[user_data_key][i]['energy'] = new_energy
                 if sheet:
