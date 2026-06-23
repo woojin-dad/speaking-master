@@ -4,7 +4,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import json
 from gtts import gTTS
 import io
-import threading  # 백그라운드 초고속 모듈 유지
+import threading  # 백그라운드 초고속 저장 모듈 유지
 
 # 1. 웹페이지 기본 설정
 st.set_page_config(
@@ -13,8 +13,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 💡 [핵심 추가] 스마트폰에서 손가락으로 화면을 쭉쭉 확대(Zoom)할 수 있도록 허용하는 메타 태그 주입!
-# user-scalable=yes 설정을 주어 모바일 브라우저의 확대 잠금을 강제로 해제합니다.
+# 💡 모바일 스크린 확대 허용 메타 태그 유지
 st.markdown("""
     <script>
         var meta = document.createElement('meta');
@@ -24,7 +23,7 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 🔥 [순수 대왕 아이콘 CSS] 스타일 유지
+# 🔥 [수직 적층형 CSS] 가로 막대기를 위로 쌓고 색상을 다채롭게 제어
 st.markdown("""
     <style>
     /* 모바일 화면에서 무조건 한 줄(Row)로 배치되도록 강제 고정 */
@@ -37,9 +36,9 @@ st.markdown("""
         gap: 0px !important;
     }
    
-    /* [우측 밀착 비율] 문장 칸(8.5)과 신호등 칸(1.5) 분배 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.5 1 0% !important; min-width: 0 !important; }
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 1.5 1 0% !important; min-width: 0 !important; }
+    /* [우측 밀착 비율] 문장 칸(8.4)과 빌딩 게이지 칸(1.6) 분배 */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.4 1 0% !important; min-width: 0 !important; }
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 1.6 1 0% !important; min-width: 0 !important; }
    
     /* 제목 스타일 */
     .custom-title {
@@ -48,7 +47,6 @@ st.markdown("""
         color: #2c3e50 !important;
         text-align: center !important;
         padding-top: 5px !important;
-        padding-bottom: 5px !important;
     }
    
     /* 문장 버튼 자체 크기 강제 고정 */
@@ -76,28 +74,38 @@ st.markdown("""
         color: #f1c40f !important;
     }
    
-    /* [신호등 버튼 정돈] 우측 정렬 및 배경 투명화 */
+    /* [우측 빌딩 게이지 버튼 정돈] 우측 정렬 및 투명화 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton {
         text-align: right !important;
     }
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button {
         background-color: #ffffff !important;
         border: none !important;
-        padding: 4px 0px !important;
+        padding: 0px !important;
         width: 100% !important;
         display: flex !important;
-        justify-content: flex-end !important;
+        justify-content: flex-end !important; /* 오른쪽 끝 밀착 */
         align-items: center !important;
     }
    
-    /* 아이콘 폰트 크기 32px 대왕 크기 고정 */
+    /* 버튼 내부 조각들을 수직 위아래(column-reverse)로 쌓기 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button p,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button div,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button span,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button * {
-        font-size: 32px !important;
+        display: flex !important;
+        flex-direction: column-reverse !important; /* 아래에서부터 위로 층층이 쌓임 */
+        align-items: center !important;
+        justify-content: center !important;
         white-space: nowrap !important;
-        display: inline-block !important;
+        gap: 1px !important;
+    }
+    
+    /* 가로 두툼 막대기 글자 크기 최적화 */
+    .stack-bar {
+        font-size: 22px !important;
+        line-height: 0.6 !important;
+        display: block !important;
     }
    
     /* 원어민 듣기 🔊 버튼 스타일 유지 */
@@ -105,6 +113,7 @@ st.markdown("""
         font-size: 16px !important;
         color: #2c3e50 !important;
         font-weight: bold !important;
+        flex-direction: row !important;
     }
    
     /* 구분선 및 전체 여백 촘촘하게 */
@@ -179,7 +188,7 @@ def save_to_google_sheet(sheet_obj, row, col, val):
 for i, r in enumerate(records):
     row_idx = i + 2
     
-    col1, col2 = st.columns([8.5, 1.5])
+    col1, col2 = st.columns([8.4, 1.6])
     
     with col1:
         state_key = f"show_{selected_user}_{i}"
@@ -203,17 +212,31 @@ for i, r in enumerate(records):
                 fp.seek(0)
                 st.audio(fp, format='audio/mp3', autoplay=True)
         else:
-            energy_val = int(r['energy']) if r['energy'] != "" else 0
+            # 구글 시트 데이터가 0~3 범위를 벗어날 경우를 대비한 안전 가드
+            try:
+                energy_val = int(r['energy'])
+                if energy_val > 3: energy_val = 3
+                elif energy_val < 0: energy_val = 0
+            except:
+                energy_val = 0
             
-            if energy_val == 0: status_icon = "🚨"
-            elif energy_val == 1: status_icon = "🔴"
-            elif energy_val == 2: status_icon = "🟠"
-            elif energy_val == 3: status_icon = "🟡"
-            elif energy_val == 4: status_icon = "🟢"
-            else: status_icon = "👑"
+            # 🔍 [동탕님 지시사항: 딱 지정된 4가지 상태만 매칭]
+            if energy_val == 0:
+                # 0점: 4층 빨간색
+                stack_html = "".join(["<span class='stack-bar' style='color:#e74c3c;'>▬</span>"] * 4)
+            elif energy_val == 1:
+                # 1점: 3층 주황색
+                stack_html = "".join(["<span class='stack-bar' style='color:#e67e22;'>▬</span>"] * 3)
+            elif energy_val == 2:
+                # 2점: 2층 노란색
+                stack_html = "".join(["<span class='stack-bar' style='color:#f1c40f;'>▬</span>"] * 2)
+            else:
+                # 3점: 1층 초록색
+                stack_html = "<span class='stack-bar' style='color:#2ecc71;'>▬</span>"
             
-            if st.button(status_icon, key=f"bar_touch_{selected_user}_{i}"):
-                new_energy = energy_val + 1 if energy_val < 5 else 0
+            if st.button(stack_html, key=f"bar_touch_{selected_user}_{i}"):
+                # 💡 0 ➡️ 1 ➡️ 2 ➡️ 3 ➡️ 다시 0 순환 구조 잠금
+                new_energy = energy_val + 1 if energy_val < 3 else 0
                 st.session_state[user_data_key][i]['energy'] = new_energy
                 
                 threading.Thread(
