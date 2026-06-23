@@ -3,17 +3,16 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import json
 
-# 1. 웹페이지 기본 설정 (메뉴와 툴바를 강제로 비활성화하는 옵션 포함)
+# 1. 웹페이지 기본 설정
 st.set_page_config(
     page_title="스피킹 마스터", 
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# [강력 조치] 스트림릿 하단 회색 바, 풀스크린 버튼, 모든 뱃지를 박멸하는 CSS
+# 대시보드 스타일링 (CSS)
 st.markdown("""
     <style>
-    /* 기존 버튼 스타일 */
     .stButton>button {
         width: 100%;
         text-align: left;
@@ -28,29 +27,22 @@ st.markdown("""
         border-color: #3498db;
         color: #3498db;
     }
-    
-    /* 1. 하단 상태 바 및 툴바 관련 모든 태그 강제 삭제 */
-    #MainMenu {visibility: hidden !important;}
-    footer {visibility: hidden !important; height: 0px !important; padding: 0px !important; margin: 0px !important;}
-    header {visibility: hidden !important; height: 0px !important;}
-    
-    /* 2. 최신 스트림릿 버전의 하단 회색 바(StatusWidget 및 ViewerBadge) 무조건 삭제 */
     [data-testid="stStatusWidget"] {display: none !important; visibility: hidden !important;}
-    div[data-testid="stDecoration"] {display: none !important; visibility: hidden !important;}
-    .viewerBadge {display: none !important;}
+    footer {visibility: hidden !important; height: 0px !important; padding: 0px !important;}
+    header {visibility: hidden !important; height: 0px !important;}
     .stAppDeployButton {display: none !important;}
-    
-    /* 3. 오른쪽 끝 Fullscreen 버튼을 포함한 툴바 영역 숨김 */
+    div[data-testid="stDecoration"] {display: none !important; visibility: hidden !important;}
     [data-testid="stToolbar"] {display: none !important; visibility: hidden !important;}
-    div[class^="st-emotion-cache"] footer {display: none !important;}
-    
-    /* 전체 화면 여백 정리 */
-    .block-container {padding-bottom: 1rem !important;}
     </style>
 """, unsafe_allow_html=True)
 
 st.title("👑 스피킹 마스터 👑")
-st.write("💡 문장을 누르면 영어로 변환됩니다. 잘 안 외외지면 에너지를 조절하세요!")
+
+# 👥 [핵심] 사용자 선택 메뉴 추가 (구글 시트 탭 이름과 정확히 일치해야 합니다)
+users = ["우진", "동탕"]
+selected_user = st.selectbox("👤 학습자를 선택하세요", users)
+
+st.write(f"💡 **{selected_user}**의 문장 리스트입니다. 문장을 누르면 영어로 변환됩니다.")
 st.write("---")
 
 # 2. 구글 시트 연동 설정
@@ -61,24 +53,29 @@ def init_gspread():
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     return gspread.authorize(creds)
 
-if "gspread_sheet" not in st.session_state:
+# 사용자가 바뀔 때마다 해당 탭의 데이터를 새로 고정하기 위해 세션 구조 변경
+user_data_key = f"records_{selected_user}"
+user_sheet_key = f"sheet_{selected_user}"
+
+if user_sheet_key not in st.session_state or st.session_state[user_sheet_key] is None:
     try:
         client = init_gspread()
-        st.session_state["gspread_sheet"] = client.open("SpeakingMaster").sheet1
+        # 선택된 사용자의 이름과 똑같은 '탭(워크시트)'을 엽니다.
+        st.session_state[user_sheet_key] = client.open("SpeakingMaster").worksheet(selected_user)
     except:
-        st.session_state["gspread_sheet"] = None
+        st.session_state[user_sheet_key] = None
 
-if "records_data" not in st.session_state:
-    if st.session_state["gspread_sheet"]:
+if user_data_key not in st.session_state:
+    if st.session_state[user_sheet_key]:
         try:
-            st.session_state["records_data"] = st.session_state["gspread_sheet"].get_all_records()
+            st.session_state[user_data_key] = st.session_state[user_sheet_key].get_all_records()
         except:
-            st.session_state["records_data"] = []
+            st.session_state[user_data_key] = []
     else:
-        st.session_state["records_data"] = []
+        st.session_state[user_data_key] = []
 
-records = st.session_state["records_data"]
-sheet = st.session_state["gspread_sheet"]
+records = st.session_state[user_data_key]
+sheet = st.session_state[user_sheet_key]
 
 # 3. 화면에 문장 리스트 출력
 for i, r in enumerate(records):
@@ -87,13 +84,15 @@ for i, r in enumerate(records):
     col1, col2, col3 = st.columns([5, 3, 2])
     
     with col1:
-        if f"show_{i}" not in st.session_state:
-            st.session_state[f"show_{i}"] = False
+        # 사용자별로 스위칭 버튼 상태 분리
+        state_key = f"show_{selected_user}_{i}"
+        if state_key not in st.session_state:
+            st.session_state[state_key] = False
             
-        btn_label = f"{r['id']}. {r['en']}" if st.session_state[f"show_{i}"] else f"{r['id']}. {r['kr']}"
+        btn_label = f"{r['id']}. {r['en']}" if st.session_state[state_key] else f"{r['id']}. {r['kr']}"
         
-        if st.button(btn_label, key=f"sentence_{i}"):
-            st.session_state[f"show_{i}"] = not st.session_state[f"show_{i}"]
+        if st.button(btn_label, key=f"sentence_{selected_user}_{i}"):
+            st.session_state[state_key] = not st.session_state[state_key]
             st.rerun()
             
     with col2:
@@ -104,11 +103,11 @@ for i, r in enumerate(records):
     with col3:
         b1, b2 = st.columns(2)
         with b1:
-            if st.button("➕", key=f"plus_{i}"):
+            if st.button("➕", key=f"plus_{selected_user}_{i}"):
                 current_energy = int(r['energy']) if r['energy'] != "" else 0
                 if current_energy < 5:
                     new_energy = current_energy + 1
-                    st.session_state["records_data"][i]['energy'] = new_energy
+                    st.session_state[user_data_key][i]['energy'] = new_energy
                     if sheet:
                         try:
                             sheet.update_cell(row_idx, 4, str(new_energy))
@@ -116,11 +115,11 @@ for i, r in enumerate(records):
                             pass
                     st.rerun()
         with b2:
-            if st.button("➖", key=f"minus_{i}"):
+            if st.button("➖", key=f"minus_{selected_user}_{i}"):
                 current_energy = int(r['energy']) if r['energy'] != "" else 0
                 if current_energy > 0:
                     new_energy = current_energy - 1
-                    st.session_state["records_data"][i]['energy'] = new_energy
+                    st.session_state[user_data_key][i]['energy'] = new_energy
                     if sheet:
                         try:
                             sheet.update_cell(row_idx, 4, str(new_energy))
