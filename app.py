@@ -15,6 +15,15 @@ st.set_page_config(
 # 대시보드 스타일링 (CSS)
 st.markdown("""
     <style>
+    /* 👑 제목 글씨 크기 조정 및 스타일 */
+    .custom-title {
+        font-size: 28px; /* 기존보다 크기를 적당하게 줄였습니다 */
+        font-weight: bold;
+        color: #2c3e50;
+        text-align: center;
+        padding-bottom: 10px;
+    }
+    
     /* 문장 버튼 스타일 */
     .stButton>button {
         width: 100%;
@@ -48,11 +57,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("👑 스피킹 마스터 👑")
-
-# 사용자 선택 메뉴
+# 사용자 선택 메뉴 (타이틀 연동을 위해 위로 배치)
 users = ["우진", "동탕"]
 selected_user = st.selectbox("👤 학습자를 선택하세요", users)
+
+# 👑 선택한 사용자에 따라 제목이 바뀌도록 설정 (글씨 크기 축소 반영)
+st.markdown(f"<div class='custom-title'>👑 {selected_user}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
 
 st.write(f"💡 **{selected_user}**의 문장 리스트입니다. 문장을 누르면 영어로 변환됩니다.")
 st.write("---")
@@ -126,7 +136,6 @@ for i, r in enumerate(records):
         else:
             energy_val = int(r['energy']) if r['energy'] != "" else 0
             stars = "★" * energy_val + "☆" * (5 - energy_val)
-            # 🔍 [여기가 잘려있던 부분입니다!] 눈이 편안한 초록색(#2ecc71)으로 깔끔하게 마감 완료!
             st.write(f"<div style='color:#2ecc71; font-size:20px; text-align:center; padding-top:10px;'>{stars}</div>", unsafe_allow_html=True)
         
     with col3:
