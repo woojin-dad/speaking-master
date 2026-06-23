@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🔥 [가로 공간 제로화] 버튼을 한 줄로 통일하고 가동성을 극대화한 CSS
+# 🔥 [2안 적용] 가로 100% 문장 배치 + 하단 미니 컨트롤 바 CSS
 st.markdown("""
     <style>
     /* 제목 스타일 */
@@ -25,19 +25,17 @@ st.markdown("""
         padding-bottom: 5px !important;
     }
     
-    /* 🔍 문장 버튼 내부 레이아웃 정렬 (한글/영어는 왼쪽, 번개와 버튼은 오른쪽) */
+    /* 🔍 문장 버튼이 가로 화면을 100% 꽉 채우도록 설정 */
     div.stButton > button {
         width: 100% !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important; /* 양끝 정렬 */
+        text-align: left !important;
         background-color: #2c3e50 !important; /* 진한 남색 배경 */
         border: none !important;
         border-radius: 8px !important;
         padding: 10px 14px !important;
     }
     
-    /* 문장 글자 크기 및 스타일 (22px로 보기 좋게 최적화) */
+    /* 문장 글자 크기 및 스타일 (22px로 시원하게 확대) */
     div.stButton > button p,
     div.stButton > button div,
     div.stButton > button span,
@@ -45,38 +43,31 @@ st.markdown("""
         font-size: 22px !important; 
         font-weight: 900 !important; 
         color: #ffffff !important; 
-        line-height: 1.2 !important;
+        line-height: 1.3 !important;
     }
     
-    /* ➕, ➖ 조절 미니 버튼 스타일 (문장 오른쪽에 배치용) */
-    .sub-btn {
+    /* ➕, ➖ 조절 미니 버튼 및 듣기 버튼 스타일 (하단 정렬용) */
+    div[data-testid="stHorizontalBlock"] .stButton>button {
         background-color: #ffffff !important;
         color: #2c3e50 !important;
         border: 1px solid #dcdde1 !important;
-        border-radius: 4px !important;
-        padding: 2px 8px !important;
+        border-radius: 6px !important;
+        padding: 4px 10px !important;
         font-size: 14px !important;
         font-weight: bold !important;
-        margin-left: 4px !important;
-        cursor: pointer;
+        text-align: center !important;
     }
     
-    /* 번개 이모지 스타일 */
-    .energy-display {
-        font-size: 16px !important;
-        color: #ff4d4d !important; /* 불타는 빨간색 계열 유지 */
-        margin-right: 10px !important;
-        letter-spacing: 2px;
-    }
-    
-    /* 조절 버튼 구역 크기 고정 */
-    div[data-testid="stColumn"] {
-        padding: 0px !important;
-        margin: 0px !important;
+    /* 하단 정렬 구역의 가로 컴포넌트 여백 최소화 */
+    div[data-testid="stHorizontalBlock"] {
+        align-items: center !important;
+        gap: 10px !important;
+        margin-top: -4px !important; /* 문장 바로 아래에 붙도록 조정 */
+        padding-left: 5px !important;
     }
     
     /* 구분선 및 전체 여백 촘촘하게 */
-    hr { margin: 6px 0px !important; padding: 0px !important; }
+    hr { margin: 8px 0px !important; padding: 0px !important; }
     .block-container { padding-top: 1rem !important; padding-bottom: 1rem !important; }
     
     /* 하단 플랫폼 메뉴 완벽 차단 */
@@ -139,62 +130,61 @@ sheet = st.session_state[user_sheet_key]
 for i, r in enumerate(records):
     row_idx = i + 2
     
-    # 💡 컬럼 분할을 없애고 1개의 가로 칸으로 통일합니다!
-    col1, col2 = st.columns([8.2, 1.8])
+    state_key = f"show_{selected_user}_{i}"
+    if state_key not in st.session_state:
+        st.session_state[state_key] = False
+        
+    is_english = st.session_state[state_key]
+    text_content = r['en'] if is_english else r['kr']
     
-    with col1:
-        state_key = f"show_{selected_user}_{i}"
-        if state_key not in st.session_state:
-            st.session_state[state_key] = False
-            
-        is_english = st.session_state[state_key]
-        text_content = r['en'] if is_english else r['kr']
+    # 1단계: 문장 버튼을 가로 100% 단독으로 배치
+    btn_label = f"{r['id']}. {text_content}"
+    if st.button(btn_label, key=f"sentence_{selected_user}_{i}"):
+        st.session_state[state_key] = not st.session_state[state_key]
+        st.rerun()
         
-        # 에너지 번개 및 미 점수 세팅
-        energy_val = int(r['energy']) if r['energy'] != "" else 0
-        lightning_stars = "⚡" * energy_val + "·" * (5 - energy_val)
+    # 2단계: 문장 버튼 바로 아래에 조절 바 레이아웃 배치
+    energy_val = int(r['energy']) if r['energy'] != "" else 0
+    lightning_stars = "⚡" * energy_val + "·" * (5 - energy_val)
+    
+    # 하단 바 구역 분할 (번개 및 조절 버튼)
+    sub_col1, sub_col2, sub_col3 = st.columns([4, 3, 3])
+    
+    with sub_col1:
+        # 번개 표시를 아래쪽에 아담하게 노출
+        st.write(f"<div style='color:#ff4d4d; font-size:16px; font-weight:bold; padding-top:4px;'>{lightning_stars}</div>", unsafe_allow_html=True)
         
-        # 버튼 하나로 통합 구현
-        btn_label = f"{r['id']}. {text_content}"
-        if st.button(btn_label, key=f"sentence_{selected_user}_{i}"):
-            st.session_state[state_key] = not st.session_state[state_key]
-            st.rerun()
-            
-    with col2:
-        # 가로 공간을 방해하지 않도록 맨 우측에 번개와 조절 버튼을 수직 배치
+    with sub_col2:
         if is_english:
-            if st.button("🔊", key=f"audio_{selected_user}_{i}"):
+            if st.button("🔊 원어민 듣기", key=f"audio_{selected_user}_{i}"):
                 tts = gTTS(text=r['en'], lang='en')
                 fp = io.BytesIO()
                 tts.write_to_fp(fp)
                 fp.seek(0)
                 st.audio(fp, format='audio/mp3', autoplay=True)
         else:
-            # ➕, ➖ 버튼 세로 미니 배치
-            st.write(f"<div style='color:#ff4d4d; font-size:13px; text-align:center;'>{lightning_stars}</div>", unsafe_allow_html=True)
-            b1, b2 = st.columns(2)
-            with b1:
-                if st.button("+", key=f"plus_{selected_user}_{i}"):
-                    current_energy = int(r['energy']) if r['energy'] != "" else 0
-                    if current_energy < 5:
-                        new_energy = current_energy + 1
-                        st.session_state[user_data_key][i]['energy'] = new_energy
-                        if sheet:
-                            try:
-                                sheet.update_cell(row_idx, 4, str(new_energy))
-                            except:
-                                pass
-                        st.rerun()
-            with b2:
-                if st.button("-", key=f"minus_{selected_user}_{i}"):
-                    current_energy = int(r['energy']) if r['energy'] != "" else 0
-                    if current_energy > 0:
-                        new_energy = current_energy - 1
-                        st.session_state[user_data_key][i]['energy'] = new_energy
-                        if sheet:
-                            try:
-                                sheet.update_cell(row_idx, 4, str(new_energy))
-                            except:
-                                pass
-                        st.rerun()
+            if st.button("➕ 에너지", key=f"plus_{selected_user}_{i}"):
+                if energy_val < 5:
+                    new_energy = energy_val + 1
+                    st.session_state[user_data_key][i]['energy'] = new_energy
+                    if sheet:
+                        try:
+                            sheet.update_cell(row_idx, 4, str(new_energy))
+                        except:
+                            pass
+                    st.rerun()
+                    
+    with sub_col3:
+        if not is_english:
+            if st.button("➖ 에너지", key=f"minus_{selected_user}_{i}"):
+                if energy_val > 0:
+                    new_energy = energy_val - 1
+                    st.session_state[user_data_key][i]['energy'] = new_energy
+                    if sheet:
+                        try:
+                            sheet.update_cell(row_idx, 4, str(new_energy))
+                        except:
+                            pass
+                    st.rerun()
+                    
     st.write("---")
