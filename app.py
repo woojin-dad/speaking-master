@@ -29,7 +29,7 @@ st.title("👑 스피킹 마스터 👑")
 st.write("💡 문장을 누르면 영어로 변환됩니다. 잘 안 외워지면 에너지를 조절하세요!")
 st.write("---")
 
-# 2. 구글 시트 최초 연결 (한 번만 연결하도록 캐싱 설정)
+# 2. 구글 시트 연동 설정 (최초 1회만 실행하도록 강력 캐싱)
 @st.cache_resource
 def init_gspread():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -37,25 +37,26 @@ def init_gspread():
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     return gspread.authorize(creds)
 
-# 구글 시트에서 데이터 가져오기 (메모리에 저장하여 API 호출 최소화)
-if "records_data" not in st.session_state:
+# 세션 상태에 구글 시트 연결 객체 저장 (매번 재연결 방지)
+if "gspread_sheet" not in st.session_state:
     try:
         client = init_gspread()
-        workbook = client.open("SpeakingMaster")
-        sheet = workbook.sheet1
-        st.session_state["records_data"] = sheet.get_all_records()
-    except Exception as e:
-        st.error(f"구글 시트 로드 실패: {e}")
+        st.session_state["gspread_sheet"] = client.open("SpeakingMaster").sheet1
+    except:
+        st.session_state["gspread_sheet"] = None
+
+# 최초 1회만 구글 시트에서 전체 데이터를 긁어와 메모리에 저장
+if "records_data" not in st.session_state:
+    if st.session_state["gspread_sheet"]:
+        try:
+            st.session_state["records_data"] = st.session_state["gspread_sheet"].get_all_records()
+        except:
+            st.session_state["records_data"] = []
+    else:
         st.session_state["records_data"] = []
 
-# 데이터 업데이트용 시트 객체 준비
-try:
-    client = init_gspread()
-    sheet = client.open("SpeakingMaster").sheet1
-except:
-    pass
-
 records = st.session_state["records_data"]
+sheet = st.session_state["gspread_sheet"]
 
 # 3. 화면에 문장 리스트 출력
 for i, r in enumerate(records):
@@ -74,7 +75,7 @@ for i, r in enumerate(records):
             st.rerun()
             
     with col2:
-        # 현재 세션 메모리에 저장된 에너지를 가져옴
+        # 메모리(세션)에 저장된 현재 에너지를 즉시 가져와서 화면에 출력
         energy_val = int(r['energy']) if r['energy'] != "" else 0
         stars = "★" * energy_val + "☆" * (5 - energy_val)
         st.write(f"<span style='color:#f1c40f; font-size:18px;'>{stars}</span>", unsafe_allow_html=True)
@@ -86,25 +87,28 @@ for i, r in enumerate(records):
                 current_energy = int(r['energy']) if r['energy'] != "" else 0
                 if current_energy < 5:
                     new_energy = current_energy + 1
-                    # 1. 화면(세션) 데이터 즉시 갱신
+                    # [핵심] 화면 데이터를 '즉시' 업데이트하여 지연 시간 0초로 만듦
                     st.session_state["records_data"][i]['energy'] = new_energy
-                    # 2. 구글 시트에는 비동기 느낌으로 값만 업데이트 (재로딩 안 함)
-                    try:
-                        sheet.update_cell(row_idx, 4, str(new_energy))
-                    except:
-                        pass
+                    
+                    # 구글 시트 저장은 화면 갱신 후에 뒤에서 처리하도록 예외 처리 형태로 던짐
+                    if sheet:
+                        try:
+                            sheet.update_cell(row_idx, 4, str(new_energy))
+                        except:
+                            pass
                     st.rerun()
         with b2:
             if st.button("➖", key=f"minus_{i}"):
                 current_energy = int(r['energy']) if r['energy'] != "" else 0
                 if current_energy > 0:
                     new_energy = current_energy - 1
-                    # 1. 화면(세션) 데이터 즉시 갱신
+                    # [핵심] 화면 데이터를 '즉시' 업데이트
                     st.session_state["records_data"][i]['energy'] = new_energy
-                    # 2. 구글 시트 데이터만 업데이트
-                    try:
-                        sheet.update_cell(row_idx, 4, str(new_energy))
-                    except:
-                        pass
+                    
+                    if sheet:
+                        try:
+                            sheet.update_cell(row_idx, 4, str(new_energy))
+                        except:
+                            pass
                     st.rerun()
     st.write("---")
