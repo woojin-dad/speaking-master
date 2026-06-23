@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🔥 [버그 제로 CSS] HTML 주입을 없애고 순수 텍스트 에너지바를 길쭉하게 늘려 우측 밀착
+# 🔥 [레이아웃 최적화 CSS] ➕, ➖ 버튼을 없애고 문장과 터치바를 정돈
 st.markdown("""
     <style>
     /* 모바일 화면에서 무조건 한 줄(Row)로 배치되도록 강제 고정 */
@@ -22,12 +22,12 @@ st.markdown("""
         flex-wrap: nowrap !important;
         align-items: center !important;
         justify-content: space-between !important;
-        gap: 2px !important; /* 간격을 최소화하여 밀착 */
+        gap: 6px !important;
     }
    
-    /* 🔍 [우측 밀착 비율] 문장 칸에 8.4를 주고, 에너지바 칸은 1.6만 주어 맨 오른쪽 끝으로 밀어붙임 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.4 1 0% !important; min-width: 0 !important; }
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 1.6 1 0% !important; min-width: 0 !important; }
+    /* 🔍 [비율 재조정] 버튼이 빠진 자리를 문장 칸(7.5)으로 넓게 배정 */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 7.5 1 0% !important; min-width: 0 !important; }
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 2.5 1 0% !important; min-width: 0 !important; }
    
     /* 제목 스타일 */
     .custom-title {
@@ -54,9 +54,9 @@ st.markdown("""
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button div,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button span,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button * {
-        font-size: 22px !important; 
-        font-weight: 900 !important; 
-        color: #ffffff !important; 
+        font-size: 22px !important;
+        font-weight: 900 !important;
+        color: #ffffff !important;
         line-height: 1.2 !important;
     }
    
@@ -64,30 +64,20 @@ st.markdown("""
         color: #f1c40f !important;
     }
    
-    /* 🔍 [에너지바 버튼 스타일] 테두리를 없애고 우측 정렬 */
+    /* 🔍 우측 터치형 에너지바 버튼 스타일 (흰색 바탕에 테두리 제거로 깔끔하게) */
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button {
         background-color: #ffffff !important;
-        color: #ff4d4d !important; /* 불타는 빨간색 */
+        color: #ff4d4d !important;
         border: none !important;
         padding: 4px 0px !important;
         width: 100% !important;
-        display: flex !important;
-        justify-content: flex-end !important; /* 오른쪽 끝으로 밀착 */
-        align-items: center !important;
     }
-    
-    /* 🔍 [세로로 길쭉하게 늘리기] 에너지바 이모지 텍스트 크기를 28px로 키우고 세로 비율 강제 확대 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button * {
-        font-size: 28px !important; /* 💡 크기를 확 키워서 세로로 길쭉하게 만듭니다 */
-        font-weight: 900 !important;
-        letter-spacing: -2px !important; /* 사각형 사이 간격을 촘촘하게 밀착 */
-        display: inline-block !important;
-        transform: scaleY(1.3) !important; /* 💡 세로 길이만 위아래로 1.3배 더 길쭉하게 늘리는 마법 */
-    }
-    
-    /* 비어있는 사각형(▯)은 은은한 회색으로 보이도록 리셋 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button:not(:hover) {
-        text-shadow: none !important;
+   
+    /* 원어민 듣기 🔊 버튼 스타일 정돈 */
+    .audio-btn * {
+        font-size: 16px !important;
+        color: #2c3e50 !important;
+        font-weight: bold !important;
     }
    
     /* 구분선 및 전체 여백 촘촘하게 */
@@ -153,26 +143,26 @@ sheet = st.session_state[user_sheet_key]
 # 3. 화면에 문장 리스트 출력
 for i, r in enumerate(records):
     row_idx = i + 2
-    
-    col1, col2 = st.columns([8.4, 1.6])
-    
+   
+    # 💡 컬럼을 3개에서 2개([7.5, 2.5])로 줄여 가로 폭을 깔끔하게 정돈!
+    col1, col2 = st.columns([7.5, 2.5])
+   
     with col1:
         state_key = f"show_{selected_user}_{i}"
         if state_key not in st.session_state:
             st.session_state[state_key] = False
-            
+           
         is_english = st.session_state[state_key]
         text_content = r['en'] if is_english else r['kr']
         btn_label = f"{r['id']}. {text_content}"
-        
+       
         if st.button(btn_label, key=f"sentence_{selected_user}_{i}"):
             st.session_state[state_key] = not st.session_state[state_key]
             st.rerun()
-            
+           
     with col2:
         if is_english:
-            if st.button("🔊", key=f"audio_{selected_user}_{i}"):
-                st.markdown("<style>div[key*='audio_'] > button { background-color: #ffffff !important; border: 1px solid #dcdde1 !important; font-size:16px !important; justify-content:center !important; }</style>", unsafe_allow_html=True)
+            if st.button("🔊 듣기", key=f"audio_{selected_user}_{i}", help="audio-btn"):
                 tts = gTTS(text=r['en'], lang='en')
                 fp = io.BytesIO()
                 tts.write_to_fp(fp)
@@ -180,11 +170,12 @@ for i, r in enumerate(records):
                 st.audio(fp, format='audio/mp3', autoplay=True)
         else:
             energy_val = int(r['energy']) if r['energy'] != "" else 0
-            # 🔍 깨질 위험이 없는 순수 문자 사각형 주입 (▮: 채워짐, ▯: 비어있음)
+            # 별표 대신 길쭉하고 직관적인 세로 직사각형 이모지 적용
             rectangles = "▮" * energy_val + "▯" * (5 - energy_val)
-            
-            # 버튼 텍스트로 안전하게 집어넣어 클릭 감지
+           
+            # 🔍 에너지바 구역을 버튼으로 만들어 터치 시 늘어나도록 설정
             if st.button(rectangles, key=f"bar_touch_{selected_user}_{i}"):
+                # 0칸에서 5칸까지 순차 증가, 5칸에서 누르면 다시 0칸으로 초기화!
                 new_energy = energy_val + 1 if energy_val < 5 else 0
                 st.session_state[user_data_key][i]['energy'] = new_energy
                 if sheet:
@@ -193,5 +184,5 @@ for i, r in enumerate(records):
                     except:
                         pass
                 st.rerun()
-                
+               
     st.write("---")
