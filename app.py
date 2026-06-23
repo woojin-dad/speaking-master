@@ -32,7 +32,7 @@ st.markdown("""
     
     /* 제목 스타일 */
     .custom-title {
-        font-size: 30px !important;
+        font-size: 26px !important;
         font-weight: bold !important;
         color: #2c3e50 !important;
         text-align: center !important;
