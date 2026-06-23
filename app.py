@@ -12,9 +12,23 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🔥 [최종 완결 CSS] 순수 텍스트 정렬을 지원하는 문장 박스 스타일
+# 🔥 [아이폰 가로 터짐 완벽 방지] 절대 줄바꿈 금지(nowrap) 및 초밀착 CSS
 st.markdown("""
     <style>
+    /* 모바일 화면에서 무조건 한 줄(Row)로 배치되도록 강제 고정 */
+    div[data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 0px !important;
+    }
+   
+    /* [우측 밀착 비율] 문장 칸과 에너지바 칸 분배 */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.2 1 0% !important; min-width: 0 !important; }
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 1.8 1 0% !important; min-width: 0 !important; }
+   
     /* 제목 스타일 */
     .custom-title {
         font-size: 26px !important;
@@ -25,44 +39,67 @@ st.markdown("""
         padding-bottom: 5px !important;
     }
    
-    /* 🔍 문장 버튼이 가로 화면을 100% 꽉 채우도록 정돈 */
-    div.stButton > button {
+    /* 문장 버튼 자체 크기 강제 고정 */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {
         width: 100% !important;
         text-align: left !important;
         background-color: #2c3e50 !important; /* 진한 남색 배경 */
         border: none !important;
         border-radius: 8px !important;
-        padding: 10px 14px !important;
+        padding: 8px 10px !important;
     }
    
-    /* 🔍 박스 내부의 모든 텍스트(문장 + 에너지바) 스타일 일괄 지정 */
-    div.stButton > button p,
-    div.stButton > button div,
-    div.stButton > button span,
-    div.stButton > button * {
-        font-size: 22px !important; /* 동탕님 눈이 편안한 크기 */
+    /* 문장 버튼 내부의 글자 확대 (22px) */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button p,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button div,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button span,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button * {
+        font-size: 22px !important;
         font-weight: 900 !important;
         color: #ffffff !important;
         line-height: 1.2 !important;
-        white-space: pre !important; /* 💡 여백 공백(Space)을 압축하지 않고 그대로 유지하는 핵심 규칙 */
     }
    
-    div.stButton > button:hover * {
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button:hover * {
         color: #f1c40f !important;
     }
    
-    /* 원어민 듣기용 미니 버튼 스타일 */
-    .audio-container .stButton > button {
+    /* [에너지바 우측 밀착] */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton {
+        text-align: right !important;
+    }
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button {
         background-color: #ffffff !important;
+        color: #ff4d4d !important;
+        border: none !important;
+        padding: 4px 0px !important;
+        width: 100% !important;
+        display: flex !important;
+        justify-content: flex-end !important; /* 오른쪽 끝 바짝 밀착 */
+        align-items: center !important;
+    }
+   
+    /* 🔍 [초밀착 + 절대 줄바꿈 금지] 아이폰 가로폭 파괴 방지 구역 */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button p,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button div,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button span,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button * {
+        font-size: 30px !important; /* 💡 한 줄 유지를 위해 대왕 크기를 32px에서 30px로 아주 살짝 최적화 */
+        font-weight: 900 !important;
+        white-space: nowrap !important; /* ❌ 아이폰에서 절대 줄바꿈 안 되도록 강제 잠금!! */
+        letter-spacing: -6px !important; /* 💡 사각형 사이 간격을 기존보다 2배 더 촘촘하게 대밀착! */
+        display: inline-block !important;
+        transform: scaleY(1.3) !important; /* 세로 길쭉한 스타일 고정 */
+    }
+   
+    /* 원어민 듣기 🔊 버튼 스타일 정돈 */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[help="audio-btn"] * {
+        font-size: 16px !important;
         color: #2c3e50 !important;
-        border: 1px solid #dcdde1 !important;
-        border-radius: 6px !important;
-        padding: 4px 12px !important;
-        font-size: 14px !important;
         font-weight: bold !important;
-        width: auto !important;
-        margin-top: 4px !important;
-        margin-bottom: 10px !important;
+        white-space: nowrap !important;
+        letter-spacing: normal !important;
+        transform: none !important;
     }
    
     /* 구분선 및 전체 여백 촘촘하게 */
@@ -128,64 +165,42 @@ sheet = st.session_state[user_sheet_key]
 # 3. 화면에 문장 리스트 출력
 for i, r in enumerate(records):
     row_idx = i + 2
-    
-    state_key = f"show_{selected_user}_{i}"
-    if state_key not in st.session_state:
-        st.session_state[state_key] = False
-        
-    is_english = st.session_state[state_key]
-    text_content = r['en'] if is_english else r['kr']
-    energy_val = int(r['energy']) if r['energy'] != "" else 0
-    
-    # 🔍 세로 직사각형 이모지 세팅
-    rectangles = "▮" * energy_val + "▯" * (5 - energy_val)
-    
-    # 💡 [문자열 마법] HTML 없이 파이썬 계산으로 문장은 왼쪽, 에너지바는 오른쪽 끝에 배치
-    # 모바일 표준 해상도 기준(약 26자 공간)으로 문장 뒤에 자동으로 빈 공백을 계산해 채워 넣습니다.
-    left_text = f"{r['id']}. {text_content}"
-    
-    if is_english:
-        # 영어일 때는 오디오 버튼이 아래에 따로 있으므로 우측 정렬만 깔끔하게 처리
-        btn_label = f"{left_text:<20}{rectangles:>5}"
-    else:
-        # 한국어일 때는 터치 정렬을 위해 공백을 넉넉히 주어 양끝으로 밀어냅니다.
-        btn_label = f"{left_text:<18}   {rectangles:>5}"
-    
-    # 🔍 에러가 나던 unsafe_allow_html을 완전히 삭제하고 순수 텍스트 라벨로 실행!
-    if st.button(btn_label, key=f"sentence_block_{selected_user}_{i}"):
-        if is_english:
-            # 영어 상태일 때는 누르면 다시 한국어 상태로 리셋
+   
+    col1, col2 = st.columns([8.2, 1.8])
+   
+    with col1:
+        state_key = f"show_{selected_user}_{i}"
+        if state_key not in st.session_state:
             st.session_state[state_key] = False
+           
+        is_english = st.session_state[state_key]
+        text_content = r['en'] if is_english else r['kr']
+        btn_label = f"{r['id']}. {text_content}"
+       
+        if st.button(btn_label, key=f"sentence_{selected_user}_{i}"):
+            st.session_state[state_key] = not st.session_state[state_key]
+            st.rerun()
+           
+    with col2:
+        if is_english:
+            if st.button("🔊", key=f"audio_{selected_user}_{i}", help="audio-btn"):
+                tts = gTTS(text=r['en'], lang='en')
+                fp = io.BytesIO()
+                tts.write_to_fp(fp)
+                fp.seek(0)
+                st.audio(fp, format='audio/mp3', autoplay=True)
         else:
-            # 한국어 상태일 때는 누를 때마다 에너지가 1씩 증가 (0 -> 1 -> 5)
-            if energy_val < 5:
-                new_energy = energy_val + 1
+            energy_val = int(r['energy']) if r['energy'] != "" else 0
+            rectangles = "▮" * energy_val + "▯" * (5 - energy_val)
+           
+            if st.button(rectangles, key=f"bar_touch_{selected_user}_{i}"):
+                new_energy = energy_val + 1 if energy_val < 5 else 0
                 st.session_state[user_data_key][i]['energy'] = new_energy
                 if sheet:
                     try:
                         sheet.update_cell(row_idx, 4, str(new_energy))
                     except:
                         pass
-            else:
-                # 5칸 만점일 때 한 번 더 누르면 에너지를 0으로 리셋하면서 영어 문장으로 반전!
-                st.session_state[user_data_key][i]['energy'] = 0
-                if sheet:
-                    try:
-                        sheet.update_cell(row_idx, 4, "0")
-                    except:
-                        pass
-                st.session_state[state_key] = True
-        st.rerun()
-        
-    # 영어 모드일 때만 문장 바로 밑에 아담하게 '🔊 듣기' 버튼을 제공
-    if is_english:
-        st.markdown("<div class='audio-container'>", unsafe_allow_html=True)
-        if st.button("🔊 원어민 듣기", key=f"audio_{selected_user}_{i}"):
-            tts = gTTS(text=r['en'], lang='en')
-            fp = io.BytesIO()
-            tts.write_to_fp(fp)
-            fp.seek(0)
-            st.audio(fp, format='audio/mp3', autoplay=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-                
+                st.rerun()
+               
     st.write("---")
