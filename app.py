@@ -23,7 +23,7 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 🔥 [레이아웃 안정화 CSS] 깨질 수 있는 수직 역정렬을 모두 제거하고 직관성을 높임
+# 🔥 [수직 적층 최적화 CSS] 이모지가 위로 길쭉하게 쌓이고 간격이 촘촘하도록 제어
 st.markdown("""
     <style>
     /* 모바일 화면에서 무조건 한 줄(Row)로 배치되도록 강제 고정 */
@@ -36,9 +36,9 @@ st.markdown("""
         gap: 0px !important;
     }
    
-    /* [우측 밀착 비율] 문장 칸(8.2)과 게이지 칸(1.8) 분배 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.2 1 0% !important; min-width: 0 !important; }
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 1.8 1 0% !important; min-width: 0 !important; }
+    /* [우측 밀착 비율] 문장 칸(8.4)과 수직 탑 칸(1.6) 분배 */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.4 1 0% !important; min-width: 0 !important; }
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 1.6 1 0% !important; min-width: 0 !important; }
    
     /* 제목 스타일 */
     .custom-title {
@@ -88,14 +88,15 @@ st.markdown("""
         align-items: center !important;
     }
    
-    /* 🔍 깨짐을 유발하던 복잡한 CSS를 지우고 순수 이모지 크기만 시원하게 키움 */
+    /* 🔍 이모지가 위아래로 줄바꿈되어 촘촘하게 쌓이도록 스타일 잠금 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button p,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button div,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button span,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button * {
-        font-size: 18px !important; /* 이모지 블록들이 촘촘하게 한눈에 들어오는 최적 크기 */
-        white-space: nowrap !important; /* 절대 줄바꿈 금지 */
-        letter-spacing: -2px !important; /* 블록 사이 자간 밀착 */
+        font-size: 16px !important; /* 위아래로 4층이 막힘없이 들어가는 완벽한 크기 */
+        white-space: pre-line !important; /* 줄바꿈 기호(\\n)를 완벽하게 인식 */
+        line-height: 1.0 !important; /* 층과 층 사이를 아주 촘촘하게 밀착 */
+        text-align: center !important;
     }
    
     /* 원어민 듣기 🔊 버튼 스타일 유지 */
@@ -103,7 +104,7 @@ st.markdown("""
         font-size: 16px !important;
         color: #2c3e50 !important;
         font-weight: bold !important;
-        letter-spacing: normal !important;
+        line-height: 1.2 !important;
     }
    
     /* 구분선 및 전체 여백 촘촘하게 */
@@ -178,7 +179,7 @@ def save_to_google_sheet(sheet_obj, row, col, val):
 for i, r in enumerate(records):
     row_idx = i + 2
     
-    col1, col2 = st.columns([8.2, 1.8])
+    col1, col2 = st.columns([8.4, 1.6])
     
     with col1:
         state_key = f"show_{selected_user}_{i}"
@@ -209,17 +210,17 @@ for i, r in enumerate(records):
             except:
                 energy_val = 0
             
-            # 🔍 깨짐 원천 방지! 표준 컬러 이모지 사각형으로 순환 구성
+            # 🔍 [수직 이모지 적층 시스템 잠금]
+            # 줄바꿈 기호(\\n)를 활용해 위에서 아래로 떨어지는 컬러 빌딩 완성!
             if energy_val == 0:
-                color_block_text = "🟥🟥🟥🟥"  # 0점: 미암기 (빨강 4개)
+                color_block_text = "🟥\n🟥\n🟥\n🟥"  # 0점: 미암기 (빨강 4층 빌딩)
             elif energy_val == 1:
-                color_block_text = "🟧🟧🟧"    # 1점: 위험 (주황 3개)
+                color_block_text = "🟧\n🟧\n🟧"      # 1점: 위험 (주황 3층 빌딩)
             elif energy_val == 2:
-                color_block_text = "🟨🟨"      # 2점: 보통 (노랑 2개)
+                color_block_text = "🟨\n🟨"          # 2점: 보통 (노랑 2층 빌딩)
             else:
-                color_block_text = "🟩"        # 3점: 안심 (초록 1개)
+                color_block_text = "🟩"              # 3점: 안심 (초록 1층 단층)
             
-            # 깨끗한 순수 문자열 버튼으로 출력하여 에러 차단
             if st.button(color_block_text, key=f"bar_touch_{selected_user}_{i}"):
                 new_energy = energy_val + 1 if energy_val < 3 else 0
                 st.session_state[user_data_key][i]['energy'] = new_energy
