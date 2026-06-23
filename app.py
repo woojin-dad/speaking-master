@@ -23,9 +23,17 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 🔥 [레이아웃 미세 조정 CSS] 박스 간격을 넓히고 에너지를 우측 끝으로 완전히 밀착
+# 🔥 [우측 극대 밀착 CSS] 우측 기본 여백을 강제로 파괴하고 끝벽에 바짝 붙임
 st.markdown("""
     <style>
+    /* 전체 화면 좌우 여백을 최소화하여 가로 공간을 극한으로 확보 */
+    .block-container { 
+        padding-top: 1rem !important; 
+        padding-bottom: 1rem !important;
+        padding-left: 8px !important;
+        padding-right: 4px !important; /* 💡 오른쪽 기본 여백을 거의 제로에 가깝게 삭제 */
+    }
+
     /* 모바일 화면에서 무조건 한 줄(Row)로 배치되도록 강제 고정 */
     div[data-testid="stHorizontalBlock"] {
         display: flex !important;
@@ -33,12 +41,12 @@ st.markdown("""
         flex-wrap: nowrap !important;
         align-items: center !important;
         justify-content: space-between !important;
-        gap: 25px !important; /* 💡 두 구역 사잇간격을 25px로 대폭 늘려 숨통을 확실히 틔움 */
+        gap: 30px !important; /* 💡 사잇간격을 30px로 더 시원하게 조정 */
     }
    
-    /* 🔍 [공간 재분배] 문장 칸(7.8)과 우측 탑 칸(2.2)의 비율을 조절하여 탑이 오른쪽 끝으로 가도록 유도 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 7.8 1 0% !important; min-width: 0 !important; }
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 2.2 1 0% !important; min-width: 0 !important; }
+    /* 🔍 문장 칸(8.0)과 우측 탑 칸(2.0) 분배 */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.0 1 0% !important; min-width: 0 !important; }
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 2.0 1 0% !important; min-width: 0 !important; }
    
     /* 제목 스타일 */
     .custom-title {
@@ -74,18 +82,20 @@ st.markdown("""
         color: #f1c40f !important;
     }
    
-    /* [우측 게이지 버튼 정돈] 우측 정렬 및 투명화 */
+    /* [우측 게이지 버튼 완벽 우측 몰빵 정렬] */
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton {
         text-align: right !important;
         width: 100% !important;
+        display: flex !important;
+        justify-content: flex-end !important;
     }
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button {
         background-color: #ffffff !important;
         border: none !important;
         padding: 0px !important;
-        width: 100% !important;
+        width: auto !important; /* 💡 가로폭을 이모지 너비만큼 타이트하게 줄여서 끝으로 밀어붙임 */
         display: flex !important;
-        justify-content: flex-end !important; /* 💡 무조건 우측 끝 벽면 밀착 */
+        justify-content: flex-end !important; 
         align-items: center !important;
     }
    
@@ -98,7 +108,8 @@ st.markdown("""
         white-space: pre-line !important;
         line-height: 1.0 !important;
         text-align: center !important;
-        padding-right: 0px !important; /* 내부 마진을 없애 오른쪽 끝 라인에 딱 붙도록 수정 */
+        padding-right: 0px !important;
+        margin-right: 0px !important; /* 모든 마진/패딩 제거하여 밀착도 100% 달성 */
     }
    
     /* 원어민 듣기 🔊 버튼 스타일 유지 */
@@ -109,9 +120,8 @@ st.markdown("""
         line-height: 1.2 !important;
     }
    
-    /* 구분선 및 전체 여백 촘촘하게 */
+    /* 구분선 촘촘하게 */
     hr { margin: 6px 0px !important; padding: 0px !important; }
-    .block-container { padding-top: 1rem !important; padding-bottom: 1rem !important; }
    
     /* 하단 플랫폼 메뉴 완벽 차단 */
     [data-testid="stStatusWidget"] {display: none !important; visibility: hidden !important;}
@@ -181,7 +191,7 @@ def save_to_google_sheet(sheet_obj, row, col, val):
 for i, r in enumerate(records):
     row_idx = i + 2
     
-    col1, col2 = st.columns([7.8, 2.2])
+    col1, col2 = st.columns([8.0, 2.0])
     
     with col1:
         state_key = f"show_{selected_user}_{i}"
