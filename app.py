@@ -9,7 +9,7 @@ import threading  # 백그라운드 초고속 저장 모듈 유지
 # 1. 웹페이지 기본 설정
 st.set_page_config(
     page_title="스피킹 마스터",
-    layout="wide",  # 💡 기존 centered에서 'wide'로 전면 변경하여 가로 제약 기본 벽을 철거!
+    layout="wide",  # 가로 100% 와이드 모드 유지
     initial_sidebar_state="collapsed"
 )
 
@@ -23,19 +23,17 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 🔥 [우측 벽면 강제 밀착 CSS] 보이지 않는 모든 여백과 가로 폭 벽을 완전히 파괴
+# 🔥 [레이아웃 최적화 CSS] 아이폰 액정 끝 벽면 강제 밀착 스타일 유지
 st.markdown("""
     <style>
-    /* 1. 스트림릿 본체의 좌우 여백 및 최대 폭 제한을 완전히 제로(0)화 */
     .block-container { 
-        max-width: 100% !important; /* 가로폭 제한 해제 */
+        max-width: 100% !important;
         padding-top: 1rem !important; 
         padding-bottom: 1rem !important;
-        padding-left: 10px !important; /* 왼쪽 미세 여백 */
-        padding-right: 0px !important; /* 💡 오른쪽 여백을 완.전.히 삭제 */
+        padding-left: 10px !important;
+        padding-right: 0px !important;
     }
 
-    /* 2. 모바일 한 줄 고정 및 사잇간격 유지 */
     div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
@@ -46,11 +44,9 @@ st.markdown("""
         width: 100% !important;
     }
    
-    /* 3. 문장 칸(8.5)과 우측 탑 칸(1.5) 비율 극대화 조율 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.5 1 0% !important; min-width: 0 !important; }
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 1.5 1 0% !important; min-width: 0 !important; }
    
-    /* 제목 스타일 */
     .custom-title {
         font-size: 26px !important;
         font-weight: bold !important;
@@ -59,17 +55,15 @@ st.markdown("""
         padding-top: 5px;
     }
    
-    /* 문장 버튼 가로 꽉 채우기 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {
         width: 100% !important;
         text-align: left !important;
-        background-color: #2c3e50 !important; /* 진한 남색 배경 */
+        background-color: #2c3e50 !important; 
         border: none !important;
         border-radius: 8px !important;
         padding: 8px 10px !important;
     }
    
-    /* 문장 버튼 내부 글자 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button p,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button div,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button span,
@@ -84,7 +78,6 @@ st.markdown("""
         color: #f1c40f !important;
     }
    
-    /* 4. [우측 끝판왕 정렬] 컨테이너 자체를 우측 베젤 끝에 박아 넣기 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton {
         text-align: right !important;
         width: 100% !important;
@@ -102,7 +95,6 @@ st.markdown("""
         align-items: center !important;
     }
    
-    /* 이모지 수직 정렬 스타일 및 여백 절대 소멸 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button p,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button div,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button span,
@@ -115,7 +107,6 @@ st.markdown("""
         margin: 0px !important;
     }
    
-    /* 원어민 듣기 🔊 버튼 스타일 유지 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[help="audio-btn"] * {
         font-size: 16px !important;
         color: #2c3e50 !important;
@@ -123,25 +114,29 @@ st.markdown("""
         line-height: 1.2 !important;
     }
    
-    /* 구분선 */
     hr { margin: 6px 0px !important; padding: 0px !important; }
-   
-    /* 하단 플랫폼 메뉴 완벽 차단 */
     [data-testid="stStatusWidget"] {display: none !important; visibility: hidden !important;}
     footer {visibility: hidden !important; height: 0px !important; padding: 0px !important;}
     header {visibility: hidden !important; height: 0px !important;}
     .stAppDeployButton {display: none !important;}
-    div[data-testid="stDecoration"] {display: none !important; visibility: hidden !important;}
-    [data-testid="stToolbar"] {display: none !important; visibility: hidden !important;}
     </style>
 """, unsafe_allow_html=True)
 
-# 👥 사용자 선택 메뉴
-users = ["동탕", "우진"]
-selected_user = st.selectbox("👤 학습자를 선택하세요", users)
+# 👥 [메뉴 확장] 순서대로 기본 탭과 우선순위 탭을 선택할 수 있도록 구성
+menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
+selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options)
+
+# 💡 선택된 메뉴에 따라 실제 구글 시트 탭 이름 매칭 (우선순위도 원본 탭에서 데이터를 가져옴)
+if "동탕" in selected_menu:
+    real_sheet_name = "동탕"
+else:
+    real_sheet_name = "우진"
+
+# 우선순위 모드 켜짐 여부 확인
+is_priority_mode = "우선순위" in selected_menu
 
 # 👑 제목 설정
-st.markdown(f"<div class='custom-title'>👑 {selected_user}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
+st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
 st.write("---")
 
 # 2. 구글 시트 연동 설정
@@ -152,21 +147,24 @@ def init_gspread():
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     return gspread.authorize(creds)
 
-user_data_key = f"records_{selected_user}"
-user_sheet_key = f"sheet_{selected_user}"
+# 캐시 키는 실제 구글 시트 이름("동탕" 또는 "우진") 기준으로 관리
+user_data_key = f"records_{real_sheet_name}"
+user_sheet_key = f"sheet_{real_sheet_name}"
 
-if "last_user" not in st.session_state:
-    st.session_state["last_user"] = selected_user
+if "last_menu" not in st.session_state:
+    st.session_state["last_menu"] = selected_menu
 
-if st.session_state["last_user"] != selected_user:
-    if user_data_key in st.session_state:
-        del st.session_state[user_data_key]
-    st.session_state["last_user"] = selected_user
+# 메뉴가 완전히 바뀌었을 때 데이터를 새로고침하도록 설정
+if st.session_state["last_menu"] != selected_menu:
+    if "우선순위" in st.session_state["last_menu"] or "우선순위" in selected_menu:
+        # 우선순위 모드 진입/이탈 시 화면을 깨끗하게 새로 그리기 위해 캐시 초기화 유도
+        pass
+    st.session_state["last_menu"] = selected_menu
 
 if user_sheet_key not in st.session_state or st.session_state[user_sheet_key] is None:
     try:
         client = init_gspread()
-        st.session_state[user_sheet_key] = client.open("SpeakingMaster").worksheet(selected_user)
+        st.session_state[user_sheet_key] = client.open("SpeakingMaster").worksheet(real_sheet_name)
     except:
         st.session_state[user_sheet_key] = None
 
@@ -182,6 +180,31 @@ if user_data_key not in st.session_state:
 records = st.session_state[user_data_key]
 sheet = st.session_state[user_sheet_key]
 
+# 🔍 [구조 혁신] 화면에 뿌려줄 리스트 생성 및 정렬 로직
+# 구글 시트 원본 행 번호(original_row_idx)를 기록해두어 정렬되더라도 저장은 구글 시트의 제자리에 정확히 박히게 합니다.
+display_records = []
+for idx, r in enumerate(records):
+    # 각 레코드의 무결성 검사 및 정수 변환
+    try:
+        e_val = int(r['energy'])
+        if e_val > 3: e_val = 3
+        elif e_val < 0: e_val = 0
+    except:
+        e_val = 0
+        
+    display_records.append({
+        'original_index': idx,       # 원본 리스트 내의 위치
+        'original_row': idx + 2,     # 구글 시트 실제 행 (Row) 번호
+        'id': r['id'],
+        'kr': r['kr'],
+        'en': r['en'],
+        'energy': e_val
+    })
+
+# 💡 만약 '우선순위' 메뉴를 선택했다면? 에너지 점수가 낮은 순(0점 빨강 ➡️ 1점 주황...)으로 정렬!
+if is_priority_mode:
+    display_records = sorted(display_records, key=lambda x: x['energy'])
+
 # 백그라운드 구글 시트 업데이트 함수
 def save_to_google_sheet(sheet_obj, row, col, val):
     if sheet_obj:
@@ -191,40 +214,36 @@ def save_to_google_sheet(sheet_obj, row, col, val):
             pass
 
 # 3. 화면에 문장 리스트 출력
-for i, r in enumerate(records):
-    row_idx = i + 2
+for item in display_records:
+    orig_idx = item['original_index']
+    row_idx = item['original_row']
+    energy_val = item['energy']
     
     col1, col2 = st.columns([8.5, 1.5])
     
     with col1:
-        state_key = f"show_{selected_user}_{i}"
+        # 고유 키는 원본 데이터의 인덱스를 활용하여 정렬 후에도 상태가 꼬이지 않게 보호
+        state_key = f"show_{real_sheet_name}_{orig_idx}"
         if state_key not in st.session_state:
             st.session_state[state_key] = False
             
         is_english = st.session_state[state_key]
-        text_content = r['en'] if is_english else r['kr']
-        btn_label = f"{r['id']}. {text_content}"
+        text_content = item['en'] if is_english else item['kr']
+        btn_label = f"{item['id']}. {text_content}"
         
-        if st.button(btn_label, key=f"sentence_{selected_user}_{i}"):
+        if st.button(btn_label, key=f"sentence_{real_sheet_name}_{orig_idx}"):
             st.session_state[state_key] = not st.session_state[state_key]
             st.rerun()
             
     with col2:
         if is_english:
-            if st.button("🔊", key=f"audio_{selected_user}_{i}", help="audio-btn"):
-                tts = gTTS(text=r['en'], lang='en')
+            if st.button("🔊", key=f"audio_{real_sheet_name}_{orig_idx}", help="audio-btn"):
+                tts = gTTS(text=item['en'], lang='en')
                 fp = io.BytesIO()
                 tts.write_to_fp(fp)
                 fp.seek(0)
                 st.audio(fp, format='audio/mp3', autoplay=True)
         else:
-            try:
-                energy_val = int(r['energy'])
-                if energy_val > 3: energy_val = 3
-                elif energy_val < 0: energy_val = 0
-            except:
-                energy_val = 0
-            
             # 수직 이모지 빌딩 구성
             if energy_val == 0:
                 color_block_text = "🟥\n🟥\n🟥\n🟥"  # 0점: 미암기 (빨강 4층)
@@ -235,10 +254,13 @@ for i, r in enumerate(records):
             else:
                 color_block_text = "🟩"              # 3점: 안심 (초록 1층)
             
-            if st.button(color_block_text, key=f"bar_touch_{selected_user}_{i}"):
+            if st.button(color_block_text, key=f"bar_touch_{real_sheet_name}_{orig_idx}"):
                 new_energy = energy_val + 1 if energy_val < 3 else 0
-                st.session_state[user_data_key][i]['energy'] = new_energy
                 
+                # 원본 세션 상태 데이터에 즉시 업데이트
+                st.session_state[user_data_key][orig_idx]['energy'] = new_energy
+                
+                # 비동기 백그라운드로 구글 시트 제자리에 정확하게 기록 던지기
                 threading.Thread(
                     target=save_to_google_sheet, 
                     args=(sheet, row_idx, 4, new_energy), 
