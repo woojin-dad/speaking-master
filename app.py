@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🔥 [레이아웃 최적화 CSS] ➕, ➖ 버튼을 없애고 문장과 터치바를 정돈
+# 🔥 [안전 최우선 CSS] HTML 없이 순수 버튼 스타일만 제어하여 우측 밀착 및 세로 확장
 st.markdown("""
     <style>
     /* 모바일 화면에서 무조건 한 줄(Row)로 배치되도록 강제 고정 */
@@ -22,12 +22,12 @@ st.markdown("""
         flex-wrap: nowrap !important;
         align-items: center !important;
         justify-content: space-between !important;
-        gap: 6px !important;
+        gap: 0px !important; /* 칸 사이의 틈을 없애 우측 밀착 유도 */
     }
    
-    /* 🔍 [비율 재조정] 버튼이 빠진 자리를 문장 칸(7.5)으로 넓게 배정 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 7.5 1 0% !important; min-width: 0 !important; }
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 2.5 1 0% !important; min-width: 0 !important; }
+    /* 🔍 [우측 밀착 비율] 문장 칸을 8.2로 더 넓히고, 에너지바 칸은 1.8로 좁혀 오른쪽 끝으로 밀어붙임 */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.2 1 0% !important; min-width: 0 !important; }
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 1.8 1 0% !important; min-width: 0 !important; }
    
     /* 제목 스타일 */
     .custom-title {
@@ -64,17 +64,33 @@ st.markdown("""
         color: #f1c40f !important;
     }
    
-    /* 🔍 우측 터치형 에너지바 버튼 스타일 (흰색 바탕에 테두리 제거로 깔끔하게) */
+    /* 🔍 [에너지바 우측 밀착] 두 번째 칸의 버튼을 오른쪽 정렬하고 여백 제거 */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton {
+        text-align: right !important;
+    }
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button {
         background-color: #ffffff !important;
-        color: #ff4d4d !important;
+        color: #ff4d4d !important; /* 선명한 빨간색 */
         border: none !important;
         padding: 4px 0px !important;
         width: 100% !important;
+        display: flex !important;
+        justify-content: flex-end !important; /* 오른쪽 끝으로 바짝 붙임 */
+        align-items: center !important;
+    }
+   
+    /* 🔍 [에너지바 세로 확장] 직사각형 글씨 크기를 32px로 키워 위아래로 길쭉하게 노출 */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button p,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button div,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button span,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button * {
+        font-size: 32px !important; /* 💡 글씨 자체를 키워 세로 길이를 대폭 늘림 */
+        font-weight: 900 !important;
+        letter-spacing: -3px !important; /* 사각형 조각들이 도톰하게 뭉치도록 자간 축소 */
     }
    
     /* 원어민 듣기 🔊 버튼 스타일 정돈 */
-    .audio-btn * {
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[help="audio-btn"] * {
         font-size: 16px !important;
         color: #2c3e50 !important;
         font-weight: bold !important;
@@ -143,23 +159,22 @@ sheet = st.session_state[user_sheet_key]
 # 3. 화면에 문장 리스트 출력
 for i, r in enumerate(records):
     row_idx = i + 2
-   
-    # 💡 컬럼을 3개에서 2개([7.5, 2.5])로 줄여 가로 폭을 깔끔하게 정돈!
-    col1, col2 = st.columns([7.5, 2.5])
-   
+    
+    col1, col2 = st.columns([8.2, 1.8])
+    
     with col1:
         state_key = f"show_{selected_user}_{i}"
         if state_key not in st.session_state:
             st.session_state[state_key] = False
-           
+            
         is_english = st.session_state[state_key]
         text_content = r['en'] if is_english else r['kr']
         btn_label = f"{r['id']}. {text_content}"
-       
+        
         if st.button(btn_label, key=f"sentence_{selected_user}_{i}"):
             st.session_state[state_key] = not st.session_state[state_key]
             st.rerun()
-           
+            
     with col2:
         if is_english:
             if st.button("🔊 듣기", key=f"audio_{selected_user}_{i}", help="audio-btn"):
@@ -170,12 +185,10 @@ for i, r in enumerate(records):
                 st.audio(fp, format='audio/mp3', autoplay=True)
         else:
             energy_val = int(r['energy']) if r['energy'] != "" else 0
-            # 별표 대신 길쭉하고 직관적인 세로 직사각형 이모지 적용
             rectangles = "▮" * energy_val + "▯" * (5 - energy_val)
-           
-            # 🔍 에너지바 구역을 버튼으로 만들어 터치 시 늘어나도록 설정
+            
+            # 🔍 순수 이모지 버튼을 활용하여 완벽한 터치 연동 수행
             if st.button(rectangles, key=f"bar_touch_{selected_user}_{i}"):
-                # 0칸에서 5칸까지 순차 증가, 5칸에서 누르면 다시 0칸으로 초기화!
                 new_energy = energy_val + 1 if energy_val < 5 else 0
                 st.session_state[user_data_key][i]['energy'] = new_energy
                 if sheet:
@@ -184,5 +197,5 @@ for i, r in enumerate(records):
                     except:
                         pass
                 st.rerun()
-               
+                
     st.write("---")
