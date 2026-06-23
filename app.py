@@ -3,10 +3,14 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import json
 
-# 1. 웹페이지 기본 설정
-st.set_page_config(page_title="스피킹 마스터", layout="centered")
+# 1. 웹페이지 기본 설정 (메뉴와 툴바를 강제로 비활성화하는 옵션 포함)
+st.set_page_config(
+    page_title="스피킹 마스터", 
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
 
-# 대시보드 스타일링 (CSS) - 최신 스트림릿 하단 바 완벽 차단 문법!
+# [강력 조치] 스트림릿 하단 회색 바, 풀스크린 버튼, 모든 뱃지를 박멸하는 CSS
 st.markdown("""
     <style>
     /* 기존 버튼 스타일 */
@@ -25,23 +29,31 @@ st.markdown("""
         color: #3498db;
     }
     
-    /* [최종 해결] 맨 밑바닥 'Built with Streamlit' 및 'Fullscreen' 회색 바 전체 구조 삭제 */
-    [data-testid="stStatusWidget"] {display: none !important;}
-    footer {visibility: hidden !important; height: 0px !important; padding: 0px !important;}
+    /* 1. 하단 상태 바 및 툴바 관련 모든 태그 강제 삭제 */
+    #MainMenu {visibility: hidden !important;}
+    footer {visibility: hidden !important; height: 0px !important; padding: 0px !important; margin: 0px !important;}
     header {visibility: hidden !important; height: 0px !important;}
+    
+    /* 2. 최신 스트림릿 버전의 하단 회색 바(StatusWidget 및 ViewerBadge) 무조건 삭제 */
+    [data-testid="stStatusWidget"] {display: none !important; visibility: hidden !important;}
+    div[data-testid="stDecoration"] {display: none !important; visibility: hidden !important;}
+    .viewerBadge {display: none !important;}
     .stAppDeployButton {display: none !important;}
     
-    /* 하단 회색 선 영역 자체를 숨김 */
-    div[data-testid="stDecoration"] {display: none !important;}
-    div[class^="viewerBadge"] {display: none !important;}
+    /* 3. 오른쪽 끝 Fullscreen 버튼을 포함한 툴바 영역 숨김 */
+    [data-testid="stToolbar"] {display: none !important; visibility: hidden !important;}
+    div[class^="st-emotion-cache"] footer {display: none !important;}
+    
+    /* 전체 화면 여백 정리 */
+    .block-container {padding-bottom: 1rem !important;}
     </style>
 """, unsafe_allow_html=True)
 
 st.title("👑 스피킹 마스터 👑")
-st.write("💡 문장을 누르면 영어로 변환됩니다. 잘 안 외워지면 에너지를 조절하세요!")
+st.write("💡 문장을 누르면 영어로 변환됩니다. 잘 안 외외지면 에너지를 조절하세요!")
 st.write("---")
 
-# 2. 구글 시트 연동 설정 (최초 1회만 실행하도록 강력 캐싱)
+# 2. 구글 시트 연동 설정
 @st.cache_resource
 def init_gspread():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
