@@ -2,6 +2,8 @@ import streamlit as st
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import json
+from gtts import gTTS  # 🔊 원어민 음성 변환 라이브러리 추가
+import io
 
 # 1. 웹페이지 기본 설정
 st.set_page_config(
@@ -30,9 +32,9 @@ st.markdown("""
         color: #3498db;
     }
     
-    /* ➕, ➖ 조절 버튼 스타일 */
+    /* ➕, ➖ 조절 버튼 및 듣기 버튼 스타일 고정 */
     div[data-testid="stColumn"] .stButton>button {
-        padding: 10px 10px;
+        padding: 10px 5px;
         text-align: center;
     }
     
@@ -66,7 +68,6 @@ def init_gspread():
 user_data_key = f"records_{selected_user}"
 user_sheet_key = f"sheet_{selected_user}"
 
-# 사용자가 전환될 때 기존 데이터를 깔끔하게 초기화하기 위한 장치
 if "last_user" not in st.session_state:
     st.session_state["last_user"] = selected_user
 
@@ -98,15 +99,16 @@ sheet = st.session_state[user_sheet_key]
 for i, r in enumerate(records):
     row_idx = i + 2
     
+    # 레이아웃 비율 조정 (듣기 버튼 공간 확보)
     col1, col2, col3 = st.columns([5.5, 2.5, 2])
     
     with col1:
         state_key = f"show_{selected_user}_{i}"
-        # 🛠️ 잘려 있던 st.session_state 부분을 빈틈없이 메웠습니다!
         if state_key not in st.session_state:
             st.session_state[state_key] = False
             
-        text_content = r['en'] if st.session_state[state_key] else r['kr']
+        is_english = st.session_state[state_key]
+        text_content = r['en'] if is_english else r['kr']
         btn_label = f"{r['id']}. {text_content}"
         
         if st.button(btn_label, key=f"sentence_{selected_user}_{i}"):
@@ -114,9 +116,21 @@ for i, r in enumerate(records):
             st.rerun()
             
     with col2:
-        energy_val = int(r['energy']) if r['energy'] != "" else 0
-        stars = "★" * energy_val + "☆" * (5 - energy_val)
-        st.write(f"<div style='color:#f1c40f; font-size:20px; text-align:center; padding-top:10px;'>{stars}</div>", unsafe_allow_html=True)
+        # 영어 정답 화면일 때만 듣기 버튼 노출, 아닐 때는 별 모양 노출
+        if is_english:
+            st.write("<div style='padding-top:4px;'></div>", unsafe_allow_html=True)
+            if st.button("🔊 듣기", key=f"audio_{selected_user}_{i}"):
+                # 구글 음성 생성 (영어 발음)
+                tts = gTTS(text=r['en'], lang='en')
+                fp = io.BytesIO()
+                tts.write_to_fp(fp)
+                fp.seek(0)
+                # 스트림릿 오디오 컴포넌트로 자동 재생 효과
+                st.audio(fp, format='audio/mp3', autoplay=True)
+        else:
+            energy_val = int(r['energy']) if r['energy'] != "" else 0
+            stars = "★" * energy_val + "☆" * (5 - energy_val)
+            st.write(f"<div style='color:#f1c40f; font-size:20px; text-align:center; padding-top:10px;'>{stars}</div>", unsafe_allow_html=True)
         
     with col3:
         st.write("<div style='padding-top:4px;'></div>", unsafe_allow_html=True)
