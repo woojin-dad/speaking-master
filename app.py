@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🔥 [충돌 해결 완벽 CSS] 문장 글씨만 선명하게 키우고, 조절 버튼 깨짐을 방지
+# 🔥 [레이아웃 최적화 CSS] ➕, ➖ 버튼을 없애고 문장과 터치바를 정돈
 st.markdown("""
     <style>
     /* 모바일 화면에서 무조건 한 줄(Row)로 배치되도록 강제 고정 */
@@ -25,10 +25,9 @@ st.markdown("""
         gap: 6px !important;
     }
    
-    /* 🔍 [안정적 가로 비율] 문장 칸에 여백을 더 확보하고 조절 구역을 밀착 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 6.5 1 0% !important; min-width: 0 !important; }
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 1.8 1 0% !important; min-width: 0 !important; }
-    div[data-testid="stHorizontalBlock"] > div:nth-child(3) { flex: 1.7 1 0% !important; min-width: 0 !important; }
+    /* 🔍 [비율 재조정] 버튼이 빠진 자리를 문장 칸(7.5)으로 넓게 배정 */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 7.5 1 0% !important; min-width: 0 !important; }
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 2.5 1 0% !important; min-width: 0 !important; }
    
     /* 제목 스타일 */
     .custom-title {
@@ -40,7 +39,7 @@ st.markdown("""
         padding-bottom: 5px !important;
     }
    
-    /* 🔍 [1단계] 첫 번째 열(문장 버튼)의 스타일만 콕 집어서 남색으로 고정 */
+    /* 문장 버튼 자체 크기 강제 고정 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {
         width: 100% !important;
         text-align: left !important;
@@ -50,14 +49,14 @@ st.markdown("""
         padding: 8px 10px !important;
     }
    
-    /* 🔍 [2단계] 첫 번째 열(문장 버튼) 내부의 글자만 22px 대왕 글자로 강제 확대!! */
+    /* 문장 버튼 내부의 글자 확대 (22px) */
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button p,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button div,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button span,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button * {
-        font-size: 22px !important; /* 💡 동탕님 눈이 편안한 크기 */
-        font-weight: 900 !important; /* 아주 두껍게 */
-        color: #ffffff !important; /* 흰색 글씨 */
+        font-size: 22px !important; 
+        font-weight: 900 !important; 
+        color: #ffffff !important; 
         line-height: 1.2 !important;
     }
    
@@ -65,19 +64,18 @@ st.markdown("""
         color: #f1c40f !important;
     }
    
-    /* 🔍 [3단계] ➕, ➖ 버튼 및 듣기 버튼 스타일 오염 방지 및 리셋 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button,
-    div[data-testid="stHorizontalBlock"] > div:nth-child(3) div.stButton > button {
+    /* 🔍 우측 터치형 에너지바 버튼 스타일 (흰색 바탕에 테두리 제거로 깔끔하게) */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button {
         background-color: #ffffff !important;
-        color: #2c3e50 !important;
-        border: 1px solid #dcdde1 !important;
-        border-radius: 6px !important;
-        padding: 8px 4px !important;
+        color: #ff4d4d !important;
+        border: none !important;
+        padding: 4px 0px !important;
         width: 100% !important;
     }
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button *,
-    div[data-testid="stHorizontalBlock"] > div:nth-child(3) div.stButton > button * {
-        font-size: 14px !important; /* 조절 버튼 글씨 크기는 14px로 유지! */
+    
+    /* 원어민 듣기 🔊 버튼 스타일 정돈 */
+    .audio-btn * {
+        font-size: 16px !important;
         color: #2c3e50 !important;
         font-weight: bold !important;
     }
@@ -146,7 +144,8 @@ sheet = st.session_state[user_sheet_key]
 for i, r in enumerate(records):
     row_idx = i + 2
     
-    col1, col2, col3 = st.columns([6.5, 1.8, 1.7])
+    # 💡 컬럼을 3개에서 2개([7.5, 2.5])로 줄여 가로 폭을 깔끔하게 정돈!
+    col1, col2 = st.columns([7.5, 2.5])
     
     with col1:
         state_key = f"show_{selected_user}_{i}"
@@ -163,7 +162,7 @@ for i, r in enumerate(records):
             
     with col2:
         if is_english:
-            if st.button("🔊 듣기", key=f"audio_{selected_user}_{i}"):
+            if st.button("🔊 듣기", key=f"audio_{selected_user}_{i}", help="audio-btn"):
                 tts = gTTS(text=r['en'], lang='en')
                 fp = io.BytesIO()
                 tts.write_to_fp(fp)
@@ -171,34 +170,19 @@ for i, r in enumerate(records):
                 st.audio(fp, format='audio/mp3', autoplay=True)
         else:
             energy_val = int(r['energy']) if r['energy'] != "" else 0
+            # 별표 대신 길쭉하고 직관적인 세로 직사각형 이모지 적용
             rectangles = "▮" * energy_val + "▯" * (5 - energy_val)
-            # 문장 옆에 바짝 붙도록 간격 및 크기 조절
-            st.write(f"<div style='color:#ff4d4d; font-size:18px; text-align:center; padding-top:6px; letter-spacing:-1px;'>{rectangles}</div>", unsafe_allow_html=True)
-        
-    with col3:
-        b1, b2 = st.columns(2)
-        with b1:
-            if st.button("➕", key=f"plus_{selected_user}_{i}"):
-                current_energy = int(r['energy']) if r['energy'] != "" else 0
-                if current_energy < 5:
-                    new_energy = current_energy + 1
-                    st.session_state[user_data_key][i]['energy'] = new_energy
-                    if sheet:
-                        try:
-                            sheet.update_cell(row_idx, 4, str(new_energy))
-                        except:
-                            pass
-                    st.rerun()
-        with b2:
-            if st.button("➖", key=f"minus_{selected_user}_{i}"):
-                current_energy = int(r['energy']) if r['energy'] != "" else 0
-                if current_energy > 0:
-                    new_energy = current_energy - 1
-                    st.session_state[user_data_key][i]['energy'] = new_energy
-                    if sheet:
-                        try:
-                            sheet.update_cell(row_idx, 4, str(new_energy))
-                        except:
-                            pass
-                    st.rerun()
+            
+            # 🔍 에너지바 구역을 버튼으로 만들어 터치 시 늘어나도록 설정
+            if st.button(rectangles, key=f"bar_touch_{selected_user}_{i}"):
+                # 0칸에서 5칸까지 순차 증가, 5칸에서 누르면 다시 0칸으로 초기화!
+                new_energy = energy_val + 1 if energy_val < 5 else 0
+                st.session_state[user_data_key][i]['energy'] = new_energy
+                if sheet:
+                    try:
+                        sheet.update_cell(row_idx, 4, str(new_energy))
+                    except:
+                        pass
+                st.rerun()
+                
     st.write("---")
