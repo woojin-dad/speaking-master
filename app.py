@@ -126,5 +126,34 @@ for i, r in enumerate(records):
         else:
             energy_val = int(r['energy']) if r['energy'] != "" else 0
             stars = "★" * energy_val + "☆" * (5 - energy_val)
-            # 🔍 [색상 수정] #f1c40f(노란색)를 #ff4d4d(강렬한 빨간색)으로 전격 변경!
-            st.write(f"<div style='color:#ff4d4d; font-size:20px; text-align:center; padding-top:10px;'>{stars}</div>", unsafe_
+            # 🔍 [여기가 잘려있던 부분입니다!] 눈이 편안한 초록색(#2ecc71)으로 깔끔하게 마감 완료!
+            st.write(f"<div style='color:#2ecc71; font-size:20px; text-align:center; padding-top:10px;'>{stars}</div>", unsafe_allow_html=True)
+        
+    with col3:
+        st.write("<div style='padding-top:4px;'></div>", unsafe_allow_html=True)
+        b1, b2 = st.columns(2)
+        with b1:
+            if st.button("➕", key=f"plus_{selected_user}_{i}"):
+                current_energy = int(r['energy']) if r['energy'] != "" else 0
+                if current_energy < 5:
+                    new_energy = current_energy + 1
+                    st.session_state[user_data_key][i]['energy'] = new_energy
+                    if sheet:
+                        try:
+                            sheet.update_cell(row_idx, 4, str(new_energy))
+                        except:
+                            pass
+                    st.rerun()
+        with b2:
+            if st.button("➖", key=f"minus_{selected_user}_{i}"):
+                current_energy = int(r['energy']) if r['energy'] != "" else 0
+                if current_energy > 0:
+                    new_energy = current_energy - 1
+                    st.session_state[user_data_key][i]['energy'] = new_energy
+                    if sheet:
+                        try:
+                            sheet.update_cell(row_idx, 4, str(new_energy))
+                        except:
+                            pass
+                    st.rerun()
+    st.write("---")
