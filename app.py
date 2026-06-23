@@ -12,23 +12,9 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🔥 [스타일 최적화] HTML 직접 주입형 터치 게이지 레이아웃 CSS
+# 🔥 [박스 내부 매립형 레이아웃] 문장 박스 안에 막대기와 텍스트를 공존시키는 CSS
 st.markdown("""
     <style>
-    /* 모바일 화면에서 무조건 한 줄(Row)로 배치되도록 강제 고정 */
-    div[data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        gap: 6px !important;
-    }
-   
-    /* [비율 고정] 문장 칸과 우측 터치 게이지 칸 분배 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.3 1 0% !important; min-width: 0 !important; }
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 1.7 1 0% !important; min-width: 0 !important; }
-   
     /* 제목 스타일 */
     .custom-title {
         font-size: 26px !important;
@@ -39,17 +25,20 @@ st.markdown("""
         padding-bottom: 5px !important;
     }
    
-    /* 문장 버튼 자체 크기 강제 고정 */
+    /* 🔍 문장 버튼 스타일 (가로 100% 꽉 채우고 내부 요소를 양끝 정렬) */
     div.stButton > button {
         width: 100% !important;
-        text-align: left !important;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important; /* 글자는 왼쪽, 막대기는 오른쪽 끝 */
         background-color: #2c3e50 !important; /* 진한 남색 배경 */
         border: none !important;
         border-radius: 8px !important;
-        padding: 6px 10px !important;
+        padding: 10px 14px !important;
     }
    
-    /* 버튼 내부의 모든 글자 텍스트 태그들을 22px로 강제 확대!! */
+    /* 버튼 내부의 문장 글자 스타일 */
     div.stButton > button p,
     div.stButton > button div,
     div.stButton > button span,
@@ -58,36 +47,40 @@ st.markdown("""
         font-weight: 900 !important; 
         color: #ffffff !important; 
         line-height: 1.2 !important;
+        text-align: left !important;
     }
    
     div.stButton > button:hover * {
         color: #f1c40f !important;
     }
     
-    /* 🔍 깨짐 방지용 새로운 링크형 터치 구역 디자인 */
-    .touch-link {
-        display: block !important;
-        text-decoration: none !important;
-        width: 100% !important;
-        height: 38px !important;
-        padding-top: 6px !important;
-        cursor: pointer;
-    }
-    
-    /* 직접 그리는 세로 막대기 디자인 컨테이너 */
-    .bar-container {
+    /* 🔍 박스 내부에 그려지는 세로 막대기 스타일 */
+    .inner-bar-container {
         display: flex !important;
-        justify-content: center !important;
-        gap: 3px !important; 
+        gap: 3px !important;
+        padding-left: 15px !important; /* 문장 글자와의 최소 간격 확보 */
     }
-    /* 세로 길이 조절 구역 */
-    .energy-bar {
-        width: 6px !important;       
-        height: 26px !important;     
+    .inner-energy-bar {
+        width: 6px !important;
+        height: 24px !important;
         border-radius: 1px !important;
     }
-    .bar-filled { background-color: #ff4d4d !important; } /* 채워진 칸: 불타는 빨간색 */
-    .bar-empty { background-color: #dcdde1 !important; }  /* 비어있는 칸: 은은한 연회색 */
+    .inner-filled { background-color: #ff4d4d !important; } /* 채워진 막대: 빨간색 */
+    .inner-empty { background-color: #7f8c8d !important; }  /* 비어있는 막대: 남색 배경에 잘 보이는 어두운 회색 */
+    
+    /* 원어민 듣기용 미니 버튼 스타일 */
+    div[data-testid="stColumn"] .stButton>button {
+        background-color: #ffffff !important;
+        border: 1px solid #dcdde1 !important;
+        padding: 6px !important;
+        width: 100% !important;
+        display: flex !important;
+        justify-content: center !important;
+    }
+    div[data-testid="stColumn"] .stButton>button * {
+        font-size: 16px !important;
+        color: #2c3e50 !important;
+    }
    
     /* 구분선 및 전체 여백 촘촘하게 */
     hr { margin: 6px 0px !important; padding: 0px !important; }
@@ -153,59 +146,67 @@ sheet = st.session_state[user_sheet_key]
 for i, r in enumerate(records):
     row_idx = i + 2
     
-    col1, col2 = st.columns([8.3, 1.7])
-    
-    with col1:
-        state_key = f"show_{selected_user}_{i}"
-        if state_key not in st.session_state:
-            st.session_state[state_key] = False
-            
-        is_english = st.session_state[state_key]
-        text_content = r['en'] if is_english else r['kr']
-        btn_label = f"{r['id']}. {text_content}"
+    state_key = f"show_{selected_user}_{i}"
+    if state_key not in st.session_state:
+        st.session_state[state_key] = False
         
-        if st.button(btn_label, key=f"sentence_{selected_user}_{i}"):
-            st.session_state[state_key] = not st.session_state[state_key]
-            st.rerun()
-            
-    with col2:
-        if is_english:
+    is_english = st.session_state[state_key]
+    text_content = r['en'] if is_english else r['kr']
+    energy_val = int(r['energy']) if r['energy'] != "" else 0
+    
+    # 💡 영어 모드일 때는 우측에 스피커 버튼을 배치하기 위해 분할, 한국어 모드일 때는 100% 통짜 박스 사용
+    if is_english:
+        col1, col2 = st.columns([8.5, 1.5])
+        with col1:
+            btn_label = f"{r['id']}. {text_content}"
+            if st.button(btn_label, key=f"sentence_{selected_user}_{i}"):
+                st.session_state[state_key] = not st.session_state[state_key]
+                st.rerun()
+        with col2:
             if st.button("🔊", key=f"audio_{selected_user}_{i}"):
                 tts = gTTS(text=r['en'], lang='en')
                 fp = io.BytesIO()
                 tts.write_to_fp(fp)
                 fp.seek(0)
                 st.audio(fp, format='audio/mp3', autoplay=True)
-        else:
-            energy_val = int(r['energy']) if r['energy'] != "" else 0
-            
-            # 🔍 깨짐 현상을 완전히 방지하기 위해 HTML 순수 코드로 화면을 그리고 스트림릿 버튼 기능 연동
-            bar_html = "<div class='bar-container'>"
-            for b in range(5):
-                bar_class = "bar-filled" if b < energy_val else "bar-empty"
-                bar_html += f"<div class='energy-bar {bar_class}'></div>"
-            bar_html += "</div>"
-            
-            # 스트림릿 내장 버튼 대신 투명 껍데기 레이블을 활용해 깨짐을 완벽 방지하고 터치 감지
-            if st.button("", key=f"bar_touch_{selected_user}_{i}", help="에너지 조절"):
-                pass # CSS 처리를 위해 빈 버튼 생성
-                
-            # 실제 눈에 보이는 그래픽을 버튼 위에 깨끗하게 덮어씌우고 터치 이벤트는 아래 영역에서 낚아챔
-            st.markdown(f"""
-                <div style='margin-top: -38px; position: relative; z-index: 999;'>
-                    {bar_html}
-                </div>
-            """, unsafe_allow_html=True)
-            
-            # 투명 버튼을 감지하여 에너지를 1씩 올리거나 0으로 리셋하는 로직 (코드 분리 안전화)
-            if st.session_state.get(f"bar_touch_{selected_user}_{i}"):
-                new_energy = energy_val + 1 if energy_val < 5 else 0
+    else:
+        # 🔍 한국어 모드일 때는 단 하나의 버튼만 배치 (가로 폭 100% 완전 점유)
+        # 문자열 포맷팅을 사용해 버튼 하나 누르면 문장 전환과 에너지 조절을 동시에 처리하는 정교한 트릭 적용
+        btn_label = f"{r['id']}. {text_content}"
+        
+        # 버튼을 생성하고 클릭하면 에너지가 순환(0~5)하며 올라가도록 설정
+        if st.button(btn_label, key=f"sentence_block_{selected_user}_{i}"):
+            # 💡 한국어 문장 자체를 누르면 에너지가 1씩 올라가고, 5점 만점에서 누르면 0으로 리셋된 후 영어 문장으로 반전!
+            if energy_val < 5:
+                new_energy = energy_val + 1
                 st.session_state[user_data_key][i]['energy'] = new_energy
                 if sheet:
                     try:
                         sheet.update_cell(row_idx, 4, str(new_energy))
                     except:
                         pass
-                st.rerun()
+            else:
+                # 5점 만점일 때 누르면 에너지를 0으로 리셋하고 영어 문장을 보여줌
+                st.session_state[user_data_key][i]['energy'] = 0
+                if sheet:
+                    try:
+                        sheet.update_cell(row_idx, 4, "0")
+                    except:
+                        pass
+                st.session_state[state_key] = True
+            st.rerun()
+            
+        # 🔍 [마법의 구역] CSS 절대 좌표를 활용해 문장 박스 안쪽 오른쪽 끝에 막대기 그래픽을 강제로 쑤셔 넣음
+        bar_html = "<div class='inner-bar-container'>"
+        for b in range(5):
+            bar_class = "inner-filled" if b < energy_val else "inner-empty"
+            bar_html += f"<div class='inner-energy-bar {bar_class}'></div>"
+        bar_html += "</div>"
+        
+        st.markdown(f"""
+            <div style='margin-top: -41px; margin-bottom: 17px; float: right; padding-right: 15px; position: relative; z-index: 999; pointer-events: none;'>
+                {bar_html}
+            </div>
+        """, unsafe_allow_html=True)
                 
     st.write("---")
