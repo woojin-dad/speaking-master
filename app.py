@@ -10,10 +10,10 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 대시보드 스타일링 (CSS) - 글자 크기 확대를 위한 여백 조정
+# 대시보드 스타일링 (CSS)
 st.markdown("""
     <style>
-    /* 문장 버튼 스타일 - 큰 글씨가 잘 안 잘리도록 패딩(여백)을 늘렸습니다 */
+    /* 문장 버튼 스타일 */
     .stButton>button {
         width: 100%;
         text-align: left;
@@ -30,7 +30,7 @@ st.markdown("""
         color: #3498db;
     }
     
-    /* ➕, ➖ 조절 버튼 스타일 고정 */
+    /* ➕, ➖ 조절 버튼 스타일 */
     div[data-testid="stColumn"] .stButton>button {
         padding: 10px 10px;
         text-align: center;
@@ -66,6 +66,15 @@ def init_gspread():
 user_data_key = f"records_{selected_user}"
 user_sheet_key = f"sheet_{selected_user}"
 
+# 사용자가 전환될 때 기존 데이터를 깔끔하게 초기화하기 위한 장치
+if "last_user" not in st.session_state:
+    st.session_state["last_user"] = selected_user
+
+if st.session_state["last_user"] != selected_user:
+    if user_data_key in st.session_state:
+        del st.session_state[user_data_key]
+    st.session_state["last_user"] = selected_user
+
 if user_sheet_key not in st.session_state or st.session_state[user_sheet_key] is None:
     try:
         client = init_gspread()
@@ -89,33 +98,8 @@ sheet = st.session_state[user_sheet_key]
 for i, r in enumerate(records):
     row_idx = i + 2
     
-    # 글자가 커졌으므로 레이아웃 비율을 살짝 조정 (문장 칸을 더 넓게)
     col1, col2, col3 = st.columns([5.5, 2.5, 2])
     
     with col1:
         state_key = f"show_{selected_user}_{i}"
-        if state_key not in st.session_state:
-            st.session_state[state_key] = False
-            
-        # 🔍 [핵심 수정] 글자 크기를 22px로 키우고 굵게 처리하는 HTML 주입
-        text_content = r['en'] if st.session_state[state_key] else r['kr']
-        btn_label = f" {r['id']}. {text_content} "
-        
-        # 버튼 내부에 큰 글씨를 띄우기 위해 마크다운 형태 대신 폰트 스타일을 적용
-        if st.button(btn_label, key=f"sentence_{selected_user}_{i}"):
-            st.session_state[state_key] = not st.session_state[state_key]
-            st.rerun()
-            
-    with col2:
-        # 별 모양 크기도 문장에 맞춰 살짝 키움 (20px)
-        energy_val = int(r['energy']) if r['energy'] != "" else 0
-        stars = "★" * energy_val + "☆" * (5 - energy_val)
-        st.write(f"<div style='color:#f1c40f; font-size:20px; text-align:center; padding-top:10px;'>{stars}</div>", unsafe_allow_html=True)
-        
-    with col3:
-        # 버튼 정렬을 위한 상단 여백 추가
-        st.write("<div style='padding-top:4px;'></div>", unsafe_allow_html=True)
-        b1, b2 = st.columns(2)
-        with b1:
-            if st.button("➕", key=f"plus_{selected_user}_{i}"):
-                current_energy = int(r['energy']) if r['energy'] != "" else
+        if state_key not in st.
