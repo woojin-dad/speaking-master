@@ -6,7 +6,7 @@ import json
 # 1. 웹페이지 기본 설정
 st.set_page_config(page_title="스피킹 마스터", layout="centered")
 
-# 대시보드 스타일링 (CSS) - 맨 밑바닥 메뉴 숨기기 기능 추가!
+# 대시보드 스타일링 (CSS) - 최신 스트림릿 하단 바 완벽 차단 문법!
 st.markdown("""
     <style>
     /* 기존 버튼 스타일 */
@@ -25,10 +25,15 @@ st.markdown("""
         color: #3498db;
     }
     
-    /* [핵심] 맨 밑바닥 Built with Streamlit 회색 바 강제로 숨기기 */
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    stDecoration {display:none;}
+    /* [최종 해결] 맨 밑바닥 'Built with Streamlit' 및 'Fullscreen' 회색 바 전체 구조 삭제 */
+    [data-testid="stStatusWidget"] {display: none !important;}
+    footer {visibility: hidden !important; height: 0px !important; padding: 0px !important;}
+    header {visibility: hidden !important; height: 0px !important;}
+    .stAppDeployButton {display: none !important;}
+    
+    /* 하단 회색 선 영역 자체를 숨김 */
+    div[data-testid="stDecoration"] {display: none !important;}
+    div[class^="viewerBadge"] {display: none !important;}
     </style>
 """, unsafe_allow_html=True)
 
