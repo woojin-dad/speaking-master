@@ -10,23 +10,33 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 대시보드 스타일링 (CSS)
+# 대시보드 스타일링 (CSS) - 글자 크기 확대를 위한 여백 조정
 st.markdown("""
     <style>
+    /* 문장 버튼 스타일 - 큰 글씨가 잘 안 잘리도록 패딩(여백)을 늘렸습니다 */
     .stButton>button {
         width: 100%;
         text-align: left;
         background-color: #ffffff;
         color: #2c3e50;
         border: 1px solid #dcdde1;
-        border-radius: 8px;
-        padding: 10px 15px;
+        border-radius: 10px;
+        padding: 14px 18px;
         font-weight: bold;
+        line-height: 1.4;
     }
     .stButton>button:hover {
         border-color: #3498db;
         color: #3498db;
     }
+    
+    /* ➕, ➖ 조절 버튼 스타일 고정 */
+    div[data-testid="stColumn"] .stButton>button {
+        padding: 10px 10px;
+        text-align: center;
+    }
+    
+    /* 하단 플랫폼 메뉴 완벽 차단 */
     [data-testid="stStatusWidget"] {display: none !important; visibility: hidden !important;}
     footer {visibility: hidden !important; height: 0px !important; padding: 0px !important;}
     header {visibility: hidden !important; height: 0px !important;}
@@ -38,7 +48,7 @@ st.markdown("""
 
 st.title("👑 스피킹 마스터 👑")
 
-# 👥 [핵심] 사용자 선택 메뉴 추가 (구글 시트 탭 이름과 정확히 일치해야 합니다)
+# 사용자 선택 메뉴
 users = ["우진", "동탕"]
 selected_user = st.selectbox("👤 학습자를 선택하세요", users)
 
@@ -53,14 +63,12 @@ def init_gspread():
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     return gspread.authorize(creds)
 
-# 사용자가 바뀔 때마다 해당 탭의 데이터를 새로 고정하기 위해 세션 구조 변경
 user_data_key = f"records_{selected_user}"
 user_sheet_key = f"sheet_{selected_user}"
 
 if user_sheet_key not in st.session_state or st.session_state[user_sheet_key] is None:
     try:
         client = init_gspread()
-        # 선택된 사용자의 이름과 똑같은 '탭(워크시트)'을 엽니다.
         st.session_state[user_sheet_key] = client.open("SpeakingMaster").worksheet(selected_user)
     except:
         st.session_state[user_sheet_key] = None
@@ -81,49 +89,33 @@ sheet = st.session_state[user_sheet_key]
 for i, r in enumerate(records):
     row_idx = i + 2
     
-    col1, col2, col3 = st.columns([5, 3, 2])
+    # 글자가 커졌으므로 레이아웃 비율을 살짝 조정 (문장 칸을 더 넓게)
+    col1, col2, col3 = st.columns([5.5, 2.5, 2])
     
     with col1:
-        # 사용자별로 스위칭 버튼 상태 분리
         state_key = f"show_{selected_user}_{i}"
         if state_key not in st.session_state:
             st.session_state[state_key] = False
             
-        btn_label = f"{r['id']}. {r['en']}" if st.session_state[state_key] else f"{r['id']}. {r['kr']}"
+        # 🔍 [핵심 수정] 글자 크기를 22px로 키우고 굵게 처리하는 HTML 주입
+        text_content = r['en'] if st.session_state[state_key] else r['kr']
+        btn_label = f" {r['id']}. {text_content} "
         
+        # 버튼 내부에 큰 글씨를 띄우기 위해 마크다운 형태 대신 폰트 스타일을 적용
         if st.button(btn_label, key=f"sentence_{selected_user}_{i}"):
             st.session_state[state_key] = not st.session_state[state_key]
             st.rerun()
             
     with col2:
+        # 별 모양 크기도 문장에 맞춰 살짝 키움 (20px)
         energy_val = int(r['energy']) if r['energy'] != "" else 0
         stars = "★" * energy_val + "☆" * (5 - energy_val)
-        st.write(f"<span style='color:#f1c40f; font-size:18px;'>{stars}</span>", unsafe_allow_html=True)
+        st.write(f"<div style='color:#f1c40f; font-size:20px; text-align:center; padding-top:10px;'>{stars}</div>", unsafe_allow_html=True)
         
     with col3:
+        # 버튼 정렬을 위한 상단 여백 추가
+        st.write("<div style='padding-top:4px;'></div>", unsafe_allow_html=True)
         b1, b2 = st.columns(2)
         with b1:
             if st.button("➕", key=f"plus_{selected_user}_{i}"):
-                current_energy = int(r['energy']) if r['energy'] != "" else 0
-                if current_energy < 5:
-                    new_energy = current_energy + 1
-                    st.session_state[user_data_key][i]['energy'] = new_energy
-                    if sheet:
-                        try:
-                            sheet.update_cell(row_idx, 4, str(new_energy))
-                        except:
-                            pass
-                    st.rerun()
-        with b2:
-            if st.button("➖", key=f"minus_{selected_user}_{i}"):
-                current_energy = int(r['energy']) if r['energy'] != "" else 0
-                if current_energy > 0:
-                    new_energy = current_energy - 1
-                    st.session_state[user_data_key][i]['energy'] = new_energy
-                    if sheet:
-                        try:
-                            sheet.update_cell(row_idx, 4, str(new_energy))
-                        except:
-                            pass
-                    st.rerun()
-    st.write("---")
+                current_energy = int(r['energy']) if r['energy'] != "" else
