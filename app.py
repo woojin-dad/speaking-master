@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🔥 [상하 정렬 + 대왕 아이콘] 이모지를 키우고 글씨를 아래로 내리는 CSS
+# 🔥 [순수 대왕 아이콘 CSS] 글씨를 제거하고 아이콘 크기만 32px로 정돈
 st.markdown("""
     <style>
     /* 모바일 화면에서 무조건 한 줄(Row)로 배치되도록 강제 고정 */
@@ -26,9 +26,9 @@ st.markdown("""
         gap: 0px !important;
     }
    
-    /* [우측 밀착 비율] 문장 칸(8.3)과 신호등 칸(1.7) 분배 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.3 1 0% !important; min-width: 0 !important; }
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 1.7 1 0% !important; min-width: 0 !important; }
+    /* 🔍 [우측 밀착 비율] 문장 칸(8.5)과 신호등 칸(1.5) 분배 (가로폭 추가 절약) */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.5 1 0% !important; min-width: 0 !important; }
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 1.5 1 0% !important; min-width: 0 !important; }
    
     /* 제목 스타일 */
     .custom-title {
@@ -72,37 +72,21 @@ st.markdown("""
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button {
         background-color: #ffffff !important;
         border: none !important;
-        padding: 2px 0px !important;
+        padding: 4px 0px !important;
         width: 100% !important;
         display: flex !important;
         justify-content: flex-end !important; /* 오른쪽 끝 바짝 밀착 */
         align-items: center !important;
     }
    
-    /* 🔍 [상하 정렬 핵심] 버튼 내부 요소를 위아래(column)로 강제 정렬 */
+    /* 🔍 아이콘 폰트 크기만 32px 대왕 크기로 고정 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button p,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button div,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button span,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button * {
-        display: flex !important;
-        flex-direction: column !important; /* 💡 위아래로 쌓이게 설정 */
-        align-items: center !important;
-        justify-content: center !important;
+        font-size: 32px !important; /* 💡 아이콘 크기 웅장하게 확대 */
         white-space: nowrap !important;
-        line-height: 1.1 !important;
-    }
-    
-    /* 🔍 위쪽 이모지만 쏙 골라내서 32px 대왕 크기로 확대 */
-    .big-emoji {
-        font-size: 32px !important; /* 💡 아이콘을 엄청 크게 키웠습니다! */
-        margin-bottom: 2px !important;
-    }
-    
-    /* 🔍 아래쪽 상태 글씨는 아담하고 진하게 조절 */
-    .sub-text {
-        font-size: 11px !important; /* 💡 아래쪽 글씨는 작고 깔끔하게 배치 */
-        font-weight: bold !important;
-        color: #7f8c8d !important; /* 세련된 회색 톤 */
+        display: inline-block !important;
     }
    
     /* 원어민 듣기 🔊 버튼 스타일 유지 */
@@ -110,7 +94,6 @@ st.markdown("""
         font-size: 16px !important;
         color: #2c3e50 !important;
         font-weight: bold !important;
-        flex-direction: row !important; /* 듣기 버튼은 상하정렬 제외 */
     }
    
     /* 구분선 및 전체 여백 촘촘하게 */
@@ -185,7 +168,7 @@ def save_to_google_sheet(sheet_obj, row, col, val):
 for i, r in enumerate(records):
     row_idx = i + 2
     
-    col1, col2 = st.columns([8.3, 1.7])
+    col1, col2 = st.columns([8.5, 1.5])
     
     with col1:
         state_key = f"show_{selected_user}_{i}"
@@ -211,22 +194,15 @@ for i, r in enumerate(records):
         else:
             energy_val = int(r['energy']) if r['energy'] != "" else 0
             
-            # 🔍 [구조 변경] HTML 태그를 사용해 아이콘과 글씨를 명확히 위아래로 분리!
-            if energy_val == 0:
-                status_html = "<span class='big-emoji'>🚨</span><span class='sub-text'>미암기</span>"
-            elif energy_val == 1:
-                status_html = "<span class='big-emoji'>🔴</span><span class='sub-text'>위험</span>"
-            elif energy_val == 2:
-                status_html = "<span class='big-emoji'>🟠</span><span class='sub-text'>보통</span>"
-            elif energy_val == 3:
-                status_html = "<span class='big-emoji'>🟡</span><span class='sub-text'>가물</span>"
-            elif energy_val == 4:
-                status_html = "<span class='big-emoji'>🟢</span><span class='sub-text'>안심</span>"
-            else:
-                status_html = "<span class='big-emoji'>👑</span><span class='sub-text'>마스터</span>"
+            # 🔍 글씨를 완전히 빼버리고 순수 이모지만 깔끔하게 할당!
+            if energy_val == 0: status_icon = "🚨"
+            elif energy_val == 1: status_icon = "🔴"
+            elif energy_val == 2: status_icon = "🟠"
+            elif energy_val == 3: status_icon = "🟡"
+            elif energy_val == 4: status_icon = "🟢"
+            else: status_icon = "👑"
             
-            # 💡 버튼 겉모양은 빈 텍스트로 만들고, 내부에 주입된 마크다운 스타일이 상하정렬을 제어
-            if st.button(status_html, key=f"bar_touch_{selected_user}_{i}"):
+            if st.button(status_icon, key=f"bar_touch_{selected_user}_{i}"):
                 new_energy = energy_val + 1 if energy_val < 5 else 0
                 st.session_state[user_data_key][i]['energy'] = new_energy
                 
