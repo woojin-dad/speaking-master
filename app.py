@@ -6,8 +6,10 @@ import json
 # 1. 웹페이지 기본 설정
 st.set_page_config(page_title="스피킹 마스터", layout="centered")
 
+# 대시보드 스타일링 (CSS) - 맨 밑바닥 메뉴 숨기기 기능 추가!
 st.markdown("""
     <style>
+    /* 기존 버튼 스타일 */
     .stButton>button {
         width: 100%;
         text-align: left;
@@ -22,6 +24,11 @@ st.markdown("""
         border-color: #3498db;
         color: #3498db;
     }
+    
+    /* [핵심] 맨 밑바닥 Built with Streamlit 회색 바 강제로 숨기기 */
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    stDecoration {display:none;}
     </style>
 """, unsafe_allow_html=True)
 
@@ -37,7 +44,6 @@ def init_gspread():
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     return gspread.authorize(creds)
 
-# 세션 상태에 구글 시트 연결 객체 저장 (매번 재연결 방지)
 if "gspread_sheet" not in st.session_state:
     try:
         client = init_gspread()
@@ -45,7 +51,6 @@ if "gspread_sheet" not in st.session_state:
     except:
         st.session_state["gspread_sheet"] = None
 
-# 최초 1회만 구글 시트에서 전체 데이터를 긁어와 메모리에 저장
 if "records_data" not in st.session_state:
     if st.session_state["gspread_sheet"]:
         try:
@@ -75,7 +80,6 @@ for i, r in enumerate(records):
             st.rerun()
             
     with col2:
-        # 메모리(세션)에 저장된 현재 에너지를 즉시 가져와서 화면에 출력
         energy_val = int(r['energy']) if r['energy'] != "" else 0
         stars = "★" * energy_val + "☆" * (5 - energy_val)
         st.write(f"<span style='color:#f1c40f; font-size:18px;'>{stars}</span>", unsafe_allow_html=True)
@@ -87,10 +91,7 @@ for i, r in enumerate(records):
                 current_energy = int(r['energy']) if r['energy'] != "" else 0
                 if current_energy < 5:
                     new_energy = current_energy + 1
-                    # [핵심] 화면 데이터를 '즉시' 업데이트하여 지연 시간 0초로 만듦
                     st.session_state["records_data"][i]['energy'] = new_energy
-                    
-                    # 구글 시트 저장은 화면 갱신 후에 뒤에서 처리하도록 예외 처리 형태로 던짐
                     if sheet:
                         try:
                             sheet.update_cell(row_idx, 4, str(new_energy))
@@ -102,9 +103,7 @@ for i, r in enumerate(records):
                 current_energy = int(r['energy']) if r['energy'] != "" else 0
                 if current_energy > 0:
                     new_energy = current_energy - 1
-                    # [핵심] 화면 데이터를 '즉시' 업데이트
                     st.session_state["records_data"][i]['energy'] = new_energy
-                    
                     if sheet:
                         try:
                             sheet.update_cell(row_idx, 4, str(new_energy))
