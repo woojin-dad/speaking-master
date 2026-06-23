@@ -23,7 +23,7 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 🔥 [수직 적층 최적화 CSS] 이모지가 위로 길쭉하게 쌓이고 간격이 촘촘하도록 제어
+# 🔥 [간격 조절 CSS] 문장 박스와 우측 탑 사이의 여백(gap)을 넓힘
 st.markdown("""
     <style>
     /* 모바일 화면에서 무조건 한 줄(Row)로 배치되도록 강제 고정 */
@@ -33,12 +33,12 @@ st.markdown("""
         flex-wrap: nowrap !important;
         align-items: center !important;
         justify-content: space-between !important;
-        gap: 0px !important;
+        gap: 15px !important; /* 💡 너무 밀착되지 않도록 두 구역 사이 간격을 15px로 기분 좋게 벌림 */
     }
    
-    /* [우측 밀착 비율] 문장 칸(8.4)과 수직 탑 칸(1.6) 분배 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.4 1 0% !important; min-width: 0 !important; }
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 1.6 1 0% !important; min-width: 0 !important; }
+    /* 🔍 [비율 최적화] 여백이 생긴 만큼 문장 칸(8.0)과 우측 탑 칸(2.0)을 안정적으로 분배 */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.0 1 0% !important; min-width: 0 !important; }
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 2.0 1 0% !important; min-width: 0 !important; }
    
     /* 제목 스타일 */
     .custom-title {
@@ -74,7 +74,7 @@ st.markdown("""
         color: #f1c40f !important;
     }
    
-    /* [우측 게이지 버튼 정돈] 우측 바짝 정렬 및 투명화 */
+    /* [우측 게이지 버튼 정돈] 우측 정렬 및 투명화 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton {
         text-align: right !important;
     }
@@ -84,19 +84,20 @@ st.markdown("""
         padding: 0px !important;
         width: 100% !important;
         display: flex !important;
-        justify-content: flex-end !important;
+        justify-content: flex-end !important; /* 오른쪽 정렬 유지 */
         align-items: center !important;
     }
    
-    /* 🔍 이모지가 위아래로 줄바꿈되어 촘촘하게 쌓이도록 스타일 잠금 */
+    /* 이모지 수직 정렬 스타일 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button p,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button div,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button span,
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button * {
-        font-size: 16px !important; /* 위아래로 4층이 막힘없이 들어가는 완벽한 크기 */
-        white-space: pre-line !important; /* 줄바꿈 기호(\\n)를 완벽하게 인식 */
-        line-height: 1.0 !important; /* 층과 층 사이를 아주 촘촘하게 밀착 */
+        font-size: 16px !important;
+        white-space: pre-line !important;
+        line-height: 1.0 !important;
         text-align: center !important;
+        padding-right: 4px !important; /* 💡 화면 오른쪽 끝에 완전히 닿지 않도록 미세한 오른쪽 마진 추가 */
     }
    
     /* 원어민 듣기 🔊 버튼 스타일 유지 */
@@ -179,7 +180,7 @@ def save_to_google_sheet(sheet_obj, row, col, val):
 for i, r in enumerate(records):
     row_idx = i + 2
     
-    col1, col2 = st.columns([8.4, 1.6])
+    col1, col2 = st.columns([8.0, 2.0])
     
     with col1:
         state_key = f"show_{selected_user}_{i}"
@@ -210,16 +211,15 @@ for i, r in enumerate(records):
             except:
                 energy_val = 0
             
-            # 🔍 [수직 이모지 적층 시스템 잠금]
-            # 줄바꿈 기호(\\n)를 활용해 위에서 아래로 떨어지는 컬러 빌딩 완성!
+            # 수직 이모지 빌딩 구성
             if energy_val == 0:
-                color_block_text = "🟥\n🟥\n🟥\n🟥"  # 0점: 미암기 (빨강 4층 빌딩)
+                color_block_text = "🟥\n🟥\n🟥\n🟥"  # 0점: 미암기 (빨강 4층)
             elif energy_val == 1:
-                color_block_text = "🟧\n🟧\n🟧"      # 1점: 위험 (주황 3층 빌딩)
+                color_block_text = "🟧\n🟧\n🟧"      # 1점: 위험 (주황 3층)
             elif energy_val == 2:
-                color_block_text = "🟨\n🟨"          # 2점: 보통 (노랑 2층 빌딩)
+                color_block_text = "🟨\n🟨"          # 2점: 보통 (노랑 2층)
             else:
-                color_block_text = "🟩"              # 3점: 안심 (초록 1층 단층)
+                color_block_text = "🟩"              # 3점: 안심 (초록 1층)
             
             if st.button(color_block_text, key=f"bar_touch_{selected_user}_{i}"):
                 new_energy = energy_val + 1 if energy_val < 3 else 0
