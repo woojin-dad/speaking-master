@@ -122,17 +122,16 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 👥 [메뉴 확장] 순서대로 기본 탭과 우선순위 탭을 선택할 수 있도록 구성
+# 👥 메뉴 설정 (기본 / 우선순위)
 menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
 selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options)
 
-# 💡 선택된 메뉴에 따라 실제 구글 시트 탭 이름 매칭 (우선순위도 원본 탭에서 데이터를 가져옴)
+# 구글 시트 실제 탭 이름 매칭
 if "동탕" in selected_menu:
     real_sheet_name = "동탕"
 else:
     real_sheet_name = "우진"
 
-# 우선순위 모드 켜짐 여부 확인
 is_priority_mode = "우선순위" in selected_menu
 
 # 👑 제목 설정
@@ -147,18 +146,13 @@ def init_gspread():
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     return gspread.authorize(creds)
 
-# 캐시 키는 실제 구글 시트 이름("동탕" 또는 "우진") 기준으로 관리
 user_data_key = f"records_{real_sheet_name}"
 user_sheet_key = f"sheet_{real_sheet_name}"
 
 if "last_menu" not in st.session_state:
     st.session_state["last_menu"] = selected_menu
 
-# 메뉴가 완전히 바뀌었을 때 데이터를 새로고침하도록 설정
 if st.session_state["last_menu"] != selected_menu:
-    if "우선순위" in st.session_state["last_menu"] or "우선순위" in selected_menu:
-        # 우선순위 모드 진입/이탈 시 화면을 깨끗하게 새로 그리기 위해 캐시 초기화 유도
-        pass
     st.session_state["last_menu"] = selected_menu
 
 if user_sheet_key not in st.session_state or st.session_state[user_sheet_key] is None:
@@ -180,11 +174,9 @@ if user_data_key not in st.session_state:
 records = st.session_state[user_data_key]
 sheet = st.session_state[user_sheet_key]
 
-# 🔍 [구조 혁신] 화면에 뿌려줄 리스트 생성 및 정렬 로직
-# 구글 시트 원본 행 번호(original_row_idx)를 기록해두어 정렬되더라도 저장은 구글 시트의 제자리에 정확히 박히게 합니다.
-display_records = []
+# 전체 데이터 가공 및 인덱스 기록
+all_display_records = []
 for idx, r in enumerate(records):
-    # 각 레코드의 무결성 검사 및 정수 변환
     try:
         e_val = int(r['energy'])
         if e_val > 3: e_val = 3
@@ -192,16 +184,41 @@ for idx, r in enumerate(records):
     except:
         e_val = 0
         
-    display_records.append({
-        'original_index': idx,       # 원본 리스트 내의 위치
-        'original_row': idx + 2,     # 구글 시트 실제 행 (Row) 번호
+    all_display_records.append({
+        'original_index': idx,
+        'original_row': idx + 2,
         'id': r['id'],
         'kr': r['kr'],
         'en': r['en'],
         'energy': e_val
     })
 
-# 💡 만약 '우선순위' 메뉴를 선택했다면? 에너지 점수가 낮은 순(0점 빨강 ➡️ 1점 주황...)으로 정렬!
+# 📖 [혁신] 100개 단위로 책장(페이지) 나누기 로직 자동 작동
+total_sentences = len(all_display_records)
+page_size = 100  # 💡 책장당 갯수 100개로 고정 세팅!
+
+if total_sentences > 0:
+    # 100개 단위로 쪼개서 선택 상자 문구 만들기 (예: "1권: 1 ~ 100번")
+    page_options = []
+    for i in range(0, total_sentences, page_size):
+        start_num = i + 1
+        end_num = min(i + page_size, total_sentences)
+        page_options.append(f"📖 책장: {start_num} ~ {end_num}번")
+    
+    # 상단에 책장 선택 박스 출력
+    selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options)
+    
+    # 선택된 책장의 실제 시작/끝 번호 역산 추출
+    page_idx = page_options.index(selected_page_str)
+    start_idx = page_idx * page_size
+    end_idx = start_idx + page_size
+    
+    # 현재 책장 범위 안에 있는 데이터만 싹 도려내기
+    display_records = all_display_records[start_idx:end_idx]
+else:
+    display_records = []
+
+# 💡 우선순위 탭이면 현재 책장(100개) 안에서만 안 외워진 순 정렬!
 if is_priority_mode:
     display_records = sorted(display_records, key=lambda x: x['energy'])
 
@@ -213,7 +230,7 @@ def save_to_google_sheet(sheet_obj, row, col, val):
         except:
             pass
 
-# 3. 화면에 문장 리스트 출력
+# 3. 화면에 선택된 책장의 문장 리스트 출력
 for item in display_records:
     orig_idx = item['original_index']
     row_idx = item['original_row']
@@ -222,7 +239,6 @@ for item in display_records:
     col1, col2 = st.columns([8.5, 1.5])
     
     with col1:
-        # 고유 키는 원본 데이터의 인덱스를 활용하여 정렬 후에도 상태가 꼬이지 않게 보호
         state_key = f"show_{real_sheet_name}_{orig_idx}"
         if state_key not in st.session_state:
             st.session_state[state_key] = False
@@ -244,23 +260,20 @@ for item in display_records:
                 fp.seek(0)
                 st.audio(fp, format='audio/mp3', autoplay=True)
         else:
-            # 수직 이모지 빌딩 구성
             if energy_val == 0:
-                color_block_text = "🟥\n🟥\n🟥\n🟥"  # 0점: 미암기 (빨강 4층)
+                color_block_text = "🟥\n🟥\n🟥\n🟥"
             elif energy_val == 1:
-                color_block_text = "🟧\n🟧\n🟧"      # 1점: 위험 (주황 3층)
+                color_block_text = "🟧\n🟧\n🟧"
             elif energy_val == 2:
-                color_block_text = "🟨\n🟨"          # 2점: 보통 (노랑 2층)
+                color_block_text = "🟨\n🟨"
             else:
-                color_block_text = "🟩"              # 3점: 안심 (초록 1층)
+                color_block_text = "🟩"
             
             if st.button(color_block_text, key=f"bar_touch_{real_sheet_name}_{orig_idx}"):
                 new_energy = energy_val + 1 if energy_val < 3 else 0
                 
-                # 원본 세션 상태 데이터에 즉시 업데이트
                 st.session_state[user_data_key][orig_idx]['energy'] = new_energy
                 
-                # 비동기 백그라운드로 구글 시트 제자리에 정확하게 기록 던지기
                 threading.Thread(
                     target=save_to_google_sheet, 
                     args=(sheet, row_idx, 4, new_energy), 
