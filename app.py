@@ -24,7 +24,7 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 🔥 [레이아웃 최적화 CSS] 최상단 무한 반복 라디오 플레이어 전용 스타일
+# 🔥 [레이아웃 최적화 CSS] 전체 재생(초록) 및 책장 재생(파랑) 멀티 플레이어 스타일 적용
 st.markdown("""
     <style>
     .block-container { 
@@ -57,7 +57,7 @@ st.markdown("""
         margin-top: 10px !important;
     }
 
-    /* 📻 최상단 무한 반복 라디오 박스 디자인 */
+    /* 📻 1. 최상단 무한 반복 라디오 박스 디자인 (초록색 테두리) */
     .total-relay-box {
         background-color: #f0fdf4 !important;
         padding: 12px 15px !important;
@@ -65,6 +65,17 @@ st.markdown("""
         border: 2px solid #2ecc71 !important;
         text-align: center !important;
         margin-bottom: 15px !important;
+    }
+
+    /* 🎧 2. 중단 책장별 연속 듣기 박스 디자인 (파란색 테두리) */
+    .page-relay-box {
+        background-color: #f0f9ff !important;
+        padding: 10px 14px !important;
+        border-radius: 10px !important;
+        border: 1px solid #3b82f6 !important;
+        text-align: center !important;
+        margin-top: 8px !important;
+        margin-bottom: 5px !important;
     }
    
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {
@@ -134,11 +145,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 👥 메뉴 설정 (기본 / 우선순위)
+# 👥 메뉴 설정
 menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
 selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options)
 
-# 구글 시트 실제 탭 이름 매칭
 if "동탕" in selected_menu:
     real_sheet_name = "동탕"
 else:
@@ -182,7 +192,7 @@ if user_data_key not in st.session_state:
 records = st.session_state[user_data_key]
 sheet = st.session_state[user_sheet_key]
 
-# 전체 데이터 가공 및 인덱스 기록
+# 전체 데이터 가공
 all_display_records = []
 for idx, r in enumerate(records):
     try:
@@ -201,7 +211,7 @@ for idx, r in enumerate(records):
         'energy': e_val
     })
 
-# 📖 100개 단위로 책장(페이지) 나누기 로직 자동 작동
+# 📖 100개 단위로 책장 나누기 로직
 total_sentences = len(all_display_records)
 page_size = 100  
 
@@ -211,63 +221,86 @@ if total_sentences > 0:
         start_num = i + 1
         end_num = min(i + page_size, total_sentences)
         page_options.append(f"📖 책장: {start_num} ~ {end_num}번")
-    
-    selected_page_str = page_options[0] # 기본값 세팅용
 else:
-    display_records = []
+    page_options = []
 
-# 🚀 [강제 자동재생 튜닝] 최상단 동탕 무한 반복 스피킹 라디오 컨트롤러
+# 🚀 [기능 1] 최상단 전체 무한 반복 라디오 컨트롤러 (초록색 박스)
 if all_display_records:
-    st.markdown("<div class='total-relay-box'>📻 🔁 <b>동탕 무한 반복 스피킹 라디오</b></div>", unsafe_allow_html=True)
+    st.markdown("<div class='total-relay-box'>📻 🔁 <b>동탕 무한 반복 스피킹 라디오 (전체 재생)</b></div>", unsafe_allow_html=True)
     
     if st.button("▶️ 1번부터 끝까지 멈춤 없이 무한 반복 재생 시작", key=f"total_relay_btn_{real_sheet_name}"):
-        with st.spinner("⚡ 동탕 라디오 가동 중... 100개 단위 릴레이 굽기 시작"):
+        with st.spinner("⚡ 전체 문장 라디오 빌드 중..."):
             try:
                 relay_audio = io.BytesIO()
-                target_batch = all_display_records[:100] if len(all_display_records) > 100 else all_display_records
-                
-                for item in target_batch:
+                for item in all_display_records:
                     if item['en'].strip():
                         tts_part = gTTS(text=item['en'], lang='en')
                         part_fp = io.BytesIO()
                         tts_part.write_to_fp(part_fp)
                         part_fp.seek(0)
                         relay_audio.write(part_fp.read())
-                        relay_audio.write(b'\x00' * 2500) # 문장 간 아늑한 1.2초 공백 버퍼
+                        relay_audio.write(b'\x00' * 2500) # 1.2초 공백
                 
                 relay_audio.seek(0)
-                
-                # 💡 [모바일 검역 우회 필살기] 오디오 데이터를 Base64로 암호화하여 HTML5 직접 강제 주입형 자동재생 트리거
                 audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
                 audio_html = f"""
-                    <audio id="radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%; margin-top: 10px;"></audio>
+                    <audio id="total-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%; margin-top: 10px;"></audio>
                     <script>
-                        var audio = document.getElementById('radio-player');
-                        // 사용자가 스트림릿 버튼을 누른 제스처 세션 내에 있으므로 play()가 완벽히 즉시 허용됨
-                        audio.play().catch(function(error) {{
-                            console.log("자동 재생 실패 대응 코드 작동");
-                        }});
+                        document.getElementById('total-radio-player').play();
                     </script>
                 """
                 st.markdown(audio_html, unsafe_allow_html=True)
-                st.success("🎶 무한 반복 라디오가 정상 가동되었습니다! 귀로 편하게 따라오세요.")
-            except Exception as e:
-                st.error("라디오 생성 중 오류가 발생했습니다.")
+                st.success("🎶 1번부터 끝까지 무한 반복 라디오가 시작되었습니다!")
+            except:
+                st.error("오디오 생성 오류")
 
-# 👑 타이틀 설정
+# 👑 메인 타이틀 안착
 st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
 st.write("---")
 
-# 책장 선택 상자 본진 배치
+# 📚 책장 고르기 본진 레이아웃
 if total_sentences > 0:
     selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options)
     page_idx = page_options.index(selected_page_str)
     start_idx = page_idx * page_size
     end_idx = start_idx + page_size
     display_records = all_display_records[start_idx:end_idx]
+else:
+    display_records = []
 
 if is_priority_mode:
     display_records = sorted(display_records, key=lambda x: x['energy'])
+
+# 🚀 [기능 2] 복원 완료! 책장 선택 박스 바로 아래 붙는 '현재 책장 연속 재생' (파란색 박스)
+if display_records:
+    st.markdown(f"<div class='page-relay-box'>🎧 <b>선택된 {selected_page_str} 문장만 연속 듣기</b></div>", unsafe_allow_html=True)
+    
+    if st.button("▶️ 현재 책장 100개 문장 즉시 연속 재생 시작", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
+        with st.spinner("⚡ 현재 책장 100개 음성 결합 중..."):
+            try:
+                page_audio = io.BytesIO()
+                for item in display_records:
+                    if item['en'].strip():
+                        tts_part = gTTS(text=item['en'], lang='en')
+                        part_fp = io.BytesIO()
+                        tts_part.write_to_fp(part_fp)
+                        part_fp.seek(0)
+                        page_audio.write(part_fp.read())
+                        page_audio.write(b'\x00' * 2000) # 1초 공백
+                
+                page_audio.seek(0)
+                page_base64 = base64.b64encode(page_audio.read()).decode('utf-8')
+                page_audio_html = f"""
+                    <audio id="page-radio-player" src="data:audio/mp3;base64,{page_base64}" controls loop style="width: 100%; margin-top: 10px;"></audio>
+                    <script>
+                        document.getElementById('page-radio-player').play();
+                    </script>
+                """
+                st.markdown(page_audio_html, unsafe_allow_html=True)
+                st.success(f"🎶 {selected_page_str} 범위 무한 반복 재생이 시작되었습니다!")
+            except:
+                st.error("오디오 생성 오류")
+    st.write("---")
 
 def save_to_google_sheet(sheet_obj, row, col, val):
     if sheet_obj:
