@@ -4,13 +4,13 @@ from oauth2client.service_account import ServiceAccountCredentials
 import json
 from gtts import gTTS
 import io
-import threading  # 백그라운드 초고속 저장 및 릴레이용 모듈
+import threading
 import base64
 
 # 1. 웹페이지 기본 설정
 st.set_page_config(
     page_title="스피킹 마스터",
-    layout="wide",  # 가로 100% 와이드 모드 유지
+    layout="wide",
     initial_sidebar_state="collapsed"
 )
 
@@ -224,35 +224,41 @@ if total_sentences > 0:
 else:
     page_options = []
 
-# 🚀 [기능 1] 최상단 전체 무한 반복 라디오 컨트롤러 (초록색 박스)
-if all_display_records:
+# 🚀 [동탕 통짜 라디오] 구글 시트 원본 전체를 무조건 다 긁어 합쳐 뺑뺑이 돌리는 엔진
+if total_sentences > 0:
     st.markdown("<div class='total-relay-box'>📻 🔁 <b>동탕 무한 반복 스피킹 라디오 (전체 재생)</b></div>", unsafe_allow_html=True)
     
     if st.button("▶️ 1번부터 끝까지 멈춤 없이 무한 반복 재생 시작", key=f"total_relay_btn_{real_sheet_name}"):
-        with st.spinner("⚡ 전체 문장 라디오 빌드 중..."):
+        with st.spinner("⚡ 1번부터 끝까지 양식장 탈출 중... 전체 문장 취합 중"):
             try:
                 relay_audio = io.BytesIO()
+                
+                # 세션 필터 우회, 진짜 시트 맨 위부터 맨 아래까지 완주 타겟
                 for item in all_display_records:
-                    if item['en'].strip():
-                        tts_part = gTTS(text=item['en'], lang='en')
+                    english_sentence = str(item['en']).strip()
+                    if english_sentence:
+                        tts_part = gTTS(text=english_sentence, lang='en')
                         part_fp = io.BytesIO()
                         tts_part.write_to_fp(part_fp)
                         part_fp.seek(0)
                         relay_audio.write(part_fp.read())
-                        relay_audio.write(b'\x00' * 2500) # 1.2초 공백
+                        relay_audio.write(b'\x00' * 2500) # 1.2초 공백 버퍼
                 
                 relay_audio.seek(0)
                 audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
+                
+                # 강제 오토플레이 및 루프 주입 완결형 HTML5
                 audio_html = f"""
                     <audio id="total-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%; margin-top: 10px;"></audio>
                     <script>
-                        document.getElementById('total-radio-player').play();
+                        var player = document.getElementById('total-radio-player');
+                        player.play().catch(function(e) { console.log(e); });
                     </script>
                 """
                 st.markdown(audio_html, unsafe_allow_html=True)
-                st.success("🎶 1번부터 끝까지 무한 반복 라디오가 시작되었습니다!")
-            except:
-                st.error("오디오 생성 오류")
+                st.success("🎶 축하합니다! 100번 벽을 뚫고 끝 번호까지 이어지는 진짜 전체 라디오가 시작되었습니다.")
+            except Exception as e:
+                st.error("라디오 플레이어 컴파일 실패")
 
 # 👑 메인 타이틀 안착
 st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
@@ -271,7 +277,7 @@ else:
 if is_priority_mode:
     display_records = sorted(display_records, key=lambda x: x['energy'])
 
-# 🚀 [기능 2] 복원 완료! 책장 선택 박스 바로 아래 붙는 '현재 책장 연속 재생' (파란색 박스)
+# 🚀 [기능 2] 책장 선택 박스 바로 아래 붙는 '현재 책장 연속 재생' (파란색 박스)
 if display_records:
     st.markdown(f"<div class='page-relay-box'>🎧 <b>선택된 {selected_page_str} 문장만 연속 듣기</b></div>", unsafe_allow_html=True)
     
@@ -286,7 +292,7 @@ if display_records:
                         tts_part.write_to_fp(part_fp)
                         part_fp.seek(0)
                         page_audio.write(part_fp.read())
-                        page_audio.write(b'\x00' * 2000) # 1초 공백
+                        page_audio.write(b'\x00' * 2000)
                 
                 page_audio.seek(0)
                 page_base64 = base64.b64encode(page_audio.read()).decode('utf-8')
