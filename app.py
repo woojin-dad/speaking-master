@@ -224,7 +224,7 @@ if total_sentences > 0:
 else:
     page_options = []
 
-# 🚀 [동탕 통짜 라디오] 구글 시트 원본 전체를 무조건 다 긁어 합쳐 뺑뺑이 돌리는 엔진
+# 🚀 [동탕 통짜 라디오] 구글 시트 원본 전체를 한 번에 다 긁어 합쳐 뺑뺑이 돌리는 엔진
 if total_sentences > 0:
     st.markdown("<div class='total-relay-box'>📻 🔁 <b>동탕 무한 반복 스피킹 라디오 (전체 재생)</b></div>", unsafe_allow_html=True)
     
@@ -233,7 +233,6 @@ if total_sentences > 0:
             try:
                 relay_audio = io.BytesIO()
                 
-                # 세션 필터 우회, 진짜 시트 맨 위부터 맨 아래까지 완주 타겟
                 for item in all_display_records:
                     english_sentence = str(item['en']).strip()
                     if english_sentence:
@@ -247,16 +246,16 @@ if total_sentences > 0:
                 relay_audio.seek(0)
                 audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
                 
-                # 강제 오토플레이 및 루프 주입 완결형 HTML5
+                # 💡 중괄호를 {{ }} 두 겹으로 처리하여 파이썬 인터프리터 SyntaxError 완벽 해결
                 audio_html = f"""
                     <audio id="total-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%; margin-top: 10px;"></audio>
                     <script>
                         var player = document.getElementById('total-radio-player');
-                        player.play().catch(function(e) { console.log(e); });
+                        player.play().catch(function(e) {{ console.log(e); }});
                     </script>
                 """
                 st.markdown(audio_html, unsafe_allow_html=True)
-                st.success("🎶 축하합니다! 100번 벽을 뚫고 끝 번호까지 이어지는 진짜 전체 라디오가 시작되었습니다.")
+                st.success("🎶 100번 고개를 넘어 시트 마지막 번호까지 무한 반복하는 진짜 라디오가 시작되었습니다!")
             except Exception as e:
                 st.error("라디오 플레이어 컴파일 실패")
 
