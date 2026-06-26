@@ -13,13 +13,32 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 💡 모바일 스크린 확대 허용 메타 태그 유지
+# 💡 [아이폰 강제 줌 해제 필살기] 아이폰의 차단 정책을 우회하여 강제로 줌인/아웃 주입
 st.markdown("""
     <script>
+        // 1. 메타 태그로 확대 기본 허용 선언
         var meta = document.createElement('meta');
         meta.name = 'viewport';
-        meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
+        meta.content = 'width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes';
         document.getElementsByTagName('head')[0].appendChild(meta);
+        
+        // 2. 아이폰 iOS 사파리가 확대를 강제로 막는 기본 이벤트를 무력화하고 강제 허용
+        document.addEventListener('touchmove', function (event) {
+            if (event.scale !== undefined && event.scale !== 1) { 
+                // 두 손가락으로 벌릴 때 브라우저가 간섭하지 못하도록 방어막 해제
+                event.preventDefault(); 
+            }
+        }, { passive: false });
+
+        var lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            var now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                // 더블 탭으로 화면이 갑자기 확 커지는 오작동 방지
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
     </script>
 """, unsafe_allow_html=True)
 
@@ -193,36 +212,30 @@ for idx, r in enumerate(records):
         'energy': e_val
     })
 
-# 📖 [혁신] 100개 단위로 책장(페이지) 나누기 로직 자동 작동
+# 📖 100개 단위로 책장(페이지) 나누기 로직
 total_sentences = len(all_display_records)
-page_size = 100  # 💡 책장당 갯수 100개로 고정 세팅!
+page_size = 100  
 
 if total_sentences > 0:
-    # 100개 단위로 쪼개서 선택 상자 문구 만들기 (예: "1권: 1 ~ 100번")
     page_options = []
     for i in range(0, total_sentences, page_size):
         start_num = i + 1
         end_num = min(i + page_size, total_sentences)
         page_options.append(f"📖 책장: {start_num} ~ {end_num}번")
     
-    # 상단에 책장 선택 박스 출력
     selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options)
     
-    # 선택된 책장의 실제 시작/끝 번호 역산 추출
     page_idx = page_options.index(selected_page_str)
     start_idx = page_idx * page_size
     end_idx = start_idx + page_size
     
-    # 현재 책장 범위 안에 있는 데이터만 싹 도려내기
     display_records = all_display_records[start_idx:end_idx]
 else:
     display_records = []
 
-# 💡 우선순위 탭이면 현재 책장(100개) 안에서만 안 외워진 순 정렬!
 if is_priority_mode:
     display_records = sorted(display_records, key=lambda x: x['energy'])
 
-# 백그라운드 구글 시트 업데이트 함수
 def save_to_google_sheet(sheet_obj, row, col, val):
     if sheet_obj:
         try:
@@ -271,7 +284,6 @@ for item in display_records:
             
             if st.button(color_block_text, key=f"bar_touch_{real_sheet_name}_{orig_idx}"):
                 new_energy = energy_val + 1 if energy_val < 3 else 0
-                
                 st.session_state[user_data_key][orig_idx]['energy'] = new_energy
                 
                 threading.Thread(
