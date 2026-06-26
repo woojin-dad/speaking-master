@@ -23,12 +23,12 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 🔥 [레이아웃 최적화 CSS] 아이폰 액정 끝 벽면 강제 밀착 스타일 유지
+# 🔥 [레이아웃 최적화 CSS] 원래의 깔끔한 22px 스타일 및 상단 연속재생 플레이어 맞춤 디자인 적용
 st.markdown("""
     <style>
-    .block-container {
+    .block-container { 
         max-width: 100% !important;
-        padding-top: 1rem !important;
+        padding-top: 1rem !important; 
         padding-bottom: 1rem !important;
         padding-left: 10px !important;
         padding-right: 0px !important;
@@ -40,7 +40,7 @@ st.markdown("""
         flex-wrap: nowrap !important;
         align-items: center !important;
         justify-content: space-between !important;
-        gap: 20px !important;
+        gap: 20px !important; 
         width: 100% !important;
     }
    
@@ -54,11 +54,20 @@ st.markdown("""
         text-align: center !important;
         padding-top: 5px;
     }
+
+    /* 🎧 연속 듣기 섹션 디자인 커스텀 */
+    .audio-playlist-box {
+        background-color: #f8f9fa !important;
+        padding: 10px 14px !important;
+        border-radius: 10px !important;
+        border: 1px solid #e9ecef !important;
+        margin-bottom: 5px !important;
+    }
    
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {
         width: 100% !important;
         text-align: left !important;
-        background-color: #2c3e50 !important;
+        background-color: #2c3e50 !important; 
         border: none !important;
         border-radius: 8px !important;
         padding: 8px 10px !important;
@@ -91,7 +100,7 @@ st.markdown("""
         margin: 0px !important;
         width: auto !important;
         display: flex !important;
-        justify-content: flex-end !important;
+        justify-content: flex-end !important; 
         align-items: center !important;
     }
    
@@ -183,7 +192,7 @@ for idx, r in enumerate(records):
         elif e_val < 0: e_val = 0
     except:
         e_val = 0
-       
+        
     all_display_records.append({
         'original_index': idx,
         'original_row': idx + 2,
@@ -193,27 +202,23 @@ for idx, r in enumerate(records):
         'energy': e_val
     })
 
-# 📖 [혁신] 100개 단위로 책장(페이지) 나누기 로직 자동 작동
+# 📖 100개 단위로 책장(페이지) 나누기 로직 자동 작동
 total_sentences = len(all_display_records)
-page_size = 100  # 💡 책장당 갯수 100개로 고정 세팅!
+page_size = 100  
 
 if total_sentences > 0:
-    # 100개 단위로 쪼개서 선택 상자 문구 만들기 (예: "1권: 1 ~ 100번")
     page_options = []
     for i in range(0, total_sentences, page_size):
         start_num = i + 1
         end_num = min(i + page_size, total_sentences)
         page_options.append(f"📖 책장: {start_num} ~ {end_num}번")
-   
-    # 상단에 책장 선택 박스 출력
+    
     selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options)
-   
-    # 선택된 책장의 실제 시작/끝 번호 역산 추출
+    
     page_idx = page_options.index(selected_page_str)
     start_idx = page_idx * page_size
     end_idx = start_idx + page_size
-   
-    # 현재 책장 범위 안에 있는 데이터만 싹 도려내기
+    
     display_records = all_display_records[start_idx:end_idx]
 else:
     display_records = []
@@ -222,7 +227,35 @@ else:
 if is_priority_mode:
     display_records = sorted(display_records, key=lambda x: x['energy'])
 
-# 백그라운드 구글 시트 업데이트 함수
+# 🎧 [신기능] 현재 책장 연속 재생 파일 생성 로직 (gTTS 바이트 결합형)
+if display_records:
+    st.markdown("<div class='audio-playlist-box'>🎧 <b>현재 책장 문장 연속 재생</b></div>", unsafe_allow_html=True)
+    
+    # 💡 로딩 지연 방지를 위해 재생 버튼을 눌렀을 때만 음성을 순식간에 이어 붙여 오디오 바 생성
+    if st.button("▶️ 현재 책장 전체 연속 듣기 시작", key=f"playlist_btn_{real_sheet_name}_{page_idx}"):
+        with st.spinner("🎧 현재 책장 음성 합치는 중... 잠시만 기다려주세요."):
+            try:
+                combined_audio = io.BytesIO()
+                
+                # 순서대로 돌아가며 한 개씩 오디오 스트림 결합
+                for item in display_records:
+                    if item['en'].strip():
+                        tts_part = gTTS(text=item['en'], lang='en')
+                        part_fp = io.BytesIO()
+                        tts_part.write_to_fp(part_fp)
+                        part_fp.seek(0)
+                        combined_audio.write(part_fp.read())
+                        
+                        # 💡 문장 사이 호흡(공백)을 간접적으로 보완하기 위한 무음 바이트 삽입 (약 1초 버퍼 효과)
+                        combined_audio.write(b'\x00' * 2000)
+                
+                combined_audio.seek(0)
+                # 상단에 오디오 바를 즉시 띄워서 오토플레이 작동
+                st.audio(combined_audio, format='audio/mp3', autoplay=True)
+            except Exception as e:
+                st.error("오디오 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.")
+    st.write("---")
+
 def save_to_google_sheet(sheet_obj, row, col, val):
     if sheet_obj:
         try:
@@ -235,22 +268,22 @@ for item in display_records:
     orig_idx = item['original_index']
     row_idx = item['original_row']
     energy_val = item['energy']
-   
+    
     col1, col2 = st.columns([8.5, 1.5])
-   
+    
     with col1:
         state_key = f"show_{real_sheet_name}_{orig_idx}"
         if state_key not in st.session_state:
             st.session_state[state_key] = False
-           
+            
         is_english = st.session_state[state_key]
         text_content = item['en'] if is_english else item['kr']
         btn_label = f"{item['id']}. {text_content}"
-       
+        
         if st.button(btn_label, key=f"sentence_{real_sheet_name}_{orig_idx}"):
             st.session_state[state_key] = not st.session_state[state_key]
             st.rerun()
-           
+            
     with col2:
         if is_english:
             if st.button("🔊", key=f"audio_{real_sheet_name}_{orig_idx}", help="audio-btn"):
@@ -268,18 +301,17 @@ for item in display_records:
                 color_block_text = "🟨\n🟨"
             else:
                 color_block_text = "🟩"
-           
+            
             if st.button(color_block_text, key=f"bar_touch_{real_sheet_name}_{orig_idx}"):
                 new_energy = energy_val + 1 if energy_val < 3 else 0
-               
                 st.session_state[user_data_key][orig_idx]['energy'] = new_energy
-               
+                
                 threading.Thread(
-                    target=save_to_google_sheet,
-                    args=(sheet, row_idx, 4, new_energy),
+                    target=save_to_google_sheet, 
+                    args=(sheet, row_idx, 4, new_energy), 
                     daemon=True
                 ).start()
-               
+                
                 st.rerun()
-               
+                
     st.write("---")
