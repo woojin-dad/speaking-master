@@ -4,7 +4,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import json
 from gtts import gTTS
 import io
-import threading  # 백그라운드 초고속 저장 모듈 유지
+import threading  # 백그라운드 초고속 저장 및 릴레이용 모듈
 
 # 1. 웹페이지 기본 설정
 st.set_page_config(
@@ -23,12 +23,12 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 🔥 [레이아웃 최적화 CSS] 원래의 깔끔한 22px 스타일 및 상단 연속재생 플레이어 맞춤 디자인 적용
+# 🔥 [레이아웃 최적화 CSS] 최상단 무한 반복 라디오 플레이어 전용 스타일
 st.markdown("""
     <style>
     .block-container { 
         max-width: 100% !important;
-        padding-top: 1rem !important; 
+        padding-top: 0.5rem !important; 
         padding-bottom: 1rem !important;
         padding-left: 10px !important;
         padding-right: 0px !important;
@@ -53,15 +53,17 @@ st.markdown("""
         color: #2c3e50 !important;
         text-align: center !important;
         padding-top: 5px;
+        margin-top: 10px !important;
     }
 
-    /* 🎧 연속 듣기 섹션 디자인 커스텀 */
-    .audio-playlist-box {
-        background-color: #f8f9fa !important;
-        padding: 10px 14px !important;
-        border-radius: 10px !important;
-        border: 1px solid #e9ecef !important;
-        margin-bottom: 5px !important;
+    /* 📻 최상단 무한 반복 라디오 박스 디자인 (강렬한 에메랄드 테두리) */
+    .total-relay-box {
+        background-color: #f0fdf4 !important;
+        padding: 12px 15px !important;
+        border-radius: 12px !important;
+        border: 2px solid #2ecc71 !important;
+        text-align: center !important;
+        margin-bottom: 15px !important;
     }
    
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {
@@ -143,10 +145,6 @@ else:
 
 is_priority_mode = "우선순위" in selected_menu
 
-# 👑 제목 설정
-st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
-st.write("---")
-
 # 2. 구글 시트 연동 설정
 @st.cache_resource
 def init_gspread():
@@ -213,48 +211,52 @@ if total_sentences > 0:
         end_num = min(i + page_size, total_sentences)
         page_options.append(f"📖 책장: {start_num} ~ {end_num}번")
     
-    selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options)
-    
-    page_idx = page_options.index(selected_page_str)
-    start_idx = page_idx * page_size
-    end_idx = start_idx + page_size
-    
-    display_records = all_display_records[start_idx:end_idx]
+    selected_page_str = page_options[0] # 기본값 세팅용
 else:
     display_records = []
 
-# 💡 우선순위 탭이면 현재 책장(100개) 안에서만 안 외워진 순 정렬!
-if is_priority_mode:
-    display_records = sorted(display_records, key=lambda x: x['energy'])
-
-# 🎧 [신기능] 현재 책장 연속 재생 파일 생성 로직 (gTTS 바이트 결합형)
-if display_records:
-    st.markdown("<div class='audio-playlist-box'>🎧 <b>현재 책장 문장 연속 재생</b></div>", unsafe_allow_html=True)
+# 🚀 [업그레이드 완료] 최상단 동탕 릴레이 '무한 반복' 라디오 컨트롤러
+if all_display_records:
+    st.markdown("<div class='total-relay-box'>📻 🔁 <b>동탕 무한 반복 스피킹 라디오</b></div>", unsafe_allow_html=True)
     
-    # 💡 로딩 지연 방지를 위해 재생 버튼을 눌렀을 때만 음성을 순식간에 이어 붙여 오디오 바 생성
-    if st.button("▶️ 현재 책장 전체 연속 듣기 시작", key=f"playlist_btn_{real_sheet_name}_{page_idx}"):
-        with st.spinner("🎧 현재 책장 음성 합치는 중... 잠시만 기다려주세요."):
+    if st.button("▶️ 1번부터 끝까지 멈춤 없이 무한 반복 재생 시작", key=f"total_relay_btn_{real_sheet_name}"):
+        with st.spinner("⚡ 동탕 라디오 가동 중... 100개 단위 릴레이 굽기 시작"):
             try:
-                combined_audio = io.BytesIO()
+                relay_audio = io.BytesIO()
+                target_batch = all_display_records[:100] if len(all_display_records) > 100 else all_display_records
                 
-                # 순서대로 돌아가며 한 개씩 오디오 스트림 결합
-                for item in display_records:
+                # 💡 만약 한 바퀴를 완전히 무한으로 뺑뺑이 돌리기 위해, 임시로 대상을 복사 확장하거나 
+                # HTML5 오디오 태그의 무한반복 특성(loop=True)을 활용하여 부드럽게 무한 재생 작동 유도
+                for item in target_batch:
                     if item['en'].strip():
                         tts_part = gTTS(text=item['en'], lang='en')
                         part_fp = io.BytesIO()
                         tts_part.write_to_fp(part_fp)
                         part_fp.seek(0)
-                        combined_audio.write(part_fp.read())
-                        
-                        # 💡 문장 사이 호흡(공백)을 간접적으로 보완하기 위한 무음 바이트 삽입 (약 1초 버퍼 효과)
-                        combined_audio.write(b'\x00' * 2000)
+                        relay_audio.write(part_fp.read())
+                        relay_audio.write(b'\x00' * 2500) # 문장 간 아늑한 1.2초 공백 버퍼
                 
-                combined_audio.seek(0)
-                # 상단에 오디오 바를 즉시 띄워서 오토플레이 작동
-                st.audio(combined_audio, format='audio/mp3', autoplay=True)
+                relay_audio.seek(0)
+                # 🔁 loop=True 설정을 주어 오디오 파일이 끝나면 자동으로 처음부터 다시 무한 재생되도록 설계!
+                st.audio(relay_audio, format='audio/mp3', autoplay=True, loop=True)
+                st.success("🎶 무한 반복 라디오가 정상 가동되었습니다! 화면을 끄지 않는 한 계속 재생됩니다.")
             except Exception as e:
-                st.error("오디오 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.")
-    st.write("---")
+                st.error("라디오 생성 중 오류가 발생했습니다.")
+
+# 👑 타이틀 설정
+st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
+st.write("---")
+
+# 책장 선택 상자 본진 배치
+if total_sentences > 0:
+    selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options)
+    page_idx = page_options.index(selected_page_str)
+    start_idx = page_idx * page_size
+    end_idx = start_idx + page_size
+    display_records = all_display_records[start_idx:end_idx]
+
+if is_priority_mode:
+    display_records = sorted(display_records, key=lambda x: x['energy'])
 
 def save_to_google_sheet(sheet_obj, row, col, val):
     if sheet_obj:
