@@ -5,6 +5,7 @@ import json
 from gtts import gTTS
 import io
 import threading  # 백그라운드 초고속 저장 및 릴레이용 모듈
+import base64
 
 # 1. 웹페이지 기본 설정
 st.set_page_config(
@@ -56,7 +57,7 @@ st.markdown("""
         margin-top: 10px !important;
     }
 
-    /* 📻 최상단 무한 반복 라디오 박스 디자인 (강렬한 에메랄드 테두리) */
+    /* 📻 최상단 무한 반복 라디오 박스 디자인 */
     .total-relay-box {
         background-color: #f0fdf4 !important;
         padding: 12px 15px !important;
@@ -215,7 +216,7 @@ if total_sentences > 0:
 else:
     display_records = []
 
-# 🚀 [업그레이드 완료] 최상단 동탕 릴레이 '무한 반복' 라디오 컨트롤러
+# 🚀 [강제 자동재생 튜닝] 최상단 동탕 무한 반복 스피킹 라디오 컨트롤러
 if all_display_records:
     st.markdown("<div class='total-relay-box'>📻 🔁 <b>동탕 무한 반복 스피킹 라디오</b></div>", unsafe_allow_html=True)
     
@@ -225,8 +226,6 @@ if all_display_records:
                 relay_audio = io.BytesIO()
                 target_batch = all_display_records[:100] if len(all_display_records) > 100 else all_display_records
                 
-                # 💡 만약 한 바퀴를 완전히 무한으로 뺑뺑이 돌리기 위해, 임시로 대상을 복사 확장하거나 
-                # HTML5 오디오 태그의 무한반복 특성(loop=True)을 활용하여 부드럽게 무한 재생 작동 유도
                 for item in target_batch:
                     if item['en'].strip():
                         tts_part = gTTS(text=item['en'], lang='en')
@@ -237,9 +236,21 @@ if all_display_records:
                         relay_audio.write(b'\x00' * 2500) # 문장 간 아늑한 1.2초 공백 버퍼
                 
                 relay_audio.seek(0)
-                # 🔁 loop=True 설정을 주어 오디오 파일이 끝나면 자동으로 처음부터 다시 무한 재생되도록 설계!
-                st.audio(relay_audio, format='audio/mp3', autoplay=True, loop=True)
-                st.success("🎶 무한 반복 라디오가 정상 가동되었습니다! 화면을 끄지 않는 한 계속 재생됩니다.")
+                
+                # 💡 [모바일 검역 우회 필살기] 오디오 데이터를 Base64로 암호화하여 HTML5 직접 강제 주입형 자동재생 트리거
+                audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
+                audio_html = f"""
+                    <audio id="radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%; margin-top: 10px;"></audio>
+                    <script>
+                        var audio = document.getElementById('radio-player');
+                        // 사용자가 스트림릿 버튼을 누른 제스처 세션 내에 있으므로 play()가 완벽히 즉시 허용됨
+                        audio.play().catch(function(error) {{
+                            console.log("자동 재생 실패 대응 코드 작동");
+                        }});
+                    </script>
+                """
+                st.markdown(audio_html, unsafe_allow_html=True)
+                st.success("🎶 무한 반복 라디오가 정상 가동되었습니다! 귀로 편하게 따라오세요.")
             except Exception as e:
                 st.error("라디오 생성 중 오류가 발생했습니다.")
 
