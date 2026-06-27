@@ -91,7 +91,7 @@ st.markdown("""
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button div,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button span,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button * {
-        font-size: 25px !important;
+        font-size: 27px !important;
         font-weight: 900 !important;
         color: #ffffff !important;
         line-height: 1.2 !important;
