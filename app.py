@@ -24,128 +24,7 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 🔥 [레이아웃 최적화 CSS] 전체 재생(초록) 및 책장 재생(파랑) 멀티 플레이어 스타일 적용
-st.markdown("""
-    <style>
-    .block-container { 
-        max-width: 100% !important;
-        padding-top: 0.5rem !important; 
-        padding-bottom: 1rem !important;
-        padding-left: 10px !important;
-        padding-right: 0px !important;
-    }
-
-    div[data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        gap: 20px !important; 
-        width: 100% !important;
-    }
-   
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) { flex: 8.5 1 0% !important; min-width: 0 !important; }
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) { flex: 1.5 1 0% !important; min-width: 0 !important; }
-   
-    .custom-title {
-        font-size: 26px !important;
-        font-weight: bold !important;
-        color: #2c3e50 !important;
-        text-align: center !important;
-        padding-top: 5px;
-        margin-top: 10px !important;
-    }
-
-    /* 📻 1. 최상단 무한 반복 라디오 박스 디자인 (초록색 테두리) */
-    .total-relay-box {
-        background-color: #f0fdf4 !important;
-        padding: 12px 15px !important;
-        border-radius: 12px !important;
-        border: 2px solid #2ecc71 !important;
-        text-align: center !important;
-        margin-bottom: 15px !important;
-    }
-
-    /* 🎧 2. 중단 책장별 연속 듣기 박스 디자인 (파란색 테두리) */
-    .page-relay-box {
-        background-color: #f0f9ff !important;
-        padding: 10px 14px !important;
-        border-radius: 10px !important;
-        border: 1px solid #3b82f6 !important;
-        text-align: center !important;
-        margin-top: 8px !important;
-        margin-bottom: 5px !important;
-    }
-   
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {
-        width: 100% !important;
-        text-align: left !important;
-        background-color: #2c3e50 !important; 
-        border: none !important;
-        border-radius: 8px !important;
-        padding: 8px 10px !important;
-    }
-   
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button p,
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button div,
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button span,
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button * {
-        font-size: 27px !important;
-        font-weight: 900 !important;
-        color: #ffffff !important;
-        line-height: 1.2 !important;
-    }
-   
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button:hover * {
-        color: #f1c40f !important;
-    }
-   
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton {
-        text-align: right !important;
-        width: 100% !important;
-        display: flex !important;
-        justify-content: flex-end !important;
-    }
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button {
-        background-color: #ffffff !important;
-        border: none !important;
-        padding: 0px !important;
-        margin: 0px !important;
-        width: auto !important;
-        display: flex !important;
-        justify-content: flex-end !important; 
-        align-items: center !important;
-    }
-   
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button p,
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button div,
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button span,
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button * {
-        font-size: 16px !important;
-        white-space: pre-line !important;
-        line-height: 1.0 !important;
-        text-align: center !important;
-        padding: 0px !important;
-        margin: 0px !important;
-    }
-   
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[help="audio-btn"] * {
-        font-size: 16px !important;
-        color: #2c3e50 !important;
-        font-weight: bold !important;
-        line-height: 1.2 !important;
-    }
-   
-    hr { margin: 6px 0px !important; padding: 0px !important; }
-    [data-testid="stStatusWidget"] {display: none !important; visibility: hidden !important;}
-    footer {visibility: hidden !important; height: 0px !important; padding: 0px !important;}
-    header {visibility: hidden !important; height: 0px !important;}
-    .stAppDeployButton {display: none !important;}
-    </style>
-""", unsafe_allow_html=True)
-
-# 👥 메뉴 설정
+# 👥 메뉴 설정 (슬라이더 레이아웃을 위해 상단 배치)
 menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
 selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options)
 
@@ -155,6 +34,131 @@ else:
     real_sheet_name = "우진"
 
 is_priority_mode = "우선순위" in selected_menu
+
+# 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더 (기본값 26px 세팅)
+font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1)
+
+# 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
+st.markdown(f"""
+    <style>
+    .block-container {{ 
+        max-width: 100% !important;
+        padding-top: 0.5rem !important; 
+        padding-bottom: 1rem !important;
+        padding-left: 10px !important;
+        padding-right: 0px !important;
+    }}
+
+    div[data-testid="stHorizontalBlock"] {{
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 20px !important; 
+        width: 100% !important;
+    }}
+   
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) {{ flex: 8.5 1 0% !important; min-width: 0 !important; }}
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) {{ flex: 1.5 1 0% !important; min-width: 0 !important; }}
+   
+    .custom-title {{
+        font-size: 26px !important;
+        font-weight: bold !important;
+        color: #2c3e50 !important;
+        text-align: center !important;
+        padding-top: 5px;
+        margin-top: 10px !important;
+    }}
+
+    /* 📻 1. 최상단 무한 반복 라디오 박스 디자인 (초록색 테두리) */
+    .total-relay-box {{
+        background-color: #f0fdf4 !important;
+        padding: 12px 15px !important;
+        border-radius: 12px !important;
+        border: 2px solid #2ecc71 !important;
+        text-align: center !important;
+        margin-bottom: 15px !important;
+    }}
+
+    /* 🎧 2. 중단 책장별 연속 듣기 박스 디자인 (파란색 테두리) */
+    .page-relay-box {{
+        background-color: #f0f9ff !important;
+        padding: 10px 14px !important;
+        border-radius: 10px !important;
+        border: 1px solid #3b82f6 !important;
+        text-align: center !important;
+        margin-top: 8px !important;
+        margin-bottom: 5px !important;
+    }}
+   
+    /* 🔤 슬라이더 조절에 따라 실시간으로 변하는 문장 버튼 크기 */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {{
+        width: 100% !important;
+        text-align: left !important;
+        background-color: #2c3e50 !important; 
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 8px 10px !important;
+    }}
+   
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button p,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button div,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button span,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button * {{
+        font-size: {font_size}px !important;   /* 👈 슬라이더 값이 실시간 주입됩니다! */
+        font-weight: 900 !important;
+        color: #ffffff !important;
+        line-height: 1.2 !important;
+    }}
+   
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button:hover * {{
+        color: #f1c40f !important;
+    }}
+   
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton {{
+        text-align: right !important;
+        width: 100% !important;
+        display: flex !important;
+        justify-content: flex-end !important;
+    }}
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button {{
+        background-color: #ffffff !important;
+        border: none !important;
+        padding: 0px !important;
+        margin: 0px !important;
+        width: auto !important;
+        display: flex !important;
+        justify-content: flex-end !important; 
+        align-items: center !important;
+    }}
+   
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button p,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button div,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button span,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button * {{
+        font-size: 16px !important;
+        white-space: pre-line !important;
+        line-height: 1.0 !important;
+        text-align: center !important;
+        padding: 0px !important;
+        margin: 0px !important;
+    }}
+   
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[help="audio-btn"] * {{
+        font-size: 16px !important;
+        color: #2c3e50 !important;
+        font-weight: bold !important;
+        line-height: 1.2 !important;
+    }}
+   
+    hr {{ margin: 6px 0px !important; padding: 0px !important; }}
+    [data-testid="stStatusWidget"] {{display: none !important; visibility: hidden !important;}}
+    footer {{visibility: hidden !important; height: 0px !important; padding: 0px !important;}}
+    header {{visibility: hidden !important; height: 0px !important;}}
+    .stAppDeployButton {{display: none !important;}}
+    </style>
+""", unsafe_allow_html=True)
 
 # 2. 구글 시트 연동 설정
 @st.cache_resource
@@ -246,7 +250,6 @@ if total_sentences > 0:
                 relay_audio.seek(0)
                 audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
                 
-                # 💡 중괄호를 {{ }} 두 겹으로 처리하여 파이썬 인터프리터 SyntaxError 완벽 해결
                 audio_html = f"""
                     <audio id="total-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%; margin-top: 10px;"></audio>
                     <script>
