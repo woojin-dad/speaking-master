@@ -35,7 +35,7 @@ else:
 
 is_priority_mode = "우선순위" in selected_menu
 
-# 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더 (최대크기 36 -> 40px로 전격 상향!)
+# 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더 (최대 40px)
 font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=40, value=26, step=1)
 
 # 🔥 [레이아웃 최적화 CSS] 
@@ -246,10 +246,11 @@ if total_sentences > 0:
 else:
     page_options = []
 
-# 🚀 [대통합 1] 초록색 텍스트 상자를 없애고 버튼 문구 자체를 합체!
+# 🚀 [대통합 1] 초록색 텍스트 상자 없이 버튼 문구 자체를 합체!
 if total_sentences > 0:
     if st.button("📻 🔁 동탕 무한 반복 스피킹 라디오 (전체 재생 시작)", key=f"total_relay_btn_{real_sheet_name}"):
-        with st.spinner("⚡ 1번부터 끝까지 양식장 탈출 중... 전체 문장 취합 중"):
+        # 💡 요청하신 진중하고 명확한 안내 메시지로 깔끔하게 수정 완료!
+        with st.spinner("⚡ 전체 음성을 하나로 합치는 중입니다..."):
             try:
                 relay_audio = io.BytesIO()
                 for item in all_display_records:
