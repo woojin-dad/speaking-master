@@ -35,10 +35,10 @@ else:
 
 is_priority_mode = "우선순위" in selected_menu
 
-# 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더 (기본값 26px 세팅)
-font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1)
+# 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더 (최대크기 36 -> 40px로 전격 상향!)
+font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=40, value=26, step=1)
 
-# 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
+# 🔥 [레이아웃 최적화 CSS] 
 st.markdown(f"""
     <style>
     .block-container {{ 
@@ -71,28 +71,46 @@ st.markdown(f"""
         margin-top: 10px !important;
     }}
 
-    /* 📻 1. 최상단 무한 반복 라디오 박스 디자인 (초록색 테두리) */
-    .total-relay-box {{
+    /* 📻 통합 1. 최상단 전체 무한 라디오 버튼 전용 CSS (초록색 테두리 왕버튼 스타일) */
+    div.stButton > button[key^="total_relay_btn_"] {{
         background-color: #f0fdf4 !important;
-        padding: 12px 15px !important;
-        border-radius: 12px !important;
         border: 2px solid #2ecc71 !important;
+        border-radius: 12px !important;
+        padding: 14px 15px !important;
+        width: 100% !important;
         text-align: center !important;
-        margin-bottom: 15px !important;
+    }}
+    div.stButton > button[key^="total_relay_btn_"] p,
+    div.stButton > button[key^="total_relay_btn_"] * {{
+        color: #15803d !important;
+        font-size: 18px !important;
+        font-weight: bold !important;
+    }}
+    div.stButton > button[key^="total_relay_btn_"]:hover {{
+        background-color: #dcfce7 !important;
     }}
 
-    /* 🎧 2. 중단 책장별 연속 듣기 박스 디자인 (파란색 테두리) */
-    .page-relay-box {{
+    /* 🎧 통합 2. 중단 책장별 연속 재생 버튼 전용 CSS (파란색 테두리 왕버튼 스타일) */
+    div.stButton > button[key^="page_relay_btn_"] {{
         background-color: #f0f9ff !important;
-        padding: 10px 14px !important;
-        border-radius: 10px !important;
-        border: 1px solid #3b82f6 !important;
+        border: 2px solid #3b82f6 !important;
+        border-radius: 12px !important;
+        padding: 12px 14px !important;
+        width: 100% !important;
         text-align: center !important;
-        margin-top: 8px !important;
-        margin-bottom: 5px !important;
+        margin-top: 5px !important;
+    }}
+    div.stButton > button[key^="page_relay_btn_"] p,
+    div.stButton > button[key^="page_relay_btn_"] * {{
+        color: #1d4ed8 !important;
+        font-size: 17px !important;
+        font-weight: bold !important;
+    }}
+    div.stButton > button[key^="page_relay_btn_"]:hover {{
+        background-color: #e0f2fe !important;
     }}
    
-    /* 🔤 슬라이더 조절에 따라 실시간으로 변하는 문장 버튼 크기 */
+    /* 🔤 본문 영어/한국어 문장 버튼 스타일 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {{
         width: 100% !important;
         text-align: left !important;
@@ -106,7 +124,7 @@ st.markdown(f"""
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button div,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button span,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button * {{
-        font-size: {font_size}px !important;   /* 👈 슬라이더 값이 실시간 주입됩니다! */
+        font-size: {font_size}px !important;   /* 슬라이더 값 주입 (최대 40px) */
         font-weight: 900 !important;
         color: #ffffff !important;
         line-height: 1.2 !important;
@@ -228,15 +246,12 @@ if total_sentences > 0:
 else:
     page_options = []
 
-# 🚀 [동탕 통짜 라디오] 구글 시트 원본 전체를 한 번에 다 긁어 합쳐 뺑뺑이 돌리는 엔진
+# 🚀 [대통합 1] 초록색 텍스트 상자를 없애고 버튼 문구 자체를 합체!
 if total_sentences > 0:
-    st.markdown("<div class='total-relay-box'>📻 🔁 <b>동탕 무한 반복 스피킹 라디오 (전체 재생)</b></div>", unsafe_allow_html=True)
-    
-    if st.button("▶️ 1번부터 끝까지 멈춤 없이 무한 반복 재생 시작", key=f"total_relay_btn_{real_sheet_name}"):
+    if st.button("📻 🔁 동탕 무한 반복 스피킹 라디오 (전체 재생 시작)", key=f"total_relay_btn_{real_sheet_name}"):
         with st.spinner("⚡ 1번부터 끝까지 양식장 탈출 중... 전체 문장 취합 중"):
             try:
                 relay_audio = io.BytesIO()
-                
                 for item in all_display_records:
                     english_sentence = str(item['en']).strip()
                     if english_sentence:
@@ -279,11 +294,9 @@ else:
 if is_priority_mode:
     display_records = sorted(display_records, key=lambda x: x['energy'])
 
-# 🚀 [기능 2] 책장 선택 박스 바로 아래 붙는 '현재 책장 연속 재생' (파란색 박스)
+# 🚀 [대통합 2] 파란색 텍스트 상자를 없애고 버튼 문구 자체를 합체!
 if display_records:
-    st.markdown(f"<div class='page-relay-box'>🎧 <b>선택된 {selected_page_str} 문장만 연속 듣기</b></div>", unsafe_allow_html=True)
-    
-    if st.button("▶️ 현재 책장 100개 문장 즉시 연속 재생 시작", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
+    if st.button(f"🎧 선택된 {selected_page_str} 문장만 즉시 연속 재생 시작", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
         with st.spinner("⚡ 현재 책장 100개 음성 결합 중..."):
             try:
                 page_audio = io.BytesIO()
