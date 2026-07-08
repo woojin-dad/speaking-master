@@ -49,21 +49,24 @@ try:
 except Exception as e:
     all_sheet_names = ["동탕", "우진"]
 
-# 👥 메뉴 자동 동적 생성
+# 👥 메뉴 자동 동적 리스트업 생성 (사전 준비)
 menu_options = []
 for name in all_sheet_names:
     menu_options.append(name)
     menu_options.append(f"{name} (우선순위)")
 
-selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options)
+# 🚀 [레이아웃 변경] 선택 박스를 띄우기 전에, 대장님 지시대로 타이틀 텍스트를 "가장 먼저" 확보합니다.
+# 초기 로딩 시 세팅할 가상의 선택값 계산 (Query Parameter 등이 없으므로 렌더링 동기화용)
+if "selected_menu" not in st.session_state:
+    st.session_state["selected_menu"] = menu_options[0]
 
-real_sheet_name = selected_menu.replace(" (우선순위)", "")
-is_priority_mode = "우선순위" in selected_menu
+# 최상단 타이틀 텍스트 확정
+title_text = f"👑 {st.session_state['selected_menu']}의 스피킹 마스터 👑"
 
-# 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더 (최대 40px)
-font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=40, value=26, step=1)
+# 🔥 [레이아웃 및 타이틀 CSS]
+# 슬라이더 값이 하단에 배치되므로, 하단 슬라이더 변수 연동을 위해 CSS에서 런타임 주입 대신 갱신 구조 적용
+font_size = st.session_state.get("dynamic_font_size", 26)
 
-# 🔥 [레이아웃 및 신기술 컨테이너 쿼리 CSS]
 st.markdown(f"""
     <style>
     input:-webkit-autofill,
@@ -79,7 +82,7 @@ st.markdown(f"""
 
     .block-container {{ 
         max-width: 100% !important;
-        padding-top: 0.5rem !important; 
+        padding-top: 0.2rem !important;  /* 🏗️ 최상단 타이틀 배치를 위해 상단 여백 극한으로 축소 */
         padding-bottom: 1rem !important;
         padding-left: 10px !important;
         padding-right: 0px !important;
@@ -98,29 +101,27 @@ st.markdown(f"""
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) {{ flex: 8.5 1 0% !important; min-width: 0 !important; }}
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) {{ flex: 1.5 1 0% !important; min-width: 0 !important; }}
    
-    /* 👑 [최종 병기: 컨테이너 쿼리 기반 대도약 디자인] */
+    /* 👑 [최상단 완벽 밀착 유연 타이틀 디자인] */
     .custom-title-container {{
         width: 100% !important;
         text-align: center !important;
-        margin-top: 8px !important;
+        margin-top: 0px !important;
+        margin-bottom: 5px !important;
         padding: 6px 0px !important;
         background-color: #f8fafc !important; 
         border-radius: 10px !important;
-        /* 🚀 핵심: 이 상자 자체를 글자 크기 계산의 기준 기지(Container)로 선포 */
         container-type: inline-size !important;
         overflow: hidden !important;
     }}
     .custom-title {{
-        /* 📱 폰 브라우저가 상자 가로폭(cqw)을 직접 계산하여 글자 크기를 100% 꽉 채우는 신기술 */
         font-size: 5.6cqw !important; 
         max-font-size: 28px !important;
         font-weight: bold !important;
         color: #2c3e50 !important;
-        white-space: nowrap !important; /* 무조건 한 줄 고정 */
+        white-space: nowrap !important;
         letter-spacing: -0.3px !important;
         display: inline-block !important;
     }}
-    /* 큰 PC 화면에서 비정상적으로 커지는 것 방지 */
     @media (min-width: 600px) {{
         .custom-title {{ font-size: 26px !important; }}
     }}
@@ -232,6 +233,20 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
+# 🥇 [위치 변경] 1층: 메인 타이틀을 무조건 앱 최상단에 벼락처럼 배치!
+st.markdown(f"<div class='custom-title-container'><div class='custom-title'>{title_text}</div></div>", unsafe_allow_html=True)
+
+# 🥈 2층: 학습 모드 고르기 셀렉트 박스 배치
+selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="main_menu_selectbox")
+
+# 모드가 바뀌면 타이틀 실시간 동기화를 위해 세션 갱신 후 새로고침 촉발
+if selected_menu != st.session_state["selected_menu"]:
+    st.session_state["selected_menu"] = selected_menu
+    st.rerun()
+
+real_sheet_name = selected_menu.replace(" (우선순위)", "")
+is_priority_mode = "우선순위" in selected_menu
+
 user_data_key = f"records_{real_sheet_name}"
 user_sheet_key = f"sheet_{real_sheet_name}"
 
@@ -293,7 +308,7 @@ if total_sentences > 0:
 else:
     page_options = []
 
-# 🚀 전체 재생 무한 라디오
+# 🥉 3층: 전체 재생 무한 라디오 버튼
 if total_sentences > 0:
     if st.button(f"📻 🔁 {real_sheet_name} 무한 반복 스피킹 라디오 (전체 재생 시작)", key=f"total_relay_btn_{real_sheet_name}"):
         with st.spinner("⚡ 전체 음성을 하나로 합치는 중입니다..."):
@@ -324,11 +339,7 @@ if total_sentences > 0:
             except Exception as e:
                 st.error("라디오 플레이어 컴파일 실패")
 
-# 👑 메인 타이틀 안착 (신기술 적용)
-st.markdown(f"<div class='custom-title-container'><div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div></div>", unsafe_allow_html=True)
-st.write("---")
-
-# 📚 책장 고르기 본진 레이아웃
+# 🏾 4층: 책장 고르기 본진 및 책장 연속 재생 버튼 배치
 if total_sentences > 0:
     selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options)
     page_idx = page_options.index(selected_page_str)
@@ -341,7 +352,6 @@ else:
 if is_priority_mode:
     display_records = sorted(display_records, key=lambda x: x['energy'])
 
-# 🚀 책장 연속 재생
 if display_records:
     if st.button(f"🎧 선택된 {selected_page_str} 문장만 즉시 연속 재생 시작", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
         with st.spinner("⚡ 현재 책장 100개 음성 결합 중..."):
@@ -368,7 +378,14 @@ if display_records:
                 st.success(f"🎶 {selected_page_str} 범위 무한 반복 재생이 시작되었습니다!")
             except:
                 st.error("오디오 생성 오류")
-    st.write("---")
+
+# 🚀 [위치 변경 완수] 5층: 글자 크기 조절 슬라이더를 연속 재생 시작 "바로 아래"로 안착!
+new_font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=40, value=font_size, step=1, key="slider_placement")
+if new_font_size != font_size:
+    st.session_state["dynamic_font_size"] = new_font_size
+    st.rerun()
+
+st.write("---")
 
 def save_to_google_sheet(sheet_obj, row, col, val):
     if sheet_obj:
