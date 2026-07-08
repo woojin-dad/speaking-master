@@ -21,7 +21,7 @@ st.markdown("""
         meta.name = 'viewport';
         meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
         document.getElementsByTagName('head')[0].appendChild(meta);
-        
+       
         document.addEventListener('DOMContentLoaded', function() {
             var inputs = document.querySelectorAll('input, select');
             inputs.forEach(function(input) {
@@ -37,7 +37,7 @@ st.markdown("""
 # 2. 구글 시트 연동 및 실시간 탭 목록 마스터 로직
 @st.cache_resource
 def init_gspread():
-    scope = ["https://spreadsheets.google.com/feeds", "https://.googleapis.com/auth/drive"]
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     creds_dict = json.loads(st.secrets["gcp_service_account"])
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     return gspread.authorize(creds)
@@ -49,23 +49,28 @@ try:
 except Exception as e:
     all_sheet_names = ["동탕", "우진"]
 
-# 👥 메뉴 자동 동적 리스트업 생성
+# 👥 메뉴 자동 동적 리스트업 생성 (사전 준비)
 menu_options = []
 for name in all_sheet_names:
     menu_options.append(name)
     menu_options.append(f"{name} (우선순위)")
 
+# 🚀 [레이아웃 변경] 선택 박스를 띄우기 전에, 대장님 지시대로 타이틀 텍스트를 "가장 먼저" 확보합니다.
+# 초기 로딩 시 세팅할 가상의 선택값 계산 (Query Parameter 등이 없으므로 렌더링 동기화용)
 if "selected_menu" not in st.session_state:
     st.session_state["selected_menu"] = menu_options[0]
 
+# 최상단 타이틀 텍스트 확정
 title_text = f"👑 {st.session_state['selected_menu']}의 스피킹 마스터 👑"
+
+# 🔥 [레이아웃 및 타이틀 CSS]
+# 슬라이더 값이 하단에 배치되므로, 하단 슬라이더 변수 연동을 위해 CSS에서 런타임 주입 대신 갱신 구조 적용
 font_size = st.session_state.get("dynamic_font_size", 26)
 
-# 🔥 [레이아웃 및 타이틀 / 오지랖 차단 가짜 창 숨김 CSS]
 st.markdown(f"""
     <style>
     input:-webkit-autofill,
-    input:-webkit-autofill:hover, 
+    input:-webkit-autofill:hover,
     input:-webkit-autofill:focus,
     select:-webkit-autofill,
     select:-webkit-autofill:hover,
@@ -75,9 +80,9 @@ st.markdown(f"""
         transition: background-color 5000s ease-in-out 0s !important;
     }}
 
-    .block-container {{ 
+    .block-container {{
         max-width: 100% !important;
-        padding-top: 0.2rem !important;  
+        padding-top: 0.2rem !important;  /* 🏗️ 최상단 타이틀 배치를 위해 상단 여백 극한으로 축소 */
         padding-bottom: 1rem !important;
         padding-left: 10px !important;
         padding-right: 0px !important;
@@ -89,7 +94,7 @@ st.markdown(f"""
         flex-wrap: nowrap !important;
         align-items: center !important;
         justify-content: space-between !important;
-        gap: 20px !important; 
+        gap: 20px !important;
         width: 100% !important;
     }}
    
@@ -103,13 +108,13 @@ st.markdown(f"""
         margin-top: 0px !important;
         margin-bottom: 5px !important;
         padding: 6px 0px !important;
-        background-color: #f8fafc !important; 
+        background-color: #f8fafc !important;
         border-radius: 10px !important;
         container-type: inline-size !important;
         overflow: hidden !important;
     }}
     .custom-title {{
-        font-size: 5.6cqw !important; 
+        font-size: 5.6cqw !important;
         max-font-size: 28px !important;
         font-weight: bold !important;
         color: #2c3e50 !important;
@@ -164,7 +169,7 @@ st.markdown(f"""
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {{
         width: 100% !important;
         text-align: left !important;
-        background-color: #2c3e50 !important; 
+        background-color: #2c3e50 !important;
         border: none !important;
         border-radius: 8px !important;
         padding: 8px 10px !important;
@@ -197,7 +202,7 @@ st.markdown(f"""
         margin: 0px !important;
         width: auto !important;
         display: flex !important;
-        justify-content: flex-end !important; 
+        justify-content: flex-end !important;
         align-items: center !important;
     }}
    
@@ -228,21 +233,13 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# 🛑 [스마트폰 오지랖 완벽 낚시용 투명 방어막]
-# 스마트폰의 자동 완성 센서들이 여기에 먼저 걸려들게 만듭니다. 유저는 눈으로 볼 수 없게 숨겨집니다.
-st.markdown("""
-    <div style="position: absolute; top: -9999px; left: -9999px; width: 1px; height: 1px; overflow: hidden;">
-        <input type="text" name="username" autocomplete="new-password" style="width:1px; height:1px;">
-        <input type="password" name="password" autocomplete="new-password" style="width:1px; height:1px;">
-    </div>
-""", unsafe_allow_html=True)
-
-# 🥇 1층: 메인 타이틀
+# 🥇 [위치 변경] 1층: 메인 타이틀을 무조건 앱 최상단에 벼락처럼 배치!
 st.markdown(f"<div class='custom-title-container'><div class='custom-title'>{title_text}</div></div>", unsafe_allow_html=True)
 
-# 🥈 2층: 학습 모드 고르기 셀렉트 박스
+# 🥈 2층: 학습 모드 고르기 셀렉트 박스 배치
 selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="main_menu_selectbox")
 
+# 모드가 바뀌면 타이틀 실시간 동기화를 위해 세션 갱신 후 새로고침 촉발
 if selected_menu != st.session_state["selected_menu"]:
     st.session_state["selected_menu"] = selected_menu
     st.rerun()
@@ -281,14 +278,14 @@ all_display_records = []
 for idx, r in enumerate(records):
     if 'id' not in r or 'kr' not in r or 'en' not in r:
         continue
-        
+       
     try:
         e_val = int(r.get('energy', 0))
         if e_val > 3: e_val = 3
         elif e_val < 0: e_val = 0
     except:
         e_val = 0
-        
+       
     all_display_records.append({
         'original_index': idx,
         'original_row': idx + 2,
@@ -298,6 +295,7 @@ for idx, r in enumerate(records):
         'energy': e_val
     })
 
+# 📖 100개 단위로 책장 나누기 로직
 total_sentences = len(all_display_records)
 page_size = 100  
 
@@ -325,10 +323,10 @@ if total_sentences > 0:
                         part_fp.seek(0)
                         relay_audio.write(part_fp.read())
                         relay_audio.write(b'\x00' * 2500)
-                
+               
                 relay_audio.seek(0)
                 audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
-                
+               
                 audio_html = f"""
                     <audio id="total-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%; margin-top: 10px;"></audio>
                     <script>
@@ -367,7 +365,7 @@ if display_records:
                         part_fp.seek(0)
                         page_audio.write(part_fp.read())
                         page_audio.write(b'\x00' * 2000)
-                
+               
                 page_audio.seek(0)
                 page_base64 = base64.b64encode(page_audio.read()).decode('utf-8')
                 page_audio_html = f"""
@@ -381,7 +379,7 @@ if display_records:
             except:
                 st.error("오디오 생성 오류")
 
-# 5층: 글자 크기 조절 슬라이더
+# 🚀 [위치 변경 완수] 5층: 글자 크기 조절 슬라이더를 연속 재생 시작 "바로 아래"로 안착!
 new_font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=40, value=font_size, step=1, key="slider_placement")
 if new_font_size != font_size:
     st.session_state["dynamic_font_size"] = new_font_size
@@ -389,30 +387,37 @@ if new_font_size != font_size:
 
 st.write("---")
 
+def save_to_google_sheet(sheet_obj, row, col, val):
+    if sheet_obj:
+        try:
+            sheet_obj.update_cell(row, col, str(val))
+        except:
+            pass
+
 # 3. 화면에 선택된 책장의 문장 리스트 출력
 if total_sentences == 0:
-    st.info("💡 현재 선택한 탭이 비어있거나 구글 시트를 확인해 주세요!")
+    st.info("💡 현재 선택한 탭이 비어있거나, 1번 행 제목(id, kr, en, energy) 칸 배치와 형식이 올바르지 않습니다. 구글 시트를 확인해 주세요!")
 
 for item in display_records:
     orig_idx = item['original_index']
     row_idx = item['original_row']
     energy_val = item['energy']
-    
+   
     col1, col2 = st.columns([8.5, 1.5])
-    
+   
     with col1:
         state_key = f"show_{real_sheet_name}_{orig_idx}"
         if state_key not in st.session_state:
             st.session_state[state_key] = False
-            
+           
         is_english = st.session_state[state_key]
         text_content = item['en'] if is_english else item['kr']
         btn_label = f"{item['id']}. {text_content}"
-        
+       
         if st.button(btn_label, key=f"sentence_{real_sheet_name}_{orig_idx}"):
             st.session_state[state_key] = not st.session_state[state_key]
             st.rerun()
-            
+           
     with col2:
         if is_english:
             if st.button("🔊", key=f"audio_{real_sheet_name}_{orig_idx}", help="audio-btn"):
@@ -430,17 +435,17 @@ for item in display_records:
                 color_block_text = "🟨\n🟨"
             else:
                 color_block_text = "🟩"
-            
+           
             if st.button(color_block_text, key=f"bar_touch_{real_sheet_name}_{orig_idx}"):
                 new_energy = energy_val + 1 if energy_val < 3 else 0
                 st.session_state[user_data_key][orig_idx]['energy'] = new_energy
-                
+               
                 threading.Thread(
-                    target=save_to_google_sheet, 
-                    args=(sheet, row_idx, 4, new_energy), 
+                    target=save_to_google_sheet,
+                    args=(sheet, row_idx, 4, new_energy),
                     daemon=True
                 ).start()
-                
+               
                 st.rerun()
-                
+               
     st.write("---")
