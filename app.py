@@ -14,41 +14,13 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 💡 [아이폰 사파리 전용 가로 흔들림 차단 메커니즘]
-# 화면 전체를 잡고 좌우로 비틀 때 발생하는 사파리 브라우저의 기본 가로 스크롤 동작을 물리적으로 차단합니다.
+# 💡 모바일 스크린 확대 허용 메타 태그 (원본 유지)
 st.markdown("""
     <script>
         var meta = document.createElement('meta');
         meta.name = 'viewport';
-        meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no';
+        meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
         document.getElementsByTagName('head')[0].appendChild(meta);
-
-        // 본문 및 여백 터치 시 가로 스크롤을 브라우저 단에서 억제하는 스크립트
-        window.addEventListener('touchstart', function(e) {
-            window.touchStartX = e.changedTouches[0].pageX;
-            window.touchStartY = e.changedTouches[0].pageY;
-        }, {passive: true});
-
-        window.addEventListener('touchmove', function(e) {
-            var dX = e.changedTouches[0].pageX - window.touchStartX;
-            var dY = e.changedTouches[0].pageY - window.touchStartY;
-            
-            // 메뉴바나 책장선택(stRadio) 영역 내부가 아닐 때, 좌우 이동 성분이 크면 사파리의 전체 화면 흔들기를 무력화
-            if (Math.abs(dX) > Math.abs(dY)) {
-                var target = e.target;
-                var isScrollArea = false;
-                while (target && target !== document.body) {
-                    if (target.getAttribute('data-testid') === 'stRadio' || target.scrollWidth > target.clientWidth) {
-                        isScrollArea = true;
-                        break;
-                    }
-                    target = target.parentNode;
-                }
-                if (!isScrollArea) {
-                    e.preventDefault();
-                }
-            }
-        }, {passive: false});
     </script>
 """, unsafe_allow_html=True)
 
@@ -79,14 +51,13 @@ if "selected_menu" not in st.session_state:
 title_text = f"👑 {st.session_state['selected_menu']}의 스피킹 마스터 👑"
 font_size = st.session_state.get("dynamic_font_size", 26)
 
-# 🔥 [레이아웃 및 무한 가로 스크롤 탭 디자인 CSS - 원본 복구판]
+# 🔥 [레이아웃 및 원본 스타일 CSS]
 st.markdown(f"""
     <style>
-    /* 🚨 앱 전체 가로 스크롤 타이트하게 봉쇄 */
+    /* 앱 전체 가로 스크롤을 방지하기 위한 타이트한 핏 설정 */
     html, body, [data-testid="stAppViewContainer"], .stApp {{
         max-width: 100vw !important;
-        overflow-x: hidden !important; 
-        position: relative !important;
+        overflow-x: hidden !important;
     }}
 
     .block-container {{
@@ -133,49 +104,7 @@ st.markdown(f"""
         .custom-title {{ font-size: 28px !important; }}
     }}
 
-    /* 🚀 [가로 메뉴판 스크롤 박스 구현] */
-    div[data-testid="stRadio"] > div {{
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important; 
-        overflow-x: auto !important;  
-        overflow-y: hidden !important;
-        padding: 8px 5px !important;
-        gap: 8px !important;
-        scroll-behavior: smooth !important;
-        -webkit-overflow-scrolling: touch !important; 
-        max-width: 100% !important;
-    }}
-   
-    div[data-testid="stRadio"] > div::-webkit-scrollbar {{
-        height: 4px !important;
-    }}
-    div[data-testid="stRadio"] > div::-webkit-scrollbar-thumb {{
-        background: #cbd5e1 !important;
-        border-radius: 10px !important;
-    }}
-
-    div[data-testid="stRadio"] label {{
-        background-color: #f1f5f9 !important;
-        padding: 6px 14px !important;
-        border-radius: 20px !important;
-        border: 1px solid #e2e8f0 !important;
-        white-space: nowrap !important; 
-        display: inline-flex !important;
-        align-items: center !important;
-        cursor: pointer !important;
-    }}
-   
-    div[data-testid="stRadio"] label[data-checked="true"] {{
-        background-color: #3b82f6 !important;
-        border-color: #3b82f6 !important;
-    }}
-    div[data-testid="stRadio"] label[data-checked="true"] p {{
-        color: #ffffff !important;
-        font-weight: bold !important;
-    }}
-
-    /* 📻 통합 1. 최상단 전체 무한 라디오 버튼 원본 복구 */
+    /* 📻 통합 1. 최상단 전체 무한 라디오 버튼 전용 CSS */
     div.stButton > button[key^="total_relay_btn_"] {{
         background-color: #f0fdf4 !important;
         border: 2px solid #2ecc71 !important;
@@ -191,7 +120,7 @@ st.markdown(f"""
         font-weight: bold !important;
     }}
 
-    /* 🎧 통합 2. 중단 책장별 연속 재생 버튼 원본 복구 */
+    /* 🎧 통합 2. 중단 책장별 연속 재생 버튼 전용 CSS */
     div.stButton > button[key^="page_relay_btn_"] {{
         background-color: #f0f9ff !important;
         border: 2px solid #3b82f6 !important;
@@ -276,9 +205,12 @@ st.markdown(f"""
 # 🥇 1층: 메인 타이틀
 st.markdown(f"<div class='custom-title-container'><div class='custom-title'>{title_text}</div></div>", unsafe_allow_html=True)
 
-# 🥈 2층: [무한 가로 스크롤 메뉴바]
-st.write("👤 **학습 모드 선택**")
-selected_menu = st.radio("학습 모드", menu_options, index=menu_options.index(st.session_state["selected_menu"]), label_visibility="collapsed", horizontal=True)
+# 🥈 2층: [학습 모드 선택 드롭박스 전환] 가로 탭을 제거하여 흔들림 원천 차단
+selected_menu = st.selectbox(
+    "👤 학습 모드 선택", 
+    menu_options, 
+    index=menu_options.index(st.session_state["selected_menu"])
+)
 
 if selected_menu != st.session_state["selected_menu"]:
     st.session_state["selected_menu"] = selected_menu
@@ -369,10 +301,9 @@ if total_sentences > 0:
             except:
                 st.error("라디오 컴파일 실패")
 
-# 🏾 4층: 책장 고르기 가로 스크롤 메뉴바
+# 🏾 4층: [이동할 책장 선택 드롭박스 전환] 가로 탭을 제거하여 흔들림 완전 방지
 if total_sentences > 0:
-    st.write("📚 **이동할 책장 선택**")
-    selected_page_str = st.radio("책장 선택", page_options, label_visibility="collapsed", horizontal=True, key="page_radio_scroll")
+    selected_page_str = st.selectbox("📚 이동할 책장 선택", page_options, key="page_select_drop")
     page_idx = page_options.index(selected_page_str)
     start_idx = page_idx * page_size
     end_idx = start_idx + page_size
