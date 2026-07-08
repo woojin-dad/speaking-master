@@ -21,16 +21,6 @@ st.markdown("""
         meta.name = 'viewport';
         meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
         document.getElementsByTagName('head')[0].appendChild(meta);
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            var inputs = document.querySelectorAll('input, select');
-            inputs.forEach(function(input) {
-                input.setAttribute('autocomplete', 'new-password');
-                input.setAttribute('autocorrect', 'off');
-                input.setAttribute('autocapitalize', 'off');
-                input.setAttribute('spellcheck', 'false');
-            });
-        });
     </script>
 """, unsafe_allow_html=True)
 
@@ -55,6 +45,7 @@ for name in all_sheet_names:
     menu_options.append(name)
     menu_options.append(f"{name} (우선순위)")
 
+# 🚨 [아이폰 사파리 구원 로직] 셀렉트 박스를 없애고 세션 상태로 메뉴 제어
 if "selected_menu" not in st.session_state:
     st.session_state["selected_menu"] = menu_options[0]
 
@@ -64,17 +55,6 @@ font_size = st.session_state.get("dynamic_font_size", 26)
 # 🔥 [레이아웃 및 타이틀 CSS]
 st.markdown(f"""
     <style>
-    input:-webkit-autofill,
-    input:-webkit-autofill:hover, 
-    input:-webkit-autofill:focus,
-    select:-webkit-autofill,
-    select:-webkit-autofill:hover,
-    select:-webkit-autofill:focus {{
-        -webkit-text-fill-color: #2c3e50 !important;
-        -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
-        transition: background-color 5000s ease-in-out 0s !important;
-    }}
-
     .block-container {{ 
         max-width: 100% !important;
         padding-top: 0.2rem !important;  
@@ -113,7 +93,6 @@ st.markdown(f"""
         font-weight: bold !important;
         color: #2c3e50 !important;
         white-space: nowrap !important;
-        letter-spacing: -0.3px !important;
         display: inline-block !important;
     }}
     @media (min-width: 600px) {{
@@ -135,9 +114,6 @@ st.markdown(f"""
         font-size: 18px !important;
         font-weight: bold !important;
     }}
-    div.stButton > button[key^="total_relay_btn_"]:hover {{
-        background-color: #dcfce7 !important;
-    }}
 
     /* 🎧 통합 2. 중단 책장별 연속 재생 버튼 전용 CSS */
     div.stButton > button[key^="page_relay_btn_"] {{
@@ -154,9 +130,6 @@ st.markdown(f"""
         color: #1d4ed8 !important;
         font-size: 17px !important;
         font-weight: bold !important;
-    }}
-    div.stButton > button[key^="page_relay_btn_"]:hover {{
-        background-color: #e0f2fe !important;
     }}
    
     /* 🔤 본문 영어/한국어 문장 버튼 스타일 */
@@ -207,9 +180,6 @@ st.markdown(f"""
         font-size: 16px !important;
         white-space: pre-line !important;
         line-height: 1.0 !important;
-        text-align: center !important;
-        padding: 0px !important;
-        margin: 0px !important;
     }}
    
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[help="audio-btn"] * {{
@@ -227,20 +197,12 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# 🛑 [아이폰 사파리 키체인 원천 낚시용 무력화 가짜 입력창]
-# 사파리 암호 자동 채우기 센서가 여기에 무조건 먼저 달라붙게 만듭니다. (유저 눈엔 안 보임)
-st.markdown("""
-    <form style="position: absolute; top: -9999px; left: -9999px; width: 1px; height: 1px; overflow: hidden;">
-        <input type="text" name="username" autocomplete="username">
-        <input type="password" name="password" autocomplete="current-password">
-    </form>
-""", unsafe_allow_html=True)
-
 # 🥇 1층: 메인 타이틀
 st.markdown(f"<div class='custom-title-container'><div class='custom-title'>{title_text}</div></div>", unsafe_allow_html=True)
 
-# 🥈 2층: 학습 모드 고르기 셀렉트 박스
-selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="main_menu_selectbox")
+# 🥈 2층: [사파리 방어 조치] 셀렉트 박스 대신 터치식 가로 라디오 버튼으로 교체!
+st.write("👤 **학습 모드 선택**")
+selected_menu = st.radio("학습 모드", menu_options, index=menu_options.index(st.session_state["selected_menu"]), label_visibility="collapsed", horizontal=True)
 
 if selected_menu != st.session_state["selected_menu"]:
     st.session_state["selected_menu"] = selected_menu
@@ -251,12 +213,6 @@ is_priority_mode = "우선순위" in selected_menu
 
 user_data_key = f"records_{real_sheet_name}"
 user_sheet_key = f"sheet_{real_sheet_name}"
-
-if "last_menu" not in st.session_state:
-    st.session_state["last_menu"] = selected_menu
-
-if st.session_state["last_menu"] != selected_menu:
-    st.session_state["last_menu"] = selected_menu
 
 try:
     st.session_state[user_sheet_key] = spreadsheet.worksheet(real_sheet_name)
@@ -305,14 +261,14 @@ if total_sentences > 0:
     for i in range(0, total_sentences, page_size):
         start_num = i + 1
         end_num = min(i + page_size, total_sentences)
-        page_options.append(f"📖 책장: {start_num} ~ {end_num}번")
+        page_options.append(f"📖 {start_num}~{end_num}번")
 else:
     page_options = []
 
 # 🥉 3층: 전체 재생 무한 라디오 버튼
 if total_sentences > 0:
-    if st.button(f"📻 🔁 {real_sheet_name} 무한 반복 스피킹 라디오 (전체 재생 시작)", key=f"total_relay_btn_{real_sheet_name}"):
-        with st.spinner("⚡ 전체 음성을 하나로 합치는 중입니다..."):
+    if st.button(f"📻 🔁 {real_sheet_name} 무한 반복 스피킹 라디오", key=f"total_relay_btn_{real_sheet_name}"):
+        with st.spinner("⚡ 음성 파일 생성 중..."):
             try:
                 relay_audio = io.BytesIO()
                 for item in all_display_records:
@@ -331,18 +287,17 @@ if total_sentences > 0:
                 audio_html = f"""
                     <audio id="total-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%; margin-top: 10px;"></audio>
                     <script>
-                        var player = document.getElementById('total-radio-player');
-                        player.play().catch(function(e) {{ console.log(e); }});
+                        document.getElementById('total-radio-player').play();
                     </script>
                 """
                 st.markdown(audio_html, unsafe_allow_html=True)
-                st.success("🎶 무한 반복 라디오가 시작되었습니다!")
-            except Exception as e:
-                st.error("라디오 플레이어 컴파일 실패")
+            except:
+                st.error("라디오 컴파일 실패")
 
-# 🏾 4층: 책장 고르기 본진 및 책장 연속 재생 버튼 배치
+# 🏾 4층: [사파리 방어 조치] 책장 고르기도 셀렉트 박스 제거 후 라디오 버튼으로 교체!
 if total_sentences > 0:
-    selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options)
+    st.write("📚 **이동할 책장 선택**")
+    selected_page_str = st.radio("책장 선택", page_options, label_visibility="collapsed", horizontal=True)
     page_idx = page_options.index(selected_page_str)
     start_idx = page_idx * page_size
     end_idx = start_idx + page_size
@@ -354,8 +309,8 @@ if is_priority_mode:
     display_records = sorted(display_records, key=lambda x: x['energy'])
 
 if display_records:
-    if st.button(f"🎧 선택된 {selected_page_str} 문장만 즉시 연속 재생 시작", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
-        with st.spinner("⚡ 현재 책장 100개 음성 결합 중..."):
+    if st.button(f"🎧 선택된 {selected_page_str} 문장 연속 재생 시작", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
+        with st.spinner("⚡ 음성 결합 중..."):
             try:
                 page_audio = io.BytesIO()
                 for item in display_records:
@@ -376,7 +331,6 @@ if display_records:
                     </script>
                 """
                 st.markdown(page_audio_html, unsafe_allow_html=True)
-                st.success(f"🎶 {selected_page_str} 범위 무한 반복 재생이 시작되었습니다!")
             except:
                 st.error("오디오 생성 오류")
 
@@ -388,7 +342,7 @@ if new_font_size != font_size:
 
 st.write("---")
 
-# 3. 화면에 선택된 책장의 문장 리스트 출력
+# 3. 문장 리스트 출력
 for item in display_records:
     orig_idx = item['original_index']
     row_idx = item['original_row']
@@ -438,5 +392,4 @@ for item in display_records:
                 ).start()
                 
                 st.rerun()
-                
     st.write("---")
