@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 💡 모바일 스크린 확대 허용 및 자동완성 차단 메타 태그
+# 💡 [아이폰 AI 글쓰기 도구 완벽 차단] 메타 태그 및 자바스크립트 방어막
 st.markdown("""
     <script>
         var meta = document.createElement('meta');
@@ -22,13 +22,16 @@ st.markdown("""
         meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
         document.getElementsByTagName('head')[0].appendChild(meta);
         
+        // 아이폰 암호/글쓰기 엔진이 아예 접근하지 못하도록 속성을 강제로 주입합니다.
         document.addEventListener('DOMContentLoaded', function() {
             var inputs = document.querySelectorAll('input, select');
             inputs.forEach(function(input) {
-                input.setAttribute('autocomplete', 'new-password');
+                input.setAttribute('autocomplete', 'one-time-code');
                 input.setAttribute('autocorrect', 'off');
                 input.setAttribute('autocapitalize', 'off');
                 input.setAttribute('spellcheck', 'false');
+                input.setAttribute('autofill-prediction-disabled', 'true'); // iOS 자동완성 엔진 차단
+                input.setAttribute('data-lpignore', 'true'); // 모바일 키체인 패스 차단
             });
         });
     </script>
@@ -63,7 +66,7 @@ if "selected_menu" not in st.session_state:
 title_text = f"👑 {st.session_state['selected_menu']}의 스피킹 마스터 👑"
 font_size = st.session_state.get("dynamic_font_size", 26)
 
-# 🔥 [레이아웃 및 타이틀 / 오지랖 차단 가짜 창 숨김 CSS]
+# 🔥 [레이아웃 및 타이틀 CSS]
 st.markdown(f"""
     <style>
     input:-webkit-autofill,
@@ -111,7 +114,6 @@ st.markdown(f"""
         overflow: hidden !important;
     }}
     .custom-title {{
-        /* 📱 짧은 단어는 시원시원하게 키우고, 긴 단어는 짤림 없이 한 줄 고정되는 탄력 폰트 공식 적용 */
         font-size: calc(98vw / ({len(title_text)} * 0.85)) !important; 
         font-weight: bold !important;
         color: #2c3e50 !important;
@@ -230,21 +232,12 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# 🛑 [스마트폰 오지랖 완벽 낚시용 투명 방어막 - 주소 오타 영구 차단 완결]
-st.markdown("""
-    <div style="position: absolute; top: -9999px; left: -9999px; width: 1px; height: 1px; overflow: hidden;">
-        <input type="text" name="username" autocomplete="new-password" style="width:1px; height:1px;">
-        <input type="password" name="password" autocomplete="new-password" style="width:1px; height:1px;">
-    </div>
-""", unsafe_allow_html=True)
-
-# 🥇 1층: 메인 타이틀 (최상단 배치)
+# 🥇 1층: 메인 타이틀
 st.markdown(f"<div class='custom-title-container'><div class='custom-title'>{title_text}</div></div>", unsafe_allow_html=True)
 
-# 🥈 2층: 학습 모드 고르기 셀렉트 박스 배치
+# 🥈 2층: 학습 모드 고르기 셀렉트 박스
 selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="main_menu_selectbox")
 
-# 모드가 바뀌면 타이틀 실시간 동기화를 위해 세션 갱신 후 새로고침 촉발
 if selected_menu != st.session_state["selected_menu"]:
     st.session_state["selected_menu"] = selected_menu
     st.rerun()
@@ -300,7 +293,6 @@ for idx, r in enumerate(records):
         'energy': e_val
     })
 
-# 📖 100개 단위로 책장 나누기 로직
 total_sentences = len(all_display_records)
 page_size = 100  
 
@@ -384,7 +376,7 @@ if display_records:
             except:
                 st.error("오디오 생성 오류")
 
-# 🚀 5층: 글자 크기 조절 슬라이더를 연속 재생 시작 "바로 아래"로 안착!
+# 5층: 글자 크기 조절 슬라이더
 new_font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=40, value=font_size, step=1, key="slider_placement")
 if new_font_size != font_size:
     st.session_state["dynamic_font_size"] = new_font_size
@@ -392,17 +384,7 @@ if new_font_size != font_size:
 
 st.write("---")
 
-def save_to_google_sheet(sheet_obj, row, col, val):
-    if sheet_obj:
-        try:
-            sheet_obj.update_cell(row, col, str(val))
-        except:
-            pass
-
 # 3. 화면에 선택된 책장의 문장 리스트 출력
-if total_sentences == 0:
-    st.info("💡 현재 선택한 탭이 비어있거나 구글 시트를 확인해 주세요!")
-
 for item in display_records:
     orig_idx = item['original_index']
     row_idx = item['original_row']
