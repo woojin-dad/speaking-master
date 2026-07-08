@@ -51,7 +51,7 @@ if "selected_menu" not in st.session_state:
 title_text = f"👑 {st.session_state['selected_menu']}의 스피킹 마스터 👑"
 font_size = st.session_state.get("dynamic_font_size", 26)
 
-# 🔥 [레이아웃 및 대형 재생 버튼 3D 입체 디자인 CSS]
+# 🔥 [강력 스타일 주입: 대형 재생 버튼 2개 리얼 3D 입체화]
 st.markdown(f"""
     <style>
     .block-container {{
@@ -111,13 +111,8 @@ st.markdown(f"""
         -webkit-overflow-scrolling: touch !important;
     }}
    
-    div[data-testid="stRadio"] > div::-webkit-scrollbar {{
-        height: 4px !important;
-    }}
-    div[data-testid="stRadio"] > div::-webkit-scrollbar-thumb {{
-        background: #cbd5e1 !important;
-        border-radius: 10px !important;
-    }}
+    div[data-testid="stRadio"] > div::-webkit-scrollbar {{ height: 4px !important; }}
+    div[data-testid="stRadio"] > div::-webkit-scrollbar-thumb {{ background: #cbd5e1 !important; border-radius: 10px !important; }}
 
     div[data-testid="stRadio"] label {{
         background-color: #f1f5f9 !important;
@@ -127,65 +122,62 @@ st.markdown(f"""
         white-space: nowrap !important;
         display: inline-flex !important;
         align-items: center !important;
-        cursor: pointer !important;
     }}
    
-    div[data-testid="stRadio"] label[data-checked="true"] {{
-        background-color: #3b82f6 !important;
-        border-color: #3b82f6 !important;
-    }}
-    div[data-testid="stRadio"] label[data-checked="true"] p {{
-        color: #ffffff !important;
-        font-weight: bold !important;
-    }}
+    div[data-testid="stRadio"] label[data-checked="true"] {{ background-color: #3b82f6 !important; border-color: #3b82f6 !important; }}
+    div[data-testid="stRadio"] label[data-checked="true"] p {{ color: #ffffff !important; font-weight: bold !important; }}
 
-    /* 🟢 [리모델링] 📻 통합 1. 최상단 전체 무한 라디오 버튼 (초록색 3D 입체 디자인) */
+    /* =======================================================
+       🔥 [핵심] 스트림릿 고유 내부 태그(.st-emotion-cache)까지 완벽 제어
+       ======================================================= */
+       
+    /* 🟢 1. 📻 무한 반복 스피킹 라디오 버튼 강제 3D 튜닝 */
     div.stButton > button[key^="total_relay_btn_"] {{
-        background-color: #22c55e !important; /* 선명한 초록색 플레이트 */
+        background-color: #22c55e !important;
         border: none !important;
         border-radius: 14px !important;
         padding: 14px 15px !important;
         width: 100% !important;
-        text-align: center !important;
-        box-shadow: 0 5px 0 #15803d !important; /* 하단 묵직한 받침대 입체 그림자 */
-        transition: all 0.05s ease !important;
+        box-shadow: 0 6px 0px #15803d !important; /* 아래쪽 찐한 초록색 입체 받침대 */
+        transition: all 0.05s ease-in-out !important;
+        position: relative !important;
     }}
-    /* 클릭 타격감: 누르면 슥 내려앉는 물리 효과 */
+    /* 터치 타격감 효과 */
     div.stButton > button[key^="total_relay_btn_"]:active {{
-        transform: translateY(4px) !important;
-        box-shadow: 0 1px 0 #15803d !important;
+        transform: translateY(4px) !important; /* 아래로 슥 내려앉기 */
+        box-shadow: 0 2px 0px #15803d !important; /* 그림자 압축 */
     }}
     div.stButton > button[key^="total_relay_btn_"] p,
+    div.stButton > button[key^="total_relay_btn_"] span,
     div.stButton > button[key^="total_relay_btn_"] * {{
-        color: #ffffff !important; /* 글자 흰색으로 시인성 극대화 */
+        color: #ffffff !important;
         font-size: 18px !important;
-        font-weight: bold !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.2) !important;
+        font-weight: 900 !important;
     }}
 
-    /* 🔵 [리모델링] 🎧 통합 2. 중단 책장별 연속 재생 버튼 (파란색 3D 입체 디자인) */
+    /* 🔵 2. 🎧 선택된 책장 문장 연속 재생 시작 버튼 강제 3D 튜닝 */
     div.stButton > button[key^="page_relay_btn_"] {{
-        background-color: #3b82f6 !important; /* 시원한 파란색 플레이트 */
+        background-color: #3b82f6 !important;
         border: none !important;
         border-radius: 14px !important;
         padding: 12px 14px !important;
         width: 100% !important;
-        text-align: center !important;
         margin-top: 5px !important;
-        box-shadow: 0 5px 0 #1d4ed8 !important; /* 하단 진한 파란색 입체 그림자 */
-        transition: all 0.05s ease !important;
+        box-shadow: 0 6px 0px #1d4ed8 !important; /* 아래쪽 찐한 파란색 입체 받침대 */
+        transition: all 0.05s ease-in-out !important;
+        position: relative !important;
     }}
-    /* 클릭 타격감: 누르면 슥 내려앉는 물리 효과 */
+    /* 터치 타격감 효과 */
     div.stButton > button[key^="page_relay_btn_"]:active {{
-        transform: translateY(4px) !important;
-        box-shadow: 0 1px 0 #1d4ed8 !important;
+        transform: translateY(4px) !important; /* 아래로 슥 내려앉기 */
+        box-shadow: 0 2px 0px #1d4ed8 !important; /* 그림자 압축 */
     }}
     div.stButton > button[key^="page_relay_btn_"] p,
+    div.stButton > button[key^="page_relay_btn_"] span,
     div.stButton > button[key^="page_relay_btn_"] * {{
-        color: #ffffff !important; /* 글자 흰색으로 시인성 극대화 */
+        color: #ffffff !important;
         font-size: 17px !important;
-        font-weight: bold !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.2) !important;
+        font-weight: 900 !important;
     }}
    
     /* 🔤 본문 영어/한국어 문장 버튼 스타일 */
@@ -207,10 +199,7 @@ st.markdown(f"""
         color: #ffffff !important;
         line-height: 1.2 !important;
     }}
-   
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button:hover * {{
-        color: #f1c40f !important;
-    }}
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button:hover * {{ color: #f1c40f !important; }}
    
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton {{
         text-align: right !important;
@@ -320,7 +309,7 @@ if total_sentences > 0:
 else:
     page_options = []
 
-# 🥉 3층: 전체 재생 무한 라디오 버튼 (3D 입체 반영)
+# 🥉 3층: 전체 재생 무한 라디오 버튼 (초록 3D 강제 탑재)
 if total_sentences > 0:
     if st.button(f"📻 🔁 {real_sheet_name} 무한 반복 스피킹 라디오", key=f"total_relay_btn_{real_sheet_name}"):
         with st.spinner("⚡ 음성 파일 생성 중..."):
@@ -349,7 +338,7 @@ if total_sentences > 0:
             except:
                 st.error("라디오 컴파일 실패")
 
-# 🏾 4층: [무한 가로 스크롤 메뉴바] 책장 고르기
+# 🏾 4층: 책장 고르기 가로 스크롤 메뉴바
 if total_sentences > 0:
     st.write("📚 **이동할 책장 선택**")
     selected_page_str = st.radio("책장 선택", page_options, label_visibility="collapsed", horizontal=True, key="page_radio_scroll")
@@ -363,7 +352,7 @@ else:
 if is_priority_mode:
     display_records = sorted(display_records, key=lambda x: x['energy'])
 
-# 책장별 연속 재생 시작 버튼 (3D 입체 반영)
+# 책장별 연속 재생 시작 버튼 (파랑 3D 강제 탑재)
 if display_records:
     if st.button(f"🎧 선택된 {selected_page_str} 문장 연속 재생 시작", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
         with st.spinner("⚡ 음성 결합 중..."):
