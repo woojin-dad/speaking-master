@@ -45,6 +45,7 @@ for name in all_sheet_names:
     menu_options.append(name)
     menu_options.append(f"{name} (우선순위)")
 
+# 🚨 [핵심 수정] 첫 접속 시에만 초기화하고, 이후에는 유저가 고른 세션을 절대 잃어버리지 않음
 if "selected_menu" not in st.session_state:
     st.session_state["selected_menu"] = menu_options[0]
 
@@ -205,19 +206,21 @@ st.markdown(f"""
 # 🥇 1층: 메인 타이틀
 st.markdown(f"<div class='custom-title-container'><div class='custom-title'>{title_text}</div></div>", unsafe_allow_html=True)
 
-# 🥈 2층: [학습 모드 선택 드롭박스 전환] 가로 탭을 제거하여 흔들림 원천 차단
+# 🥈 2층: [학습 모드 선택 드롭박스] 
+# index 값을 항상 현재 세션 상태인 st.session_state["selected_menu"]에서 찾도록 고정하여 튕김 현상을 해결합니다.
 selected_menu = st.selectbox(
     "👤 학습 모드 선택",
     menu_options,
     index=menu_options.index(st.session_state["selected_menu"])
 )
 
+# 사용자가 직접 드롭박스를 변경했을 때만 세션을 갱신하고 재구동합니다.
 if selected_menu != st.session_state["selected_menu"]:
     st.session_state["selected_menu"] = selected_menu
     st.rerun()
 
-real_sheet_name = selected_menu.replace(" (우선순위)", "")
-is_priority_mode = "우선순위" in selected_menu
+real_sheet_name = st.session_state["selected_menu"].replace(" (우선순위)", "")
+is_priority_mode = "우선순위" in st.session_state["selected_menu"]
 
 user_data_key = f"records_{real_sheet_name}"
 user_sheet_key = f"sheet_{real_sheet_name}"
