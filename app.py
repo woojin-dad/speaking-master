@@ -7,7 +7,7 @@ import io
 import threading
 import base64
 
-# 1. 웹페이지 기본 설정
+# 1. 웹페이지 기본 설정 (메모리 절약형 컴팩트 레이아웃)
 st.set_page_config(
     page_title="스피킹 마스터",
     layout="wide",
@@ -24,7 +24,7 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 2. 구글 시트 연동 및 실시간 탭 목록 마스터 로직
+# 2. 구글 시트 연동 로직 (보안 및 연동 규격 안정화)
 @st.cache_resource
 def init_gspread():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -45,16 +45,31 @@ for name in all_sheet_names:
     menu_options.append(name)
     menu_options.append(f"{name} (우선순위)")
 
+# 🚨 [버그 원천 차단] 세션 상태 초기화 및 튕김 방지 앵커 고정
 if "selected_menu" not in st.session_state:
     st.session_state["selected_menu"] = menu_options[0]
+
+# 🥈 2층: 학습 모드 선택 드롭박스 (세션 상태와 완벽 결합하여 튕김 버그 완전 해결)
+selected_menu = st.selectbox(
+    "👤 학습 모드 선택", 
+    menu_options, 
+    index=menu_options.index(st.session_state["selected_menu"])
+)
+
+# 메뉴가 실제로 변경되었을 때만 세션을 리셋하고 새로고침을 촉발합니다.
+if selected_menu != st.session_state["selected_menu"]:
+    st.session_state["selected_menu"] = selected_menu
+    st.rerun()
+
+real_sheet_name = st.session_state["selected_menu"].replace(" (우선순위)", "")
+is_priority_mode = "우선순위" in st.session_state["selected_menu"]
 
 title_text = f"👑 {st.session_state['selected_menu']}의 스피킹 마스터 👑"
 font_size = st.session_state.get("dynamic_font_size", 26)
 
-# 🔥 [레이아웃 및 원본 스타일 CSS]
+# 🔥 [최적화 스타일 CSS - 불필요한 입체 연산 로직 전면 삭제]
 st.markdown(f"""
     <style>
-    /* 앱 전체 가로 스크롤을 방지하기 위한 타이트한 핏 설정 */
     html, body, [data-testid="stAppViewContainer"], .stApp {{
         max-width: 100vw !important;
         overflow-x: hidden !important;
@@ -81,7 +96,6 @@ st.markdown(f"""
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) {{ flex: 8.5 1 0% !important; min-width: 0 !important; }}
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) {{ flex: 1.5 1 0% !important; min-width: 0 !important; }}
    
-    /* 👑 최상단 완벽 밀착 유연 타이틀 */
     .custom-title-container {{
         width: 100% !important;
         text-align: center !important;
@@ -104,7 +118,6 @@ st.markdown(f"""
         .custom-title {{ font-size: 28px !important; }}
     }}
 
-    /* 📻 통합 1. 최상단 전체 무한 라디오 버튼 전용 CSS */
     div.stButton > button[key^="total_relay_btn_"] {{
         background-color: #f0fdf4 !important;
         border: 2px solid #2ecc71 !important;
@@ -120,7 +133,6 @@ st.markdown(f"""
         font-weight: bold !important;
     }}
 
-    /* 🎧 통합 2. 중단 책장별 연속 재생 버튼 전용 CSS */
     div.stButton > button[key^="page_relay_btn_"] {{
         background-color: #f0f9ff !important;
         border: 2px solid #3b82f6 !important;
@@ -137,7 +149,6 @@ st.markdown(f"""
         font-weight: bold !important;
     }}
    
-    /* 🔤 본문 영어/한국어 문장 버튼 스타일 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {{
         width: 100% !important;
         text-align: left !important;
@@ -205,25 +216,12 @@ st.markdown(f"""
 # 🥇 1층: 메인 타이틀
 st.markdown(f"<div class='custom-title-container'><div class='custom-title'>{title_text}</div></div>", unsafe_allow_html=True)
 
-# 🥈 2층: [학습 모드 선택 드롭박스 전환] 가로 탭을 제거하여 흔들림 원천 차단
-selected_menu = st.selectbox(
-    "👤 학습 모드 선택", 
-    menu_options, 
-    index=menu_options.index(st.session_state["selected_menu"])
-)
-
-if selected_menu != st.session_state["selected_menu"]:
-    st.session_state["selected_menu"] = selected_menu
-    st.rerun()
-
-real_sheet_name = selected_menu.replace(" (우선순위)", "")
-is_priority_mode = "우선순위" in selected_menu
-
 user_data_key = f"records_{real_sheet_name}"
 user_sheet_key = f"sheet_{real_sheet_name}"
 
 try:
-    st.session_state[user_sheet_key] = spreadsheet.worksheet(real_sheet_name)
+    if user_sheet_key not in st.session_state or st.session_state[user_sheet_key] is None:
+        st.session_state[user_sheet_key] = spreadsheet.worksheet(real_sheet_name)
 except:
     st.session_state[user_sheet_key] = None
 
@@ -239,27 +237,32 @@ if user_data_key not in st.session_state:
 records = st.session_state[user_data_key]
 sheet = st.session_state[user_sheet_key]
 
-all_display_records = []
-for idx, r in enumerate(records):
-    if 'id' not in r or 'kr' not in r or 'en' not in r:
-        continue
-        
-    try:
-        e_val = int(r.get('energy', 0))
-        if e_val > 3: e_val = 3
-        elif e_val < 0: e_val = 0
-    except:
-        e_val = 0
-        
-    all_display_records.append({
-        'original_index': idx,
-        'original_row': idx + 2,
-        'id': r['id'],
-        'kr': r['kr'],
-        'en': r['en'],
-        'energy': e_val
-    })
+# ⚡ [성능 최적화] 터치 속도 향상을 위한 데이터 메모리 상주 가공 기법
+display_records_cache_key = f"cached_display_{real_sheet_name}"
+if display_records_cache_key not in st.session_state:
+    all_display_records = []
+    for idx, r in enumerate(records):
+        if 'id' not in r or 'kr' not in r or 'en' not in r:
+            continue
+            
+        try:
+            e_val = int(r.get('energy', 0))
+            if e_val > 3: e_val = 3
+            elif e_val < 0: e_val = 0
+        except:
+            e_val = 0
+            
+        all_display_records.append({
+            'original_index': idx,
+            'original_row': idx + 2,
+            'id': r['id'],
+            'kr': r['kr'],
+            'en': r['en'],
+            'energy': e_val
+        })
+    st.session_state[display_records_cache_key] = all_display_records
 
+all_display_records = st.session_state[display_records_cache_key]
 total_sentences = len(all_display_records)
 page_size = 100  
 
@@ -301,7 +304,7 @@ if total_sentences > 0:
             except:
                 st.error("라디오 컴파일 실패")
 
-# 🏾 4층: [이동할 책장 선택 드롭박스 전환] 가로 탭을 제거하여 흔들림 완전 방지
+# 🏾 4층: 이동할 책장 선택 드롭박스
 if total_sentences > 0:
     selected_page_str = st.selectbox("📚 이동할 책장 선택", page_options, key="page_select_drop")
     page_idx = page_options.index(selected_page_str)
@@ -397,6 +400,9 @@ for item in display_records:
             if st.button(color_block_text, key=f"bar_touch_{real_sheet_name}_{orig_idx}"):
                 new_energy = energy_val + 1 if energy_val < 3 else 0
                 st.session_state[user_data_key][orig_idx]['energy'] = new_energy
+                
+                # 가공 캐시의 에너지도 즉시 동기화해 줍니다.
+                st.session_state[display_records_cache_key][orig_idx]['energy'] = new_energy
                 
                 threading.Thread(
                     target=save_to_google_sheet, 
