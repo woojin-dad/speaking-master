@@ -63,16 +63,7 @@ is_priority_mode = "우선순위" in selected_menu
 # 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더 (최대 40px)
 font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=40, value=26, step=1)
 
-# 🚀 [서버사이드 사전 글자 크기 연산 로직]
-# 화면에 CSS를 뿌리기 전에 파이썬이 미리 글자 크기를 완벽하게 숫자로 계산해 둡니다. (깜빡임 원천 차단)
-title_text = f"👑 {selected_menu}의 스피킹 마스터 👑"
-text_len = len(title_text)
-# 모바일 가로폭을 고려하여 글자당 최적의 크기 수식 계산 (최소 15px ~ 최대 32px 안전장치)
-calculated_font_size = int(340 / text_len)
-if calculated_font_size > 32: calculated_font_size = 32
-elif calculated_font_size < 15: calculated_font_size = 15
-
-# 🔥 [레이아웃 및 완벽 조율 타이틀 CSS]
+# 🔥 [레이아웃 및 신기술 컨테이너 쿼리 CSS]
 st.markdown(f"""
     <style>
     input:-webkit-autofill,
@@ -107,7 +98,7 @@ st.markdown(f"""
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) {{ flex: 8.5 1 0% !important; min-width: 0 !important; }}
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) {{ flex: 1.5 1 0% !important; min-width: 0 !important; }}
    
-    /* 👑 [진짜 최종: 가변형 크기 + 깜빡임 제로 타이틀 디자인] */
+    /* 👑 [최종 병기: 컨테이너 쿼리 기반 대도약 디자인] */
     .custom-title-container {{
         width: 100% !important;
         text-align: center !important;
@@ -115,15 +106,23 @@ st.markdown(f"""
         padding: 6px 0px !important;
         background-color: #f8fafc !important; 
         border-radius: 10px !important;
+        /* 🚀 핵심: 이 상자 자체를 글자 크기 계산의 기준 기지(Container)로 선포 */
+        container-type: inline-size !important;
+        overflow: hidden !important;
     }}
     .custom-title {{
-        /* 📱 파이썬이 사전에 계산한 고정 px 값을 주입하여 렌더링 지연 및 튀는 현상 해결 */
-        font-size: {calculated_font_size}px !important; 
+        /* 📱 폰 브라우저가 상자 가로폭(cqw)을 직접 계산하여 글자 크기를 100% 꽉 채우는 신기술 */
+        font-size: 5.6cqw !important; 
+        max-font-size: 28px !important;
         font-weight: bold !important;
         color: #2c3e50 !important;
-        white-space: nowrap !important; /* 한 줄 유지 */
-        letter-spacing: -0.5px !important;
+        white-space: nowrap !important; /* 무조건 한 줄 고정 */
+        letter-spacing: -0.3px !important;
         display: inline-block !important;
+    }}
+    /* 큰 PC 화면에서 비정상적으로 커지는 것 방지 */
+    @media (min-width: 600px) {{
+        .custom-title {{ font-size: 26px !important; }}
     }}
 
     /* 📻 통합 1. 최상단 전체 무한 라디오 버튼 전용 CSS */
@@ -325,8 +324,8 @@ if total_sentences > 0:
             except Exception as e:
                 st.error("라디오 플레이어 컴파일 실패")
 
-# 👑 메인 타이틀 안착 (사전 연산 완료된 유연 타이틀 주입)
-st.markdown(f"<div class='custom-title-container'><div class='custom-title'>{title_text}</div></div>", unsafe_allow_html=True)
+# 👑 메인 타이틀 안착 (신기술 적용)
+st.markdown(f"<div class='custom-title-container'><div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div></div>", unsafe_allow_html=True)
 st.write("---")
 
 # 📚 책장 고르기 본진 레이아웃
