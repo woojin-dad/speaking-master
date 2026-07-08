@@ -98,25 +98,27 @@ st.markdown(f"""
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) {{ flex: 8.5 1 0% !important; min-width: 0 !important; }}
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) {{ flex: 1.5 1 0% !important; min-width: 0 !important; }}
    
-    /* 👑 [왕관 짤림 방지 + 무한 유연 고무줄 타이틀 CSS] */
+    /* 👑 [좌우 여백 최소화 + 가로폭 98% 확장 고무줄 타이틀 CSS] */
     .custom-title-container {{
         width: 100% !important;
         text-align: center !important;
         margin-top: 10px !important;
         padding-top: 5px;
         display: block !important;
+        overflow: hidden !important;
     }}
     .custom-title {{
-        /* 📱 핵심: 글자수가 늘어나면 한없이 작아지고, 줄어들면 한없이 커져서 화면에 꽉 차는 공식 */
-        font-size: calc(95vw / {len(f"👑 {selected_menu}의 스피킹 마스터 👑")}) !important; 
+        /* 📱 가로폭 활용도를 95vw -> 98vw로 꽉 채우고 분자 값을 높여 글씨 크기를 대폭 증가 */
+        font-size: calc(98vw / ({len(f"👑 {selected_menu}의 스피킹 마스터 👑")} * 0.9)) !important; 
         font-weight: bold !important;
         color: #2c3e50 !important;
         white-space: nowrap !important; /* 무조건 한 줄 고정 */
         display: inline-block !important;
+        letter-spacing: -0.5px !important; /* 자간을 살짝 좁혀 짤림 방지 및 가독성 업 */
     }}
-    /* 컴퓨터 화면 등 너무 큰 화면에서는 제목이 괴물처럼 커지지 않게 상한선만 조절 */
+    /* 컴퓨터 화면 등 큰 화면 상한선 조절 */
     @media (min-width: 600px) {{
-        .custom-title {{ font-size: 28px !important; }}
+        .custom-title {{ font-size: 32px !important; }}
     }}
 
     /* 📻 통합 1. 최상단 전체 무한 라디오 버튼 전용 CSS */
@@ -318,7 +320,7 @@ if total_sentences > 0:
             except Exception as e:
                 st.error("라디오 플레이어 컴파일 실패")
 
-# 👑 메인 타이틀 안착 (무한 고무줄 스케일 적용)
+# 👑 메인 타이틀 안착 (여백 제로 확장형 고무줄 적용)
 st.markdown(f"<div class='custom-title-container'><div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div></div>", unsafe_allow_html=True)
 st.write("---")
 
@@ -373,7 +375,7 @@ def save_to_google_sheet(sheet_obj, row, col, val):
 
 # 3. 화면에 선택된 책장의 문장 리스트 출력
 if total_sentences == 0:
-    st.info("💡 현재 선택한 탭이 비어있거나, 1번 행 제목(id, kr, en, energy) 칸 배치가 올바르지 않습니다. 구글 시트를 확인해 주세요!")
+    st.info("💡 현재 선택한 탭이 비어있거나, 1번 행 제목(id, kr, en, energy) 칸 배치와 형식이 올바르지 않습니다. 구글 시트를 확인해 주세요!")
 
 for item in display_records:
     orig_idx = item['original_index']
