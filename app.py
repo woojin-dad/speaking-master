@@ -14,8 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 💡 [자동완성 원천 차단 메타 태그 추가]
-# 스마트폰 브라우저가 오지랖 부리지 못하도록 웹페이지 전체의 자동완성(Auto-fill) 기능을 강제로 꺼버립니다.
+# 💡 모바일 스크린 확대 허용 및 자동완성 차단 메타 태그
 st.markdown("""
     <script>
         var meta = document.createElement('meta');
@@ -23,7 +22,6 @@ st.markdown("""
         meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
         document.getElementsByTagName('head')[0].appendChild(meta);
         
-        // 브라우저의 자동 채우기 방해용 글로벌 스크립트
         document.addEventListener('DOMContentLoaded', function() {
             var inputs = document.querySelectorAll('input, select');
             inputs.forEach(function(input) {
@@ -65,10 +63,9 @@ is_priority_mode = "우선순위" in selected_menu
 # 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더 (최대 40px)
 font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=40, value=26, step=1)
 
-# 🔥 [레이아웃 최적화 CSS] - 자동완성 방해 레이아웃 추가
+# 🔥 [레이아웃 및 타이틀 한 줄 고정 CSS]
 st.markdown(f"""
     <style>
-    /* 브라우저가 강제로 집어넣는 노란색/하늘색 자동완성 배경색 제거 */
     input:-webkit-autofill,
     input:-webkit-autofill:hover, 
     input:-webkit-autofill:focus,
@@ -101,13 +98,25 @@ st.markdown(f"""
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) {{ flex: 8.5 1 0% !important; min-width: 0 !important; }}
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) {{ flex: 1.5 1 0% !important; min-width: 0 !important; }}
    
+    /* 👑 [타이틀 모바일 자동 조절 및 한 줄 고정 핵심 CSS] */
+    .custom-title-container {{
+        width: 100% !important;
+        overflow: hidden !important;
+        text-align: center !important;
+        margin-top: 10px !important;
+        padding-top: 5px;
+    }}
     .custom-title {{
-        font-size: 26px !important;
+        font-size: 6vw !important; /* 📱 화면 폭(Width)에 맞춰 글자 크기 실시간 자동 조절 */
+        max-font-size: 26px !important;
         font-weight: bold !important;
         color: #2c3e50 !important;
-        text-align: center !important;
-        padding-top: 5px;
-        margin-top: 10px !important;
+        white-space: nowrap !important; /* 🚀 절대로 두 줄로 쪼개지지 않도록 강제 한 줄 고정 */
+        display: inline-block !important;
+    }}
+    /* 컴퓨터 화면이나 큰 패드에서는 너무 커지지 않게 제한 */
+    @media (min-width: 480px) {{
+        .custom-title {{ font-size: 26px !important; }}
     }}
 
     /* 📻 통합 1. 최상단 전체 무한 라디오 버튼 전용 CSS */
@@ -309,8 +318,8 @@ if total_sentences > 0:
             except Exception as e:
                 st.error("라디오 플레이어 컴파일 실패")
 
-# 👑 메인 타이틀 안착
-st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
+# 👑 메인 타이틀 안착 (한 줄 강제 고정 컨테이너 적용)
+st.markdown(f"<div class='custom-title-container'><div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div></div>", unsafe_allow_html=True)
 st.write("---")
 
 # 📚 책장 고르기 본진 레이아웃
