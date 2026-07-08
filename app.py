@@ -7,7 +7,7 @@ import io
 import threading
 import base64
 
-# 1. 웹페이지 기본 설정 (메모리 절약형 컴팩트 레이아웃)
+# 1. 웹페이지 기본 설정
 st.set_page_config(
     page_title="스피킹 마스터",
     layout="wide",
@@ -24,7 +24,7 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 2. 구글 시트 연동 로직 (보안 및 연동 규격 안정화)
+# 2. 구글 시트 연동 및 실시간 탭 목록 마스터 로직
 @st.cache_resource
 def init_gspread():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -45,29 +45,14 @@ for name in all_sheet_names:
     menu_options.append(name)
     menu_options.append(f"{name} (우선순위)")
 
-# 🚨 [버그 원천 차단] 세션 상태 초기화 및 튕김 방지 앵커 고정
+# 🚨 세션 상태 고정으로 튕김 및 초기화 버그 원천 차단
 if "selected_menu" not in st.session_state:
     st.session_state["selected_menu"] = menu_options[0]
-
-# 🥈 2층: 학습 모드 선택 드롭박스 (세션 상태와 완벽 결합하여 튕김 버그 완전 해결)
-selected_menu = st.selectbox(
-    "👤 학습 모드 선택", 
-    menu_options, 
-    index=menu_options.index(st.session_state["selected_menu"])
-)
-
-# 메뉴가 실제로 변경되었을 때만 세션을 리셋하고 새로고침을 촉발합니다.
-if selected_menu != st.session_state["selected_menu"]:
-    st.session_state["selected_menu"] = selected_menu
-    st.rerun()
-
-real_sheet_name = st.session_state["selected_menu"].replace(" (우선순위)", "")
-is_priority_mode = "우선순위" in st.session_state["selected_menu"]
 
 title_text = f"👑 {st.session_state['selected_menu']}의 스피킹 마스터 👑"
 font_size = st.session_state.get("dynamic_font_size", 26)
 
-# 🔥 [최적화 스타일 CSS - 불필요한 입체 연산 로직 전면 삭제]
+# 🔥 [레이아웃 및 원본 스타일 CSS]
 st.markdown(f"""
     <style>
     html, body, [data-testid="stAppViewContainer"], .stApp {{
@@ -213,8 +198,22 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# 🥇 1층: 메인 타이틀
+# 🥇 [위치 복구] 1층: 메인 타이틀 (무조건 최상단 고정)
 st.markdown(f"<div class='custom-title-container'><div class='custom-title'>{title_text}</div></div>", unsafe_allow_html=True)
+
+# 🥈 2층: 학습 모드 선택 드롭박스 (타이틀 아래로 완벽 안착)
+selected_menu = st.selectbox(
+    "👤 학습 모드 선택", 
+    menu_options, 
+    index=menu_options.index(st.session_state["selected_menu"])
+)
+
+if selected_menu != st.session_state["selected_menu"]:
+    st.session_state["selected_menu"] = selected_menu
+    st.rerun()
+
+real_sheet_name = st.session_state["selected_menu"].replace(" (우선순위)", "")
+is_priority_mode = "우선순위" in st.session_state["selected_menu"]
 
 user_data_key = f"records_{real_sheet_name}"
 user_sheet_key = f"sheet_{real_sheet_name}"
@@ -237,7 +236,7 @@ if user_data_key not in st.session_state:
 records = st.session_state[user_data_key]
 sheet = st.session_state[user_sheet_key]
 
-# ⚡ [성능 최적화] 터치 속도 향상을 위한 데이터 메모리 상주 가공 기법
+# ⚡ [초고속 튜닝] 반복 데이터 처리를 메모리 초고속 캐시 구조로 전면 전환
 display_records_cache_key = f"cached_display_{real_sheet_name}"
 if display_records_cache_key not in st.session_state:
     all_display_records = []
@@ -400,8 +399,6 @@ for item in display_records:
             if st.button(color_block_text, key=f"bar_touch_{real_sheet_name}_{orig_idx}"):
                 new_energy = energy_val + 1 if energy_val < 3 else 0
                 st.session_state[user_data_key][orig_idx]['energy'] = new_energy
-                
-                # 가공 캐시의 에너지도 즉시 동기화해 줍니다.
                 st.session_state[display_records_cache_key][orig_idx]['energy'] = new_energy
                 
                 threading.Thread(
