@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 💡 [아이폰 AI 글쓰기 도구 완벽 차단] 메타 태그 및 자바스크립트 방어막
+# 💡 모바일 스크린 확대 허용 및 자동완성 차단 메타 태그
 st.markdown("""
     <script>
         var meta = document.createElement('meta');
@@ -22,16 +22,13 @@ st.markdown("""
         meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
         document.getElementsByTagName('head')[0].appendChild(meta);
         
-        // 아이폰 암호/글쓰기 엔진이 아예 접근하지 못하도록 속성을 강제로 주입합니다.
         document.addEventListener('DOMContentLoaded', function() {
             var inputs = document.querySelectorAll('input, select');
             inputs.forEach(function(input) {
-                input.setAttribute('autocomplete', 'one-time-code');
+                input.setAttribute('autocomplete', 'new-password');
                 input.setAttribute('autocorrect', 'off');
                 input.setAttribute('autocapitalize', 'off');
                 input.setAttribute('spellcheck', 'false');
-                input.setAttribute('autofill-prediction-disabled', 'true'); // iOS 자동완성 엔진 차단
-                input.setAttribute('data-lpignore', 'true'); // 모바일 키체인 패스 차단
             });
         });
     </script>
@@ -58,11 +55,9 @@ for name in all_sheet_names:
     menu_options.append(name)
     menu_options.append(f"{name} (우선순위)")
 
-# 초기 로딩 시 세팅할 가상의 선택값 계산
 if "selected_menu" not in st.session_state:
     st.session_state["selected_menu"] = menu_options[0]
 
-# 최상단 타이틀 텍스트 확정
 title_text = f"👑 {st.session_state['selected_menu']}의 스피킹 마스터 👑"
 font_size = st.session_state.get("dynamic_font_size", 26)
 
@@ -230,6 +225,15 @@ st.markdown(f"""
     header {{visibility: hidden !important; height: 0px !important;}}
     .stAppDeployButton {{display: none !important;}}
     </style>
+""", unsafe_allow_html=True)
+
+# 🛑 [아이폰 사파리 키체인 원천 낚시용 무력화 가짜 입력창]
+# 사파리 암호 자동 채우기 센서가 여기에 무조건 먼저 달라붙게 만듭니다. (유저 눈엔 안 보임)
+st.markdown("""
+    <form style="position: absolute; top: -9999px; left: -9999px; width: 1px; height: 1px; overflow: hidden;">
+        <input type="text" name="username" autocomplete="username">
+        <input type="password" name="password" autocomplete="current-password">
+    </form>
 """, unsafe_allow_html=True)
 
 # 🥇 1층: 메인 타이틀
