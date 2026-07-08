@@ -63,7 +63,7 @@ is_priority_mode = "우선순위" in selected_menu
 # 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더 (최대 40px)
 font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=40, value=26, step=1)
 
-# 🔥 [레이아웃 및 타이틀 자동 축소 핵심 CSS]
+# 🔥 [레이아웃 및 타이틀 무한 고무줄 스케일 CSS]
 st.markdown(f"""
     <style>
     input:-webkit-autofill,
@@ -98,23 +98,25 @@ st.markdown(f"""
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) {{ flex: 8.5 1 0% !important; min-width: 0 !important; }}
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) {{ flex: 1.5 1 0% !important; min-width: 0 !important; }}
    
-    /* 👑 [제목 짤림 방지 완벽 차단 유연 스케일 CSS] */
+    /* 👑 [왕관 짤림 방지 + 무한 유연 고무줄 타이틀 CSS] */
     .custom-title-container {{
         width: 100% !important;
         text-align: center !important;
         margin-top: 10px !important;
         padding-top: 5px;
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
+        display: block !important;
     }}
     .custom-title {{
-        font-size: clamp(14px, 5.2vw, 26px) !important; /* 📱 최소 14px에서 최대 26px 사이로 화면 폭에 맞게 자동 축소 */
+        /* 📱 핵심: 글자수가 늘어나면 한없이 작아지고, 줄어들면 한없이 커져서 화면에 꽉 차는 공식 */
+        font-size: calc(95vw / {len(f"👑 {selected_menu}의 스피킹 마스터 👑")}) !important; 
         font-weight: bold !important;
         color: #2c3e50 !important;
-        white-space: nowrap !important; /* 한 줄 유지 */
-        text-overflow: clip !important;
-        word-break: break-all !important;
+        white-space: nowrap !important; /* 무조건 한 줄 고정 */
+        display: inline-block !important;
+    }}
+    /* 컴퓨터 화면 등 너무 큰 화면에서는 제목이 괴물처럼 커지지 않게 상한선만 조절 */
+    @media (min-width: 600px) {{
+        .custom-title {{ font-size: 28px !important; }}
     }}
 
     /* 📻 통합 1. 최상단 전체 무한 라디오 버튼 전용 CSS */
@@ -316,7 +318,7 @@ if total_sentences > 0:
             except Exception as e:
                 st.error("라디오 플레이어 컴파일 실패")
 
-# 👑 메인 타이틀 안착 (자동 축소 스케일 컨테이너 적용)
+# 👑 메인 타이틀 안착 (무한 고무줄 스케일 적용)
 st.markdown(f"<div class='custom-title-container'><div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div></div>", unsafe_allow_html=True)
 st.write("---")
 
