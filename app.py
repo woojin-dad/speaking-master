@@ -45,17 +45,19 @@ for name in all_sheet_names:
     menu_options.append(name)
     menu_options.append(f"{name} (우선순위)")
 
-# 🚨 [핵심 수정] 첫 접속 시에만 초기화하고, 이후에는 유저가 고른 세션을 절대 잃어버리지 않음
-if "selected_menu" not in st.session_state:
-    st.session_state["selected_menu"] = menu_options[0]
+# 🚨 [자물쇠 핵심 1] 최초 실행 시 세션 기본값 세팅
+if "selected_menu_drop" not in st.session_state:
+    st.session_state["selected_menu_drop"] = menu_options[0]
 
-title_text = f"👑 {st.session_state['selected_menu']}의 스피킹 마스터 👑"
+# 현재 활성화된 메뉴 명칭 정의
+current_active_menu = st.session_state["selected_menu_drop"]
+
+title_text = f"👑 {current_active_menu}의 스피킹 마스터 👑"
 font_size = st.session_state.get("dynamic_font_size", 26)
 
 # 🔥 [레이아웃 및 원본 스타일 CSS]
 st.markdown(f"""
     <style>
-    /* 앱 전체 가로 스크롤을 방지하기 위한 타이트한 핏 설정 */
     html, body, [data-testid="stAppViewContainer"], .stApp {{
         max-width: 100vw !important;
         overflow-x: hidden !important;
@@ -82,7 +84,6 @@ st.markdown(f"""
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) {{ flex: 8.5 1 0% !important; min-width: 0 !important; }}
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) {{ flex: 1.5 1 0% !important; min-width: 0 !important; }}
    
-    /* 👑 최상단 완벽 밀착 유연 타이틀 */
     .custom-title-container {{
         width: 100% !important;
         text-align: center !important;
@@ -105,7 +106,6 @@ st.markdown(f"""
         .custom-title {{ font-size: 28px !important; }}
     }}
 
-    /* 📻 통합 1. 최상단 전체 무한 라디오 버튼 전용 CSS */
     div.stButton > button[key^="total_relay_btn_"] {{
         background-color: #f0fdf4 !important;
         border: 2px solid #2ecc71 !important;
@@ -121,7 +121,6 @@ st.markdown(f"""
         font-weight: bold !important;
     }}
 
-    /* 🎧 통합 2. 중단 책장별 연속 재생 버튼 전용 CSS */
     div.stButton > button[key^="page_relay_btn_"] {{
         background-color: #f0f9ff !important;
         border: 2px solid #3b82f6 !important;
@@ -138,7 +137,6 @@ st.markdown(f"""
         font-weight: bold !important;
     }}
    
-    /* 🔤 본문 영어/한국어 문장 버튼 스타일 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {{
         width: 100% !important;
         text-align: left !important;
@@ -206,21 +204,17 @@ st.markdown(f"""
 # 🥇 1층: 메인 타이틀
 st.markdown(f"<div class='custom-title-container'><div class='custom-title'>{title_text}</div></div>", unsafe_allow_html=True)
 
-# 🥈 2층: [학습 모드 선택 드롭박스] 
-# index 값을 항상 현재 세션 상태인 st.session_state["selected_menu"]에서 찾도록 고정하여 튕김 현상을 해결합니다.
+# 🥈 2층: [학습 모드 선택 드롭박스]
+# 🚨 [자물쇠 핵심 2] key="selected_menu_drop"을 부여하여, 세션 상태를 스트림릿 엔진 내부 저장소에 완전히 박제합니다.
+# 이렇게 하면 문장을 터치하여 스크립트가 리런되어도 동탕(우선순위) 모드가 절대 풀리지 않습니다.
 selected_menu = st.selectbox(
     "👤 학습 모드 선택",
     menu_options,
-    index=menu_options.index(st.session_state["selected_menu"])
+    key="selected_menu_drop"
 )
 
-# 사용자가 직접 드롭박스를 변경했을 때만 세션을 갱신하고 재구동합니다.
-if selected_menu != st.session_state["selected_menu"]:
-    st.session_state["selected_menu"] = selected_menu
-    st.rerun()
-
-real_sheet_name = st.session_state["selected_menu"].replace(" (우선순위)", "")
-is_priority_mode = "우선순위" in st.session_state["selected_menu"]
+real_sheet_name = current_active_menu.replace(" (우선순위)", "")
+is_priority_mode = "우선순위" in current_active_menu
 
 user_data_key = f"records_{real_sheet_name}"
 user_sheet_key = f"sheet_{real_sheet_name}"
@@ -304,7 +298,7 @@ if total_sentences > 0:
             except:
                 st.error("라디오 컴파일 실패")
 
-# 🏾 4층: [이동할 책장 선택 드롭박스 전환] 가로 탭을 제거하여 흔들림 완전 방지
+# 🏾 4층: 이동할 책장 선택 드롭박스
 if total_sentences > 0:
     selected_page_str = st.selectbox("📚 이동할 책장 선택", page_options, key="page_select_drop")
     page_idx = page_options.index(selected_page_str)
