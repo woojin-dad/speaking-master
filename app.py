@@ -63,7 +63,7 @@ is_priority_mode = "우선순위" in selected_menu
 # 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더 (최대 40px)
 font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=40, value=26, step=1)
 
-# 🔥 [레이아웃 및 타이틀 무한 고무줄 스케일 CSS]
+# 🔥 [레이아웃 및 깜빡임 차단 타이틀 CSS]
 st.markdown(f"""
     <style>
     input:-webkit-autofill,
@@ -98,27 +98,31 @@ st.markdown(f"""
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) {{ flex: 8.5 1 0% !important; min-width: 0 !important; }}
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) {{ flex: 1.5 1 0% !important; min-width: 0 !important; }}
    
-    /* 👑 [좌우 여백 최소화 + 가로폭 98% 확장 고무줄 타이틀 CSS] */
+    /* 👑 [깜빡임 해결! 모바일 전용 안정화 타이틀 디자인] */
     .custom-title-container {{
         width: 100% !important;
         text-align: center !important;
-        margin-top: 10px !important;
-        padding-top: 5px;
-        display: block !important;
-        overflow: hidden !important;
+        margin-top: 8px !important;
+        padding: 6px 0px !important;
+        background-color: #f8fafc !important; /* 은은한 배경을 깔아 고급스러운 대시보드 느낌 연출 */
+        border-radius: 10px !important;
     }}
     .custom-title {{
-        /* 📱 가로폭 활용도를 95vw -> 98vw로 꽉 채우고 분자 값을 높여 글씨 크기를 대폭 증가 */
-        font-size: calc(98vw / ({len(f"👑 {selected_menu}의 스피킹 마스터 👑")} * 0.9)) !important; 
+        /* 📱 전환 시 절대 크기가 요동치지 않는 모바일 최적화 고정 폰트 크기 세팅 */
+        font-size: 21px !important; 
         font-weight: bold !important;
         color: #2c3e50 !important;
-        white-space: nowrap !important; /* 무조건 한 줄 고정 */
+        white-space: nowrap !important; /* 한 줄 유지 */
+        letter-spacing: -0.8px !important; /* 자간을 아주 끈끈하게 좁혀 장문 짤림 방지 */
         display: inline-block !important;
-        letter-spacing: -0.5px !important; /* 자간을 살짝 좁혀 짤림 방지 및 가독성 업 */
     }}
-    /* 컴퓨터 화면 등 큰 화면 상한선 조절 */
+    /* 스마트폰 기종별 미세 조정 (글자 수가 엄청 긴 방탄 모드 대응) */
+    @media (max-width: 380px) {{
+        .custom-title {{ font-size: 18px !important; }}
+    }}
+    /* 태블릿이나 PC 큰 화면 대응 */
     @media (min-width: 600px) {{
-        .custom-title {{ font-size: 32px !important; }}
+        .custom-title {{ font-size: 26px !important; }}
     }}
 
     /* 📻 통합 1. 최상단 전체 무한 라디오 버튼 전용 CSS */
@@ -320,7 +324,7 @@ if total_sentences > 0:
             except Exception as e:
                 st.error("라디오 플레이어 컴파일 실패")
 
-# 👑 메인 타이틀 안착 (여백 제로 확장형 고무줄 적용)
+# 👑 메인 타이틀 안착 (깜빡임 제로 안정화 프레임 적용)
 st.markdown(f"<div class='custom-title-container'><div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div></div>", unsafe_allow_html=True)
 st.write("---")
 
