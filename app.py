@@ -51,10 +51,10 @@ if "selected_menu" not in st.session_state:
 title_text = f"👑 {st.session_state['selected_menu']}의 스피킹 마스터 👑"
 font_size = st.session_state.get("dynamic_font_size", 26)
 
-# 🔥 [레이아웃 및 무한 가로 스크롤 + 3D 입체 버튼 CSS]
+# 🔥 [레이아웃 및 대형 재생 버튼 3D 입체 디자인 CSS]
 st.markdown(f"""
     <style>
-    .block-container {{ 
+    .block-container {{
         max-width: 100% !important;
         padding-top: 0.2rem !important;  
         padding-bottom: 1rem !important;
@@ -68,13 +68,12 @@ st.markdown(f"""
         flex-wrap: nowrap !important;
         align-items: center !important;
         justify-content: space-between !important;
-        gap: 12px !important; /* 간격 살짝 최적화 */
+        gap: 20px !important;
         width: 100% !important;
-        margin-bottom: 5px !important;
     }}
    
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) {{ flex: 8.2 1 0% !important; min-width: 0 !important; }}
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) {{ flex: 1.8 1 0% !important; min-width: 0 !important; }}
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) {{ flex: 8.5 1 0% !important; min-width: 0 !important; }}
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) {{ flex: 1.5 1 0% !important; min-width: 0 !important; }}
    
     /* 👑 최상단 완벽 밀착 유연 타이틀 */
     .custom-title-container {{
@@ -83,13 +82,13 @@ st.markdown(f"""
         margin-top: 0px !important;
         margin-bottom: 5px !important;
         padding: 6px 0px !important;
-        background-color: #f8fafc !important; 
+        background-color: #f8fafc !important;
         border-radius: 10px !important;
         container-type: inline-size !important;
         overflow: hidden !important;
     }}
     .custom-title {{
-        font-size: calc(98vw / ({len(title_text)} * 0.85)) !important; 
+        font-size: calc(98vw / ({len(title_text)} * 0.85)) !important;
         font-weight: bold !important;
         color: #2c3e50 !important;
         white-space: nowrap !important;
@@ -111,8 +110,14 @@ st.markdown(f"""
         scroll-behavior: smooth !important;
         -webkit-overflow-scrolling: touch !important;
     }}
-    div[data-testid="stRadio"] > div::-webkit-scrollbar {{ height: 4px !important; }}
-    div[data-testid="stRadio"] > div::-webkit-scrollbar-thumb {{ background: #cbd5e1 !important; border-radius: 10px !important; }}
+   
+    div[data-testid="stRadio"] > div::-webkit-scrollbar {{
+        height: 4px !important;
+    }}
+    div[data-testid="stRadio"] > div::-webkit-scrollbar-thumb {{
+        background: #cbd5e1 !important;
+        border-radius: 10px !important;
+    }}
 
     div[data-testid="stRadio"] label {{
         background-color: #f1f5f9 !important;
@@ -124,61 +129,73 @@ st.markdown(f"""
         align-items: center !important;
         cursor: pointer !important;
     }}
-    div[data-testid="stRadio"] label[data-checked="true"] {{ background-color: #3b82f6 !important; border-color: #3b82f6 !important; }}
-    div[data-testid="stRadio"] label[data-checked="true"] p {{ color: #ffffff !important; font-weight: bold !important; }}
+   
+    div[data-testid="stRadio"] label[data-checked="true"] {{
+        background-color: #3b82f6 !important;
+        border-color: #3b82f6 !important;
+    }}
+    div[data-testid="stRadio"] label[data-checked="true"] p {{
+        color: #ffffff !important;
+        font-weight: bold !important;
+    }}
 
-    /* 📻 통합 1. 최상단 전체 무한 라디오 버튼 */
+    /* 🟢 [리모델링] 📻 통합 1. 최상단 전체 무한 라디오 버튼 (초록색 3D 입체 디자인) */
     div.stButton > button[key^="total_relay_btn_"] {{
-        background-color: #f0fdf4 !important;
-        border: 2px solid #2ecc71 !important;
-        border-radius: 12px !important;
+        background-color: #22c55e !important; /* 선명한 초록색 플레이트 */
+        border: none !important;
+        border-radius: 14px !important;
         padding: 14px 15px !important;
         width: 100% !important;
         text-align: center !important;
-        box-shadow: 0 4px 0 #16a34a !important; /* 입체 유도 하단 그림자 */
-        transition: all 0.1s ease !important;
+        box-shadow: 0 5px 0 #15803d !important; /* 하단 묵직한 받침대 입체 그림자 */
+        transition: all 0.05s ease !important;
     }}
+    /* 클릭 타격감: 누르면 슥 내려앉는 물리 효과 */
     div.stButton > button[key^="total_relay_btn_"]:active {{
-        transform: translateY(3px) !important;
-        box-shadow: 0 1px 0 #16a34a !important;
+        transform: translateY(4px) !important;
+        box-shadow: 0 1px 0 #15803d !important;
     }}
     div.stButton > button[key^="total_relay_btn_"] p,
-    div.stButton > button[key^="total_relay_btn_"] * {{ color: #15803d !important; font-size: 18px !important; font-weight: bold !important; }}
+    div.stButton > button[key^="total_relay_btn_"] * {{
+        color: #ffffff !important; /* 글자 흰색으로 시인성 극대화 */
+        font-size: 18px !important;
+        font-weight: bold !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.2) !important;
+    }}
 
-    /* 🎧 통합 2. 중단 책장별 연속 재생 버튼 */
+    /* 🔵 [리모델링] 🎧 통합 2. 중단 책장별 연속 재생 버튼 (파란색 3D 입체 디자인) */
     div.stButton > button[key^="page_relay_btn_"] {{
-        background-color: #f0f9ff !important;
-        border: 2px solid #3b82f6 !important;
-        border-radius: 12px !important;
+        background-color: #3b82f6 !important; /* 시원한 파란색 플레이트 */
+        border: none !important;
+        border-radius: 14px !important;
         padding: 12px 14px !important;
         width: 100% !important;
         text-align: center !important;
         margin-top: 5px !important;
-        box-shadow: 0 4px 0 #2563eb !important;
-        transition: all 0.1s ease !important;
+        box-shadow: 0 5px 0 #1d4ed8 !important; /* 하단 진한 파란색 입체 그림자 */
+        transition: all 0.05s ease !important;
     }}
+    /* 클릭 타격감: 누르면 슥 내려앉는 물리 효과 */
     div.stButton > button[key^="page_relay_btn_"]:active {{
-        transform: translateY(3px) !important;
-        box-shadow: 0 1px 0 #2563eb !important;
+        transform: translateY(4px) !important;
+        box-shadow: 0 1px 0 #1d4ed8 !important;
     }}
     div.stButton > button[key^="page_relay_btn_"] p,
-    div.stButton > button[key^="page_relay_btn_"] * {{ color: #1d4ed8 !important; font-size: 17px !important; font-weight: bold !important; }}
+    div.stButton > button[key^="page_relay_btn_"] * {{
+        color: #ffffff !important; /* 글자 흰색으로 시인성 극대화 */
+        font-size: 17px !important;
+        font-weight: bold !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.2) !important;
+    }}
    
-    /* 🔤 [리모델링] 본문 문장 버튼 (왼쪽 - 묵직한 다크블루 3D) */
+    /* 🔤 본문 영어/한국어 문장 버튼 스타일 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {{
         width: 100% !important;
         text-align: left !important;
-        background-color: #1e293b !important; /* 묵직한 다크 플레이트 */
+        background-color: #2c3e50 !important;
         border: none !important;
-        border-radius: 10px !important;
-        padding: 12px 14px !important;
-        box-shadow: 0 4px 0 #0f172a !important; /* 아래쪽 입체 받침대 */
-        transition: all 0.05s ease !important;
-    }}
-    /* 본문 버튼 클릭 시 들어가는 효과 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button:active {{
-        transform: translateY(3px) !important;
-        box-shadow: 0 1px 0 #0f172a !important;
+        border-radius: 8px !important;
+        padding: 8px 10px !important;
     }}
    
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button p,
@@ -190,63 +207,45 @@ st.markdown(f"""
         color: #ffffff !important;
         line-height: 1.2 !important;
     }}
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button:hover * {{ color: #f1c40f !important; }}
    
-    /* 🔊 [리모델링] 우측 듣기 버튼 및 에너지 바 영역 (완전한 버튼 형태 디자인) */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button:hover * {{
+        color: #f1c40f !important;
+    }}
+   
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton {{
+        text-align: right !important;
         width: 100% !important;
+        display: flex !important;
+        justify-content: flex-end !important;
     }}
-    
-    /* 🔊 진짜 스피커 단독 입체 버튼화 (화사한 시안/오션블루 스타일) */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[help="audio-btn"] {{
-        background-color: #0ea5e9 !important; /* 화사한 블루 */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button {{
+        background-color: #ffffff !important;
         border: none !important;
-        border-radius: 10px !important;
-        padding: 10px 0px !important;
-        width: 100% !important;
+        padding: 0px !important;
+        margin: 0px !important;
+        width: auto !important;
         display: flex !important;
-        justify-content: center !important; 
+        justify-content: flex-end !important;
         align-items: center !important;
-        box-shadow: 0 4px 0 #0284c7 !important; /* 청량한 입체 받침대 */
-        transition: all 0.05s ease !important;
-    }}
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[help="audio-btn"]:active {{
-        transform: translateY(3px) !important;
-        box-shadow: 0 1px 0 #0284c7 !important;
-    }}
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[help="audio-btn"] p,
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[help="audio-btn"] * {{
-        font-size: 22px !important; /* 아이콘 시원하게 키움 */
-        color: #ffffff !important;
-        font-weight: bold !important;
-    }}
-
-    /* 🟥🟧🟨🟩 에너지 신호등 버튼 입체화 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button:not([help="audio-btn"]) {{
-        background-color: #f8fafc !important;
-        border: 1px solid #cbd5e1 !important;
-        border-radius: 10px !important;
-        width: 100% !important;
-        padding: 4px 0px !important;
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
-        box-shadow: 0 3px 0 #cbd5e1 !important;
-        transition: all 0.05s ease !important;
-    }}
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button:not([help="audio-btn"]):active {{
-        transform: translateY(2px) !important;
-        box-shadow: 0 1px 0 #cbd5e1 !important;
-    }}
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button:not([help="audio-btn"]) p,
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button:not([help="audio-btn"]) * {{
-        font-size: 15px !important;
-        white-space: pre-line !important;
-        line-height: 1.1 !important;
-        text-align: center !important;
     }}
    
-    hr {{ margin: 8px 0px !important; padding: 0px !important; border-top: 1px solid #e2e8f0 !important; }}
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button p,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button div,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button span,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button * {{
+        font-size: 16px !important;
+        white-space: pre-line !important;
+        line-height: 1.0 !important;
+    }}
+   
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[help="audio-btn"] * {{
+        font-size: 16px !important;
+        color: #2c3e50 !important;
+        font-weight: bold !important;
+        line-height: 1.2 !important;
+    }}
+   
+    hr {{ margin: 6px 0px !important; padding: 0px !important; }}
     [data-testid="stStatusWidget"] {{display: none !important; visibility: hidden !important;}}
     footer {{visibility: hidden !important; height: 0px !important; padding: 0px !important;}}
     header {{visibility: hidden !important; height: 0px !important;}}
@@ -257,7 +256,7 @@ st.markdown(f"""
 # 🥇 1층: 메인 타이틀
 st.markdown(f"<div class='custom-title-container'><div class='custom-title'>{title_text}</div></div>", unsafe_allow_html=True)
 
-# 🥈 2층: 무한 가로 스크롤 메뉴바
+# 🥈 2층: [무한 가로 스크롤 메뉴바]
 st.write("👤 **학습 모드 선택**")
 selected_menu = st.radio("학습 모드", menu_options, index=menu_options.index(st.session_state["selected_menu"]), label_visibility="collapsed", horizontal=True)
 
@@ -321,7 +320,7 @@ if total_sentences > 0:
 else:
     page_options = []
 
-# 🥉 3층: 전체 재생 무한 라디오 버튼
+# 🥉 3층: 전체 재생 무한 라디오 버튼 (3D 입체 반영)
 if total_sentences > 0:
     if st.button(f"📻 🔁 {real_sheet_name} 무한 반복 스피킹 라디오", key=f"total_relay_btn_{real_sheet_name}"):
         with st.spinner("⚡ 음성 파일 생성 중..."):
@@ -350,7 +349,7 @@ if total_sentences > 0:
             except:
                 st.error("라디오 컴파일 실패")
 
-# 🏾 4층: 책장 고르기 가로 스크롤 메뉴바
+# 🏾 4층: [무한 가로 스크롤 메뉴바] 책장 고르기
 if total_sentences > 0:
     st.write("📚 **이동할 책장 선택**")
     selected_page_str = st.radio("책장 선택", page_options, label_visibility="collapsed", horizontal=True, key="page_radio_scroll")
@@ -364,6 +363,7 @@ else:
 if is_priority_mode:
     display_records = sorted(display_records, key=lambda x: x['energy'])
 
+# 책장별 연속 재생 시작 버튼 (3D 입체 반영)
 if display_records:
     if st.button(f"🎧 선택된 {selected_page_str} 문장 연속 재생 시작", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
         with st.spinner("⚡ 음성 결합 중..."):
@@ -411,7 +411,7 @@ for item in display_records:
     row_idx = item['original_row']
     energy_val = item['energy']
     
-    col1, col2 = st.columns([8.2, 1.8]) # 모바일 터치 영역 비율 재조정
+    col1, col2 = st.columns([8.5, 1.5])
     
     with col1:
         state_key = f"show_{real_sheet_name}_{orig_idx}"
