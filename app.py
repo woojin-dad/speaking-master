@@ -14,13 +14,25 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 💡 모바일 스크린 확대 허용 메타 태그 유지
+# 💡 [자동완성 원천 차단 메타 태그 추가]
+# 스마트폰 브라우저가 오지랖 부리지 못하도록 웹페이지 전체의 자동완성(Auto-fill) 기능을 강제로 꺼버립니다.
 st.markdown("""
     <script>
         var meta = document.createElement('meta');
         meta.name = 'viewport';
         meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
         document.getElementsByTagName('head')[0].appendChild(meta);
+        
+        // 브라우저의 자동 채우기 방해용 글로벌 스크립트
+        document.addEventListener('DOMContentLoaded', function() {
+            var inputs = document.querySelectorAll('input, select');
+            inputs.forEach(function(input) {
+                input.setAttribute('autocomplete', 'new-password');
+                input.setAttribute('autocorrect', 'off');
+                input.setAttribute('autocapitalize', 'off');
+                input.setAttribute('spellcheck', 'false');
+            });
+        });
     </script>
 """, unsafe_allow_html=True)
 
@@ -53,9 +65,21 @@ is_priority_mode = "우선순위" in selected_menu
 # 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더 (최대 40px)
 font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=40, value=26, step=1)
 
-# 🔥 [레이아웃 최적화 CSS] 
+# 🔥 [레이아웃 최적화 CSS] - 자동완성 방해 레이아웃 추가
 st.markdown(f"""
     <style>
+    /* 브라우저가 강제로 집어넣는 노란색/하늘색 자동완성 배경색 제거 */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover, 
+    input:-webkit-autofill:focus,
+    select:-webkit-autofill,
+    select:-webkit-autofill:hover,
+    select:-webkit-autofill:focus {{
+        -webkit-text-fill-color: #2c3e50 !important;
+        -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
+        transition: background-color 5000s ease-in-out 0s !important;
+    }}
+
     .block-container {{ 
         max-width: 100% !important;
         padding-top: 0.5rem !important; 
@@ -219,10 +243,9 @@ if user_data_key not in st.session_state:
 records = st.session_state[user_data_key]
 sheet = st.session_state[user_sheet_key]
 
-# 🛡️ [방탄 복구 로직] 칸이 합쳐져 있거나 제목이 없어도 에러 없이 패스하는 안전장치
+# 전체 데이터 가공
 all_display_records = []
 for idx, r in enumerate(records):
-    # 'id', 'kr', 'en' 방이 없으면 에러 내지 말고 조용히 패스!
     if 'id' not in r or 'kr' not in r or 'en' not in r:
         continue
         
