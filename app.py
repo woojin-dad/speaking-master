@@ -14,12 +14,12 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 💡 모바일 스크린 확대 허용 메타 태그
+# 💡 모바일 스크린 전체 화면의 좌우 흔들림(화면 이탈)을 브라우저 엔진 레벨에서 잠급니다.
 st.markdown("""
     <script>
         var meta = document.createElement('meta');
         meta.name = 'viewport';
-        meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
+        meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no';
         document.getElementsByTagName('head')[0].appendChild(meta);
     </script>
 """, unsafe_allow_html=True)
@@ -51,15 +51,22 @@ if "selected_menu" not in st.session_state:
 title_text = f"👑 {st.session_state['selected_menu']}의 스피킹 마스터 👑"
 font_size = st.session_state.get("dynamic_font_size", 26)
 
-# 🔥 [레이아웃 및 무한 가로 스크롤 탭 디자인 CSS]
+# 🔥 [레이아웃 및 무한 가로 스크롤 탭 디자인 + 철벽 전체 가로 잠금 CSS]
 st.markdown(f"""
     <style>
+    /* 🚨 [화면 흔들림 박멸] 전체 앱의 좌우 덜렁거림과 흰색 여백 이탈 현상 원천 봉쇄 */
+    html, body, [data-testid="stAppViewContainer"], .stApp {{
+        max-width: 100vw !important;
+        overflow-x: hidden !important; 
+        position: relative !important;
+    }}
+
     .block-container {{
         max-width: 100% !important;
         padding-top: 0.2rem !important;  
         padding-bottom: 1rem !important;
         padding-left: 10px !important;
-        padding-right: 0px !important;
+        padding-right: 10px !important; /* 좌우 흔들림 제어용 여백 정밀 밸런스 */
     }}
 
     div[data-testid="stHorizontalBlock"] {{
@@ -98,20 +105,20 @@ st.markdown(f"""
         .custom-title {{ font-size: 28px !important; }}
     }}
 
-    /* 🚀 [핵심: 탭이 아무리 많아져도 일렬로 슥슥 미는 무한 스크롤 컨테이너 전용 스타일] */
+    /* 🚀 [핵심: 메뉴 자체 박스 안에서만 부드럽게 가로 스크롤 허용] */
     div[data-testid="stRadio"] > div {{
         display: flex !important;
         flex-direction: row !important;
-        flex-wrap: nowrap !important; /* 절대 아래로 줄바꿈 금지 */
-        overflow-x: auto !important;  /* 가로 스크롤 활성화 */
+        flex-wrap: nowrap !important; 
+        overflow-x: auto !important;  /* 라디오 메뉴판 내부만 스크롤 가능 */
         overflow-y: hidden !important;
         padding: 8px 5px !important;
         gap: 8px !important;
         scroll-behavior: smooth !important;
-        -webkit-overflow-scrolling: touch !important; /* 모바일 부드러운 스크롤 */
+        -webkit-overflow-scrolling: touch !important; 
+        max-width: 100% !important;
     }}
    
-    /* 가로 스크롤바를 조금 더 깔끔하고 슬림하게 디자인 */
     div[data-testid="stRadio"] > div::-webkit-scrollbar {{
         height: 4px !important;
     }}
@@ -120,19 +127,17 @@ st.markdown(f"""
         border-radius: 10px !important;
     }}
 
-    /* 각 라디오 버튼 항목들을 이쁜 탭 버튼 모양으로 튜닝 */
     div[data-testid="stRadio"] label {{
         background-color: #f1f5f9 !important;
         padding: 6px 14px !important;
         border-radius: 20px !important;
         border: 1px solid #e2e8f0 !important;
-        white-space: nowrap !important; /* 버튼 글자 줄바꿈 방지 */
+        white-space: nowrap !important; 
         display: inline-flex !important;
         align-items: center !important;
         cursor: pointer !important;
     }}
    
-    /* 선택된 현재 탭 버튼 하이라이트 효과 */
     div[data-testid="stRadio"] label[data-checked="true"] {{
         background-color: #3b82f6 !important;
         border-color: #3b82f6 !important;
@@ -142,37 +147,55 @@ st.markdown(f"""
         font-weight: bold !important;
     }}
 
-    /* 📻 통합 1. 최상단 전체 무한 라디오 버튼 전용 CSS */
-    div.stButton > button[key^="total_relay_btn_"] {{
-        background-color: #f0fdf4 !important;
-        border: 2px solid #2ecc71 !important;
-        border-radius: 12px !important;
+    /* =======================================================
+       🎯 대형 재생 버튼 2개 초강력 3D 입체감 및 색감 주입 수식
+       ======================================================= */
+
+    /* 🟢 1. 📻 무한 반복 스피킹 라디오 버튼 (초록 블록 고정) */
+    div.stButton > button[key*="total_relay_btn_"] {{
+        background-color: #22c55e !important;
+        background: #22c55e !important;
+        border: none !important;
+        border-radius: 14px !important;
         padding: 14px 15px !important;
         width: 100% !important;
-        text-align: center !important;
+        box-shadow: 0 5px 0px #15803d !important; /* 아래쪽 3D 입체 받침대 */
+        transition: transform 0.05s, box-shadow 0.05s !important;
     }}
-    div.stButton > button[key^="total_relay_btn_"] p,
-    div.stButton > button[key^="total_relay_btn_"] * {{
-        color: #15803d !important;
+    div.stButton > button[key*="total_relay_btn_"]:active {{
+        transform: translateY(3px) !important; /* 누르면 쫀득하게 아래로 내려앉음 */
+        box-shadow: 0 1px 0px #15803d !important;
+    }}
+    div.stButton > button[key*="total_relay_btn_"] p,
+    div.stButton > button[key*="total_relay_btn_"] span,
+    div.stButton > button[key*="total_relay_btn_"] * {{
+        color: #ffffff !important; /* 글씨 무조건 흰색 고정 */
         font-size: 18px !important;
-        font-weight: bold !important;
+        font-weight: 900 !important;
     }}
 
-    /* 🎧 통합 2. 중단 책장별 연속 재생 버튼 전용 CSS */
-    div.stButton > button[key^="page_relay_btn_"] {{
-        background-color: #f0f9ff !important;
-        border: 2px solid #3b82f6 !important;
-        border-radius: 12px !important;
+    /* 🔵 2. 🎧 선택된 책장 문장 연속 재생 시작 버튼 (파란 블록 고정) */
+    div.stButton > button[key*="page_relay_btn_"] {{
+        background-color: #3b82f6 !important;
+        background: #3b82f6 !important;
+        border: none !important;
+        border-radius: 14px !important;
         padding: 12px 14px !important;
         width: 100% !important;
-        text-align: center !important;
         margin-top: 5px !important;
+        box-shadow: 0 5px 0px #1d4ed8 !important; /* 아래쪽 3D 입체 받침대 */
+        transition: transform 0.05s, box-shadow 0.05s !important;
     }}
-    div.stButton > button[key^="page_relay_btn_"] p,
-    div.stButton > button[key^="page_relay_btn_"] * {{
-        color: #1d4ed8 !important;
+    div.stButton > button[key*="page_relay_btn_"]:active {{
+        transform: translateY(3px) !important; /* 누르면 쫀득하게 아래로 내려앉음 */
+        box-shadow: 0 1px 0px #1d4ed8 !important;
+    }}
+    div.stButton > button[key*="page_relay_btn_"] p,
+    div.stButton > button[key*="page_relay_btn_"] span,
+    div.stButton > button[key*="page_relay_btn_"] * {{
+        color: #ffffff !important; /* 글씨 무조건 흰색 고정 */
         font-size: 17px !important;
-        font-weight: bold !important;
+        font-weight: 900 !important;
     }}
    
     /* 🔤 본문 영어/한국어 문장 버튼 스타일 */
@@ -278,14 +301,14 @@ all_display_records = []
 for idx, r in enumerate(records):
     if 'id' not in r or 'kr' not in r or 'en' not in r:
         continue
-       
+        
     try:
         e_val = int(r.get('energy', 0))
         if e_val > 3: e_val = 3
         elif e_val < 0: e_val = 0
     except:
         e_val = 0
-       
+        
     all_display_records.append({
         'original_index': idx,
         'original_row': idx + 2,
@@ -322,10 +345,10 @@ if total_sentences > 0:
                         part_fp.seek(0)
                         relay_audio.write(part_fp.read())
                         relay_audio.write(b'\x00' * 2500)
-               
+                
                 relay_audio.seek(0)
                 audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
-               
+                
                 audio_html = f"""
                     <audio id="total-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%; margin-top: 10px;"></audio>
                     <script>
@@ -363,7 +386,7 @@ if display_records:
                         part_fp.seek(0)
                         page_audio.write(part_fp.read())
                         page_audio.write(b'\x00' * 2000)
-               
+                
                 page_audio.seek(0)
                 page_base64 = base64.b64encode(page_audio.read()).decode('utf-8')
                 page_audio_html = f"""
@@ -396,22 +419,22 @@ for item in display_records:
     orig_idx = item['original_index']
     row_idx = item['original_row']
     energy_val = item['energy']
-   
+    
     col1, col2 = st.columns([8.5, 1.5])
-   
+    
     with col1:
         state_key = f"show_{real_sheet_name}_{orig_idx}"
         if state_key not in st.session_state:
             st.session_state[state_key] = False
-           
+            
         is_english = st.session_state[state_key]
         text_content = item['en'] if is_english else item['kr']
         btn_label = f"{item['id']}. {text_content}"
-       
+        
         if st.button(btn_label, key=f"sentence_{real_sheet_name}_{orig_idx}"):
             st.session_state[state_key] = not st.session_state[state_key]
             st.rerun()
-           
+            
     with col2:
         if is_english:
             if st.button("🔊", key=f"audio_{real_sheet_name}_{orig_idx}", help="audio-btn"):
@@ -429,16 +452,16 @@ for item in display_records:
                 color_block_text = "🟨\n🟨"
             else:
                 color_block_text = "🟩"
-           
+            
             if st.button(color_block_text, key=f"bar_touch_{real_sheet_name}_{orig_idx}"):
                 new_energy = energy_val + 1 if energy_val < 3 else 0
                 st.session_state[user_data_key][orig_idx]['energy'] = new_energy
-               
+                
                 threading.Thread(
-                    target=save_to_google_sheet,
-                    args=(sheet, row_idx, 4, new_energy),
+                    target=save_to_google_sheet, 
+                    args=(sheet, row_idx, 4, new_energy), 
                     daemon=True
                 ).start()
-               
+                
                 st.rerun()
     st.write("---")
