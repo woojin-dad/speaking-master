@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 💡 모바일 스크린 확대 허용 및 자동완성 차단 메타 태그
+# 💡 모바일 스크린 확대 허용 메타 태그
 st.markdown("""
     <script>
         var meta = document.createElement('meta');
@@ -39,20 +39,19 @@ try:
 except Exception as e:
     all_sheet_names = ["동탕"]
 
-# 👥 메뉴 자동 동적 리스트업 생성 (사전 준비)
+# 👥 메뉴 자동 동적 리스트업 생성
 menu_options = []
 for name in all_sheet_names:
     menu_options.append(name)
     menu_options.append(f"{name} (우선순위)")
 
-# 🚨 [아이폰 사파리 구원 로직] 셀렉트 박스를 없애고 세션 상태로 메뉴 제어
 if "selected_menu" not in st.session_state:
     st.session_state["selected_menu"] = menu_options[0]
 
 title_text = f"👑 {st.session_state['selected_menu']}의 스피킹 마스터 👑"
 font_size = st.session_state.get("dynamic_font_size", 26)
 
-# 🔥 [레이아웃 및 타이틀 CSS]
+# 🔥 [레이아웃 및 무한 가로 스크롤 탭 디자인 CSS]
 st.markdown(f"""
     <style>
     .block-container {{ 
@@ -76,7 +75,7 @@ st.markdown(f"""
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) {{ flex: 8.5 1 0% !important; min-width: 0 !important; }}
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) {{ flex: 1.5 1 0% !important; min-width: 0 !important; }}
    
-    /* 👑 [최상단 완벽 밀착 유연 타이틀 디자인] */
+    /* 👑 최상단 완벽 밀착 유연 타이틀 */
     .custom-title-container {{
         width: 100% !important;
         text-align: center !important;
@@ -97,6 +96,50 @@ st.markdown(f"""
     }}
     @media (min-width: 600px) {{
         .custom-title {{ font-size: 28px !important; }}
+    }}
+
+    /* 🚀 [핵심: 탭이 아무리 많아져도 일렬로 슥슥 미는 무한 스크롤 컨테이너 전용 스타일] */
+    div[data-testid="stRadio"] > div {{
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important; /* 절대 아래로 줄바꿈 금지 */
+        overflow-x: auto !important;  /* 가로 스크롤 활성화 */
+        overflow-y: hidden !important;
+        padding: 8px 5px !important;
+        gap: 8px !important;
+        scroll-behavior: smooth !important;
+        -webkit-overflow-scrolling: touch !important; /* 모바일 부드러운 스크롤 */
+    }}
+    
+    /* 가로 스크롤바를 조금 더 깔끔하고 슬림하게 디자인 */
+    div[data-testid="stRadio"] > div::-webkit-scrollbar {{
+        height: 4px !important;
+    }}
+    div[data-testid="stRadio"] > div::-webkit-scrollbar-thumb {{
+        background: #cbd5e1 !important;
+        border-radius: 10px !important;
+    }}
+
+    /* 각 라디오 버튼 항목들을 이쁜 탭 버튼 모양으로 튜닝 */
+    div[data-testid="stRadio"] label {{
+        background-color: #f1f5f9 !important;
+        padding: 6px 14px !important;
+        border-radius: 20px !important;
+        border: 1px solid #e2e8f0 !important;
+        white-space: nowrap !important; /* 버튼 글자 줄바꿈 방지 */
+        display: inline-flex !important;
+        align-items: center !important;
+        cursor: pointer !important;
+    }}
+    
+    /* 선택된 현재 탭 버튼 하이라이트 효과 */
+    div[data-testid="stRadio"] label[data-checked="true"] {{
+        background-color: #3b82f6 !important;
+        border-color: #3b82f6 !important;
+    }}
+    div[data-testid="stRadio"] label[data-checked="true"] p {{
+        color: #ffffff !important;
+        font-weight: bold !important;
     }}
 
     /* 📻 통합 1. 최상단 전체 무한 라디오 버튼 전용 CSS */
@@ -200,7 +243,7 @@ st.markdown(f"""
 # 🥇 1층: 메인 타이틀
 st.markdown(f"<div class='custom-title-container'><div class='custom-title'>{title_text}</div></div>", unsafe_allow_html=True)
 
-# 🥈 2층: [사파리 방어 조치] 셀렉트 박스 대신 터치식 가로 라디오 버튼으로 교체!
+# 🥈 2층: [무한 가로 스크롤 메뉴바] 탭이 100개가 되어도 한 줄로 정렬되며 옆으로 밀어 고르는 방식
 st.write("👤 **학습 모드 선택**")
 selected_menu = st.radio("학습 모드", menu_options, index=menu_options.index(st.session_state["selected_menu"]), label_visibility="collapsed", horizontal=True)
 
@@ -231,7 +274,6 @@ if user_data_key not in st.session_state:
 records = st.session_state[user_data_key]
 sheet = st.session_state[user_sheet_key]
 
-# 전체 데이터 가공
 all_display_records = []
 for idx, r in enumerate(records):
     if 'id' not in r or 'kr' not in r or 'en' not in r:
@@ -294,10 +336,10 @@ if total_sentences > 0:
             except:
                 st.error("라디오 컴파일 실패")
 
-# 🏾 4층: [사파리 방어 조치] 책장 고르기도 셀렉트 박스 제거 후 라디오 버튼으로 교체!
+# 🏾 4층: [무한 가로 스크롤 메뉴바] 책장 고르기도 동일하게 스크롤 팩 적용
 if total_sentences > 0:
     st.write("📚 **이동할 책장 선택**")
-    selected_page_str = st.radio("책장 선택", page_options, label_visibility="collapsed", horizontal=True)
+    selected_page_str = st.radio("책장 선택", page_options, label_visibility="collapsed", horizontal=True, key="page_radio_scroll")
     page_idx = page_options.index(selected_page_str)
     start_idx = page_idx * page_size
     end_idx = start_idx + page_size
@@ -341,6 +383,13 @@ if new_font_size != font_size:
     st.rerun()
 
 st.write("---")
+
+def save_to_google_sheet(sheet_obj, row, col, val):
+    if sheet_obj:
+        try:
+            sheet_obj.update_cell(row, col, str(val))
+        except:
+            pass
 
 # 3. 문장 리스트 출력
 for item in display_records:
