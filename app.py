@@ -14,13 +14,41 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 💡 모바일 스크린 전체 화면의 좌우 흔들림(화면 이탈)을 브라우저 엔진 레벨에서 잠급니다.
+# 💡 [아이폰 사파리 전용 가로 흔들림 차단 메커니즘]
+# 화면 전체를 잡고 좌우로 비틀 때 발생하는 사파리 브라우저의 기본 가로 스크롤 동작을 물리적으로 차단합니다.
 st.markdown("""
     <script>
         var meta = document.createElement('meta');
         meta.name = 'viewport';
         meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no';
         document.getElementsByTagName('head')[0].appendChild(meta);
+
+        // 본문 및 여백 터치 시 가로 스크롤을 브라우저 단에서 억제하는 스크립트
+        window.addEventListener('touchstart', function(e) {
+            window.touchStartX = e.changedTouches[0].pageX;
+            window.touchStartY = e.changedTouches[0].pageY;
+        }, {passive: true});
+
+        window.addEventListener('touchmove', function(e) {
+            var dX = e.changedTouches[0].pageX - window.touchStartX;
+            var dY = e.changedTouches[0].pageY - window.touchStartY;
+            
+            // 메뉴바나 책장선택(stRadio) 영역 내부가 아닐 때, 좌우 이동 성분이 크면 사파리의 전체 화면 흔들기를 무력화
+            if (Math.abs(dX) > Math.abs(dY)) {
+                var target = e.target;
+                var isScrollArea = false;
+                while (target && target !== document.body) {
+                    if (target.getAttribute('data-testid') === 'stRadio' || target.scrollWidth > target.clientWidth) {
+                        isScrollArea = true;
+                        break;
+                    }
+                    target = target.parentNode;
+                }
+                if (!isScrollArea) {
+                    e.preventDefault();
+                }
+            }
+        }, {passive: false});
     </script>
 """, unsafe_allow_html=True)
 
@@ -51,10 +79,10 @@ if "selected_menu" not in st.session_state:
 title_text = f"👑 {st.session_state['selected_menu']}의 스피킹 마스터 👑"
 font_size = st.session_state.get("dynamic_font_size", 26)
 
-# 🔥 [레이아웃 및 무한 가로 스크롤 탭 디자인 + 철벽 전체 가로 잠금 CSS]
+# 🔥 [레이아웃 및 무한 가로 스크롤 탭 디자인 CSS - 원본 복구판]
 st.markdown(f"""
     <style>
-    /* 🚨 [화면 흔들림 박멸] 전체 앱의 좌우 덜렁거림과 흰색 여백 이탈 현상 원천 봉쇄 */
+    /* 🚨 앱 전체 가로 스크롤 타이트하게 봉쇄 */
     html, body, [data-testid="stAppViewContainer"], .stApp {{
         max-width: 100vw !important;
         overflow-x: hidden !important; 
@@ -66,7 +94,7 @@ st.markdown(f"""
         padding-top: 0.2rem !important;  
         padding-bottom: 1rem !important;
         padding-left: 10px !important;
-        padding-right: 10px !important; /* 좌우 흔들림 제어용 여백 정밀 밸런스 */
+        padding-right: 10px !important;
     }}
 
     div[data-testid="stHorizontalBlock"] {{
@@ -105,12 +133,12 @@ st.markdown(f"""
         .custom-title {{ font-size: 28px !important; }}
     }}
 
-    /* 🚀 [핵심: 메뉴 자체 박스 안에서만 부드럽게 가로 스크롤 허용] */
+    /* 🚀 [가로 메뉴판 스크롤 박스 구현] */
     div[data-testid="stRadio"] > div {{
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important; 
-        overflow-x: auto !important;  /* 라디오 메뉴판 내부만 스크롤 가능 */
+        overflow-x: auto !important;  
         overflow-y: hidden !important;
         padding: 8px 5px !important;
         gap: 8px !important;
@@ -147,55 +175,37 @@ st.markdown(f"""
         font-weight: bold !important;
     }}
 
-    /* =======================================================
-       🎯 대형 재생 버튼 2개 초강력 3D 입체감 및 색감 주입 수식
-       ======================================================= */
-
-    /* 🟢 1. 📻 무한 반복 스피킹 라디오 버튼 (초록 블록 고정) */
-    div.stButton > button[key*="total_relay_btn_"] {{
-        background-color: #22c55e !important;
-        background: #22c55e !important;
-        border: none !important;
-        border-radius: 14px !important;
+    /* 📻 통합 1. 최상단 전체 무한 라디오 버튼 원본 복구 */
+    div.stButton > button[key^="total_relay_btn_"] {{
+        background-color: #f0fdf4 !important;
+        border: 2px solid #2ecc71 !important;
+        border-radius: 12px !important;
         padding: 14px 15px !important;
         width: 100% !important;
-        box-shadow: 0 5px 0px #15803d !important; /* 아래쪽 3D 입체 받침대 */
-        transition: transform 0.05s, box-shadow 0.05s !important;
+        text-align: center !important;
     }}
-    div.stButton > button[key*="total_relay_btn_"]:active {{
-        transform: translateY(3px) !important; /* 누르면 쫀득하게 아래로 내려앉음 */
-        box-shadow: 0 1px 0px #15803d !important;
-    }}
-    div.stButton > button[key*="total_relay_btn_"] p,
-    div.stButton > button[key*="total_relay_btn_"] span,
-    div.stButton > button[key*="total_relay_btn_"] * {{
-        color: #ffffff !important; /* 글씨 무조건 흰색 고정 */
+    div.stButton > button[key^="total_relay_btn_"] p,
+    div.stButton > button[key^="total_relay_btn_"] * {{
+        color: #15803d !important;
         font-size: 18px !important;
-        font-weight: 900 !important;
+        font-weight: bold !important;
     }}
 
-    /* 🔵 2. 🎧 선택된 책장 문장 연속 재생 시작 버튼 (파란 블록 고정) */
-    div.stButton > button[key*="page_relay_btn_"] {{
-        background-color: #3b82f6 !important;
-        background: #3b82f6 !important;
-        border: none !important;
-        border-radius: 14px !important;
+    /* 🎧 통합 2. 중단 책장별 연속 재생 버튼 원본 복구 */
+    div.stButton > button[key^="page_relay_btn_"] {{
+        background-color: #f0f9ff !important;
+        border: 2px solid #3b82f6 !important;
+        border-radius: 12px !important;
         padding: 12px 14px !important;
         width: 100% !important;
+        text-align: center !important;
         margin-top: 5px !important;
-        box-shadow: 0 5px 0px #1d4ed8 !important; /* 아래쪽 3D 입체 받침대 */
-        transition: transform 0.05s, box-shadow 0.05s !important;
     }}
-    div.stButton > button[key*="page_relay_btn_"]:active {{
-        transform: translateY(3px) !important; /* 누르면 쫀득하게 아래로 내려앉음 */
-        box-shadow: 0 1px 0px #1d4ed8 !important;
-    }}
-    div.stButton > button[key*="page_relay_btn_"] p,
-    div.stButton > button[key*="page_relay_btn_"] span,
-    div.stButton > button[key*="page_relay_btn_"] * {{
-        color: #ffffff !important; /* 글씨 무조건 흰색 고정 */
+    div.stButton > button[key^="page_relay_btn_"] p,
+    div.stButton > button[key^="page_relay_btn_"] * {{
+        color: #1d4ed8 !important;
         font-size: 17px !important;
-        font-weight: 900 !important;
+        font-weight: bold !important;
     }}
    
     /* 🔤 본문 영어/한국어 문장 버튼 스타일 */
@@ -266,7 +276,7 @@ st.markdown(f"""
 # 🥇 1층: 메인 타이틀
 st.markdown(f"<div class='custom-title-container'><div class='custom-title'>{title_text}</div></div>", unsafe_allow_html=True)
 
-# 🥈 2층: [무한 가로 스크롤 메뉴바] 탭이 100개가 되어도 한 줄로 정렬되며 옆으로 밀어 고르는 방식
+# 🥈 2층: [무한 가로 스크롤 메뉴바]
 st.write("👤 **학습 모드 선택**")
 selected_menu = st.radio("학습 모드", menu_options, index=menu_options.index(st.session_state["selected_menu"]), label_visibility="collapsed", horizontal=True)
 
@@ -359,7 +369,7 @@ if total_sentences > 0:
             except:
                 st.error("라디오 컴파일 실패")
 
-# 🏾 4층: [무한 가로 스크롤 메뉴바] 책장 고르기도 동일하게 스크롤 팩 적용
+# 🏾 4층: 책장 고르기 가로 스크롤 메뉴바
 if total_sentences > 0:
     st.write("📚 **이동할 책장 선택**")
     selected_page_str = st.radio("책장 선택", page_options, label_visibility="collapsed", horizontal=True, key="page_radio_scroll")
