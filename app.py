@@ -32,16 +32,14 @@ def init_gspread():
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     return gspread.authorize(creds)
 
-# 🚀 [자동화 핵심] 구글 시트 파일 안에 있는 모든 탭 이름을 실시간으로 긁어오기
 try:
     client = init_gspread()
     spreadsheet = client.open("SpeakingMaster")
-    # 파일 내 모든 worksheet(탭)의 이름만 리스트로 추출
     all_sheet_names = [ws.title for ws in spreadsheet.worksheets()]
 except Exception as e:
-    all_sheet_names = ["동탕", "우진"]  # 만약 에러 나면 기본값으로 방어
+    all_sheet_names = ["동탕", "우진"]
 
-# 👥 메뉴 자동 동적 생성 (동탕님이 시트에 생성한 탭 목록 기반)
+# 👥 메뉴 자동 동적 생성
 menu_options = []
 for name in all_sheet_names:
     menu_options.append(name)
@@ -49,7 +47,6 @@ for name in all_sheet_names:
 
 selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options)
 
-# 선택한 메뉴에서 진짜 탭 이름만 발라내기
 real_sheet_name = selected_menu.replace(" (우선순위)", "")
 is_priority_mode = "우선순위" in selected_menu
 
@@ -205,7 +202,6 @@ if "last_menu" not in st.session_state:
 if st.session_state["last_menu"] != selected_menu:
     st.session_state["last_menu"] = selected_menu
 
-# 워크시트 객체 바인딩
 try:
     st.session_state[user_sheet_key] = spreadsheet.worksheet(real_sheet_name)
 except:
@@ -223,11 +219,15 @@ if user_data_key not in st.session_state:
 records = st.session_state[user_data_key]
 sheet = st.session_state[user_sheet_key]
 
-# 전체 데이터 가공
+# 🛡️ [방탄 복구 로직] 칸이 합쳐져 있거나 제목이 없어도 에러 없이 패스하는 안전장치
 all_display_records = []
 for idx, r in enumerate(records):
+    # 'id', 'kr', 'en' 방이 없으면 에러 내지 말고 조용히 패스!
+    if 'id' not in r or 'kr' not in r or 'en' not in r:
+        continue
+        
     try:
-        e_val = int(r['energy'])
+        e_val = int(r.get('energy', 0))
         if e_val > 3: e_val = 3
         elif e_val < 0: e_val = 0
     except:
@@ -255,7 +255,7 @@ if total_sentences > 0:
 else:
     page_options = []
 
-# 🚀 [대통합 1] 초록색 텍스트 상자 없이 버튼 문구 자체를 합체!
+# 🚀 전체 재생 무한 라디오
 if total_sentences > 0:
     if st.button(f"📻 🔁 {real_sheet_name} 무한 반복 스피킹 라디오 (전체 재생 시작)", key=f"total_relay_btn_{real_sheet_name}"):
         with st.spinner("⚡ 전체 음성을 하나로 합치는 중입니다..."):
@@ -282,7 +282,7 @@ if total_sentences > 0:
                     </script>
                 """
                 st.markdown(audio_html, unsafe_allow_html=True)
-                st.success(f"🎶 {real_sheet_name} 탭의 마지막 번호까지 무한 반복하는 진짜 라디오가 시작되었습니다!")
+                st.success("🎶 무한 반복 라디오가 시작되었습니다!")
             except Exception as e:
                 st.error("라디오 플레이어 컴파일 실패")
 
@@ -303,7 +303,7 @@ else:
 if is_priority_mode:
     display_records = sorted(display_records, key=lambda x: x['energy'])
 
-# 🚀 [대통합 2] 파란색 텍스트 상자를 없애고 버튼 문구 자체를 합체!
+# 🚀 책장 연속 재생
 if display_records:
     if st.button(f"🎧 선택된 {selected_page_str} 문장만 즉시 연속 재생 시작", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
         with st.spinner("⚡ 현재 책장 100개 음성 결합 중..."):
@@ -340,6 +340,9 @@ def save_to_google_sheet(sheet_obj, row, col, val):
             pass
 
 # 3. 화면에 선택된 책장의 문장 리스트 출력
+if total_sentences == 0:
+    st.info("💡 현재 선택한 탭이 비어있거나, 1번 행 제목(id, kr, en, energy) 칸 배치가 올바르지 않습니다. 구글 시트를 확인해 주세요!")
+
 for item in display_records:
     orig_idx = item['original_index']
     row_idx = item['original_row']
