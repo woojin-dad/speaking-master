@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 💡 모바일 스크린 확대 허용 메타 태그 (원본 유지)
+# 💡 모바일 스크린 확대 허용 메타 태그 유지
 st.markdown("""
     <script>
         var meta = document.createElement('meta');
@@ -24,51 +24,29 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 2. 구글 시트 연동 및 실시간 탭 목록 마스터 로직
-@st.cache_resource
-def init_gspread():
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds_dict = json.loads(st.secrets["gcp_service_account"])
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-    return gspread.authorize(creds)
+# 👥 메뉴 설정 (슬라이더 레이아웃을 위해 상단 배치)
+menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
+selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options)
 
-try:
-    client = init_gspread()
-    spreadsheet = client.open("SpeakingMaster")
-    all_sheet_names = [ws.title for ws in spreadsheet.worksheets()]
-except Exception as e:
-    all_sheet_names = ["동탕"]
+if "동탕" in selected_menu:
+    real_sheet_name = "동탕"
+else:
+    real_sheet_name = "우진"
 
-# 👥 메뉴 자동 동적 리스트업 생성
-menu_options = []
-for name in all_sheet_names:
-    menu_options.append(name)
-    menu_options.append(f"{name} (우선순위)")
+is_priority_mode = "우선순위" in selected_menu
 
-# 🚨 [자물쇠 핵심 1] 최초 실행 시 세션 기본값 세팅
-if "selected_menu_drop" not in st.session_state:
-    st.session_state["selected_menu_drop"] = menu_options[0]
+# 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더 (기본값 26px 세팅)
+font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1)
 
-# 현재 활성화된 메뉴 명칭 정의
-current_active_menu = st.session_state["selected_menu_drop"]
-
-title_text = f"👑 {current_active_menu}의 스피킹 마스터 👑"
-font_size = st.session_state.get("dynamic_font_size", 26)
-
-# 🔥 [레이아웃 및 원본 스타일 CSS]
+# 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
 st.markdown(f"""
     <style>
-    html, body, [data-testid="stAppViewContainer"], .stApp {{
-        max-width: 100vw !important;
-        overflow-x: hidden !important;
-    }}
-
     .block-container {{
         max-width: 100% !important;
-        padding-top: 0.2rem !important;  
+        padding-top: 0.5rem !important;
         padding-bottom: 1rem !important;
         padding-left: 10px !important;
-        padding-right: 10px !important;
+        padding-right: 0px !important;
     }}
 
     div[data-testid="stHorizontalBlock"] {{
@@ -84,59 +62,37 @@ st.markdown(f"""
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) {{ flex: 8.5 1 0% !important; min-width: 0 !important; }}
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) {{ flex: 1.5 1 0% !important; min-width: 0 !important; }}
    
-    .custom-title-container {{
-        width: 100% !important;
-        text-align: center !important;
-        margin-top: 0px !important;
-        margin-bottom: 5px !important;
-        padding: 6px 0px !important;
-        background-color: #f8fafc !important;
-        border-radius: 10px !important;
-        container-type: inline-size !important;
-        overflow: hidden !important;
-    }}
     .custom-title {{
-        font-size: calc(98vw / ({len(title_text)} * 0.85)) !important;
+        font-size: 26px !important;
         font-weight: bold !important;
         color: #2c3e50 !important;
-        white-space: nowrap !important;
-        display: inline-block !important;
-    }}
-    @media (min-width: 600px) {{
-        .custom-title {{ font-size: 28px !important; }}
+        text-align: center !important;
+        padding-top: 5px;
+        margin-top: 10px !important;
     }}
 
-    div.stButton > button[key^="total_relay_btn_"] {{
+    /* 📻 1. 최상단 무한 반복 라디오 박스 디자인 (초록색 테두리) */
+    .total-relay-box {{
         background-color: #f0fdf4 !important;
-        border: 2px solid #2ecc71 !important;
+        padding: 12px 15px !important;
         border-radius: 12px !important;
-        padding: 14px 15px !important;
-        width: 100% !important;
+        border: 2px solid #2ecc71 !important;
         text-align: center !important;
-    }}
-    div.stButton > button[key^="total_relay_btn_"] p,
-    div.stButton > button[key^="total_relay_btn_"] * {{
-        color: #15803d !important;
-        font-size: 18px !important;
-        font-weight: bold !important;
+        margin-bottom: 15px !important;
     }}
 
-    div.stButton > button[key^="page_relay_btn_"] {{
+    /* 🎧 2. 중단 책장별 연속 듣기 박스 디자인 (파란색 테두리) */
+    .page-relay-box {{
         background-color: #f0f9ff !important;
-        border: 2px solid #3b82f6 !important;
-        border-radius: 12px !important;
-        padding: 12px 14px !important;
-        width: 100% !important;
+        padding: 10px 14px !important;
+        border-radius: 10px !important;
+        border: 1px solid #3b82f6 !important;
         text-align: center !important;
-        margin-top: 5px !important;
-    }}
-    div.stButton > button[key^="page_relay_btn_"] p,
-    div.stButton > button[key^="page_relay_btn_"] * {{
-        color: #1d4ed8 !important;
-        font-size: 17px !important;
-        font-weight: bold !important;
+        margin-top: 8px !important;
+        margin-bottom: 5px !important;
     }}
    
+    /* 🔤 슬라이더 조절에 따라 실시간으로 변하는 문장 버튼 크기 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {{
         width: 100% !important;
         text-align: left !important;
@@ -150,7 +106,7 @@ st.markdown(f"""
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button div,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button span,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button * {{
-        font-size: {font_size}px !important;
+        font-size: {font_size}px !important;   /* 👈 슬라이더 값이 실시간 주입됩니다! */
         font-weight: 900 !important;
         color: #ffffff !important;
         line-height: 1.2 !important;
@@ -184,6 +140,9 @@ st.markdown(f"""
         font-size: 16px !important;
         white-space: pre-line !important;
         line-height: 1.0 !important;
+        text-align: center !important;
+        padding: 0px !important;
+        margin: 0px !important;
     }}
    
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[help="audio-btn"] * {{
@@ -201,28 +160,29 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# 🥇 1층: 메인 타이틀
-st.markdown(f"<div class='custom-title-container'><div class='custom-title'>{title_text}</div></div>", unsafe_allow_html=True)
-
-# 🥈 2층: [학습 모드 선택 드롭박스]
-# 🚨 [자물쇠 핵심 2] key="selected_menu_drop"을 부여하여, 세션 상태를 스트림릿 엔진 내부 저장소에 완전히 박제합니다.
-# 이렇게 하면 문장을 터치하여 스크립트가 리런되어도 동탕(우선순위) 모드가 절대 풀리지 않습니다.
-selected_menu = st.selectbox(
-    "👤 학습 모드 선택",
-    menu_options,
-    key="selected_menu_drop"
-)
-
-real_sheet_name = current_active_menu.replace(" (우선순위)", "")
-is_priority_mode = "우선순위" in current_active_menu
+# 2. 구글 시트 연동 설정
+@st.cache_resource
+def init_gspread():
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds_dict = json.loads(st.secrets["gcp_service_account"])
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    return gspread.authorize(creds)
 
 user_data_key = f"records_{real_sheet_name}"
 user_sheet_key = f"sheet_{real_sheet_name}"
 
-try:
-    st.session_state[user_sheet_key] = spreadsheet.worksheet(real_sheet_name)
-except:
-    st.session_state[user_sheet_key] = None
+if "last_menu" not in st.session_state:
+    st.session_state["last_menu"] = selected_menu
+
+if st.session_state["last_menu"] != selected_menu:
+    st.session_state["last_menu"] = selected_menu
+
+if user_sheet_key not in st.session_state or st.session_state[user_sheet_key] is None:
+    try:
+        client = init_gspread()
+        st.session_state[user_sheet_key] = client.open("SpeakingMaster").worksheet(real_sheet_name)
+    except:
+        st.session_state[user_sheet_key] = None
 
 if user_data_key not in st.session_state:
     if st.session_state[user_sheet_key]:
@@ -236,13 +196,11 @@ if user_data_key not in st.session_state:
 records = st.session_state[user_data_key]
 sheet = st.session_state[user_sheet_key]
 
+# 전체 데이터 가공
 all_display_records = []
 for idx, r in enumerate(records):
-    if 'id' not in r or 'kr' not in r or 'en' not in r:
-        continue
-       
     try:
-        e_val = int(r.get('energy', 0))
+        e_val = int(r['energy'])
         if e_val > 3: e_val = 3
         elif e_val < 0: e_val = 0
     except:
@@ -257,6 +215,7 @@ for idx, r in enumerate(records):
         'energy': e_val
     })
 
+# 📖 100개 단위로 책장 나누기 로직
 total_sentences = len(all_display_records)
 page_size = 100  
 
@@ -265,16 +224,19 @@ if total_sentences > 0:
     for i in range(0, total_sentences, page_size):
         start_num = i + 1
         end_num = min(i + page_size, total_sentences)
-        page_options.append(f"📖 {start_num}~{end_num}번")
+        page_options.append(f"📖 책장: {start_num} ~ {end_num}번")
 else:
     page_options = []
 
-# 🥉 3층: 전체 재생 무한 라디오 버튼
+# 🚀 [동탕 통짜 라디오] 구글 시트 원본 전체를 한 번에 다 긁어 합쳐 뺑뺑이 돌리는 엔진
 if total_sentences > 0:
-    if st.button(f"📻 🔁 {real_sheet_name} 무한 반복 스피킹 라디오", key=f"total_relay_btn_{real_sheet_name}"):
-        with st.spinner("⚡ 음성 파일 생성 중..."):
+    st.markdown("<div class='total-relay-box'>📻 🔁 <b>동탕 무한 반복 스피킹 라디오 (전체 재생)</b></div>", unsafe_allow_html=True)
+   
+    if st.button("▶️ 1번부터 끝까지 멈춤 없이 무한 반복 재생 시작", key=f"total_relay_btn_{real_sheet_name}"):
+        with st.spinner("⚡ 1번부터 끝까지 양식장 탈출 중... 전체 문장 취합 중"):
             try:
                 relay_audio = io.BytesIO()
+               
                 for item in all_display_records:
                     english_sentence = str(item['en']).strip()
                     if english_sentence:
@@ -283,7 +245,7 @@ if total_sentences > 0:
                         tts_part.write_to_fp(part_fp)
                         part_fp.seek(0)
                         relay_audio.write(part_fp.read())
-                        relay_audio.write(b'\x00' * 2500)
+                        relay_audio.write(b'\x00' * 2500) # 1.2초 공백 버퍼
                
                 relay_audio.seek(0)
                 audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
@@ -291,16 +253,22 @@ if total_sentences > 0:
                 audio_html = f"""
                     <audio id="total-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%; margin-top: 10px;"></audio>
                     <script>
-                        document.getElementById('total-radio-player').play();
+                        var player = document.getElementById('total-radio-player');
+                        player.play().catch(function(e) {{ console.log(e); }});
                     </script>
                 """
                 st.markdown(audio_html, unsafe_allow_html=True)
-            except:
-                st.error("라디오 컴파일 실패")
+                st.success("🎶 100번 고개를 넘어 시트 마지막 번호까지 무한 반복하는 진짜 라디오가 시작되었습니다!")
+            except Exception as e:
+                st.error("라디오 플레이어 컴파일 실패")
 
-# 🏾 4층: 이동할 책장 선택 드롭박스
+# 👑 메인 타이틀 안착
+st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
+st.write("---")
+
+# 📚 책장 고르기 본진 레이아웃
 if total_sentences > 0:
-    selected_page_str = st.selectbox("📚 이동할 책장 선택", page_options, key="page_select_drop")
+    selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options)
     page_idx = page_options.index(selected_page_str)
     start_idx = page_idx * page_size
     end_idx = start_idx + page_size
@@ -311,9 +279,12 @@ else:
 if is_priority_mode:
     display_records = sorted(display_records, key=lambda x: x['energy'])
 
+# 🚀 [기능 2] 책장 선택 박스 바로 아래 붙는 '현재 책장 연속 재생' (파란색 박스)
 if display_records:
-    if st.button(f"🎧 선택된 {selected_page_str} 문장 연속 재생 시작", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
-        with st.spinner("⚡ 음성 결합 중..."):
+    st.markdown(f"<div class='page-relay-box'>🎧 <b>선택된 {selected_page_str} 문장만 연속 듣기</b></div>", unsafe_allow_html=True)
+   
+    if st.button("▶️ 현재 책장 100개 문장 즉시 연속 재생 시작", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
+        with st.spinner("⚡ 현재 책장 100개 음성 결합 중..."):
             try:
                 page_audio = io.BytesIO()
                 for item in display_records:
@@ -334,16 +305,10 @@ if display_records:
                     </script>
                 """
                 st.markdown(page_audio_html, unsafe_allow_html=True)
+                st.success(f"🎶 {selected_page_str} 범위 무한 반복 재생이 시작되었습니다!")
             except:
                 st.error("오디오 생성 오류")
-
-# 5층: 글자 크기 조절 슬라이더
-new_font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=40, value=font_size, step=1, key="slider_placement")
-if new_font_size != font_size:
-    st.session_state["dynamic_font_size"] = new_font_size
-    st.rerun()
-
-st.write("---")
+    st.write("---")
 
 def save_to_google_sheet(sheet_obj, row, col, val):
     if sheet_obj:
@@ -352,7 +317,7 @@ def save_to_google_sheet(sheet_obj, row, col, val):
         except:
             pass
 
-# 3. 문장 리스트 출력
+# 3. 화면에 선택된 책장의 문장 리스트 출력
 for item in display_records:
     orig_idx = item['original_index']
     row_idx = item['original_row']
@@ -402,4 +367,5 @@ for item in display_records:
                 ).start()
                
                 st.rerun()
+               
     st.write("---")
