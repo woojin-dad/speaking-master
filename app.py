@@ -24,7 +24,7 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 👥 메뉴 설정 (세션 및 캐싱을 위해 미리 빌드)
+# 👥 👑 [앞으로 새 탭이 추가되면 여기 딱 한 줄만 고치세요!] 👑
 menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
 
 if "last_menu" not in st.session_state:
@@ -178,11 +178,8 @@ st.markdown(f"<div class='custom-title'>{title_text}</div>", unsafe_allow_html=T
 # 🥈 2층: 학습 모드 선택 상자
 selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="selected_menu_box")
 
-if "동탕" in selected_menu:
-    real_sheet_name = "동탕"
-else:
-    real_sheet_name = "우진"
-
+# 🚨 [자동화 핵심 수식 1] 뒤에 붙은 " (우선순위)" 글자를 알아서 제거하고 진짜 구글 시트 탭 이름을 자동 추출합니다.
+real_sheet_name = selected_menu.replace(" (우선순위)", "")
 is_priority_mode = "우선순위" in selected_menu
 
 if st.session_state["last_menu"] != selected_menu:
@@ -253,7 +250,8 @@ else:
 
 # 🚀 [동탕 통짜 라디오] 하나의 완성된 웅장한 단일 버튼으로 병합 완료
 if total_sentences > 0:
-    if st.button(f"🎧 🔁 {real_sheet_name} 전체 문장 반복 재생", key=f"total_relay_btn_{real_sheet_name}"):
+    # 🚨 [자동화 핵심 수식 2] real_sheet_name 대신 selected_menu가 오도록 고정하여 텍스트 깨짐을 완천 차단했습니다.
+    if st.button(f"🎧 🔁 {selected_menu} 전체 문장 반복 재생", key=f"total_relay_btn_{real_sheet_name}"):
         with st.spinner("⚡ 1번부터 끝까지 전체 문장 취합 중..."):
             try:
                 relay_audio = io.BytesIO()
