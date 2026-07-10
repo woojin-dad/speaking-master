@@ -189,9 +189,6 @@ if st.session_state["last_menu"] != selected_menu:
     st.session_state["last_menu"] = selected_menu
     st.rerun()
 
-# 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더
-font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=font_size, step=1, key="dynamic_font_size")
-
 # 2. 구글 시트 연동 설정
 @st.cache_resource
 def init_gspread():
@@ -304,7 +301,7 @@ if is_priority_mode:
 # 🚀 [기능 2] 책장 선택 박스 바로 아래 붙는 '현재 책장 연속 재생' 버튼 통합 완료
 if display_records:
     if st.button(f"🎧 선택된 {selected_page_str} 문장만 반복 재생", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
-        with st.spinner("⚡ 현재 책장 문장 취합 중..."):
+        with st.spinner("⚡ 현재 책장 문장 결합 중..."):
             try:
                 page_audio = io.BytesIO()
                 for item in display_records:
@@ -328,7 +325,11 @@ if display_records:
                 st.success(f"🎶 {selected_page_str} 반복 재생이 시작되었습니다!")
             except:
                 st.error("오디오 생성 오류")
-    st.write("---")
+
+# 🔤 [위치 이동] 선택된 책장 반복 재생 버튼 바로 밑으로 이동 완료
+font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=font_size, step=1, key="dynamic_font_size")
+
+st.write("---")
 
 def save_to_google_sheet(sheet_obj, row, col, val):
     if sheet_obj:
