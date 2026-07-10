@@ -188,10 +188,11 @@ selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_optio
 real_sheet_name = selected_menu.replace(" (우선순위)", "")
 is_priority_mode = "우선순위" in selected_menu
 
-# 🚨 [글자 크기 영구 박제 핵심 3] 모드를 바꾸기 전, 유저가 조절해놓은 슬라이더 값을 세션에 미리 안전하게 대피(백업)시킵니다.
+# 🚨 [모드 변경 시 책장 초기화 대피소] 학습 모드가 변경되면 책장 선택박스의 인덱스 기억을 완전히 파괴하여 1번 책장으로 리셋시킵니다.
 if st.session_state["last_menu"] != selected_menu:
     st.session_state["last_menu"] = selected_menu
-    # 슬라이더 컴포넌트 값이 세션에 있으면 강제로 고정
+    if "page_select_box" in st.session_state:
+        del st.session_state["page_select_box"] # 👈 기존 책장 위치 메모리를 삭제하여 강제 1번 행으로 리셋!
     if "dynamic_font_size" in st.session_state:
         st.session_state["dynamic_font_size"] = st.session_state["dynamic_font_size"]
     st.rerun()
