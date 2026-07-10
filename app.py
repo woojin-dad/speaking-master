@@ -60,7 +60,7 @@ st.markdown(f"""
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) {{ flex: 1.5 1 0% !important; min-width: 0 !important; }}
    
     .custom-title {{
-        font-size: 26px !important;
+        font-size: 23px !important;
         font-weight: bold !important;
         color: #2c3e50 !important;
         text-align: center !important;
