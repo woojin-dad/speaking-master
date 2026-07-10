@@ -24,16 +24,22 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 👥 👑 [앞으로 새 탭이 추가되면 여기 딱 한 줄만 고치세요!] 👑
-menu_options = ["동탕", "동탕 (우선순위)"]
+# 👥 메뉴 설정 (세션 및 캐싱을 위해 미리 빌드)
+menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
 
 if "last_menu" not in st.session_state:
     st.session_state["last_menu"] = menu_options[0]
 
+# 🚨 [자물쇠 핵심 1] 최초 접속 시에만 글자 크기를 26으로 초기화합니다.
+if "dynamic_font_size" not in st.session_state:
+    st.session_state["dynamic_font_size"] = 26
+
 # 현재 상태 선언
 current_selection = st.session_state.get("selected_menu_box", menu_options[0])
 title_text = f"👑 {current_selection}의 스피킹 마스터 👑"
-font_size = st.session_state.get("dynamic_font_size", 26)
+
+# 세션에 고정된 글자 크기를 실시간 안전하게 꺼내옵니다.
+font_size = st.session_state["dynamic_font_size"]
 
 # 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
 st.markdown(f"""
@@ -178,8 +184,11 @@ st.markdown(f"<div class='custom-title'>{title_text}</div>", unsafe_allow_html=T
 # 🥈 2층: 학습 모드 선택 상자
 selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="selected_menu_box")
 
-# 🚨 [자동화 핵심 수식 1] 뒤에 붙은 " (우선순위)" 글자를 알아서 제거하고 진짜 구글 시트 탭 이름을 자동 추출합니다.
-real_sheet_name = selected_menu.replace(" (우선순위)", "")
+if "동탕" in selected_menu:
+    real_sheet_name = "동탕"
+else:
+    real_sheet_name = "우진"
+
 is_priority_mode = "우선순위" in selected_menu
 
 if st.session_state["last_menu"] != selected_menu:
@@ -250,7 +259,6 @@ else:
 
 # 🚀 [동탕 통짜 라디오] 하나의 완성된 웅장한 단일 버튼으로 병합 완료
 if total_sentences > 0:
-    # 🚨 [자동화 핵심 수식 2] real_sheet_name 대신 selected_menu가 오도록 고정하여 텍스트 깨짐을 완천 차단했습니다.
     if st.button(f"🎧 🔁 {selected_menu} 전체 문장 반복 재생", key=f"total_relay_btn_{real_sheet_name}"):
         with st.spinner("⚡ 1번부터 끝까지 전체 문장 취합 중..."):
             try:
@@ -324,8 +332,15 @@ if display_records:
             except:
                 st.error("오디오 생성 오류")
 
-# 🔤 [위치 이동] 선택된 책장 반복 재생 버튼 바로 밑으로 이동 완료
-font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=24, max_value=50, value=font_size, step=1, key="dynamic_font_size")
+# 🔤 [자물쇠 완벽 장착] 슬라이더 조절 시 변경된 값을 세션 주머니(`st.session_state["dynamic_font_size"]`)에 즉시 다이렉트로 결합합니다.
+new_font_size = st.slider(
+    "🔤 문장 글자 크기 조절 (기본값: 26px)", 
+    min_value=24, 
+    max_value=50, 
+    value=st.session_state["dynamic_font_size"], 
+    step=1, 
+    key="dynamic_font_size"
+)
 
 st.write("---")
 
