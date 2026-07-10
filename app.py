@@ -256,8 +256,8 @@ else:
 
 # 🚀 [동탕 통짜 라디오] 하나의 완성된 웅장한 단일 버튼으로 병합 완료
 if total_sentences > 0:
-    if st.button(f"📻 🔁 {real_sheet_name} 무한 반복 스피킹 라디오 시작 (전체 재생)", key=f"total_relay_btn_{real_sheet_name}"):
-        with st.spinner("⚡ 1번부터 끝까지 양식장 탈출 중... 전체 문장 취합 중"):
+    if st.button(f"📻 🔁 {real_sheet_name} 전체 문장 반복 재생", key=f"total_relay_btn_{real_sheet_name}"):
+        with st.spinner("⚡ 1번부터 끝까지 전체 문장 취합 중..."):
             try:
                 relay_audio = io.BytesIO()
                
