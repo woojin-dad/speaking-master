@@ -282,7 +282,7 @@ if total_sentences > 0:
                     </script>
                 """
                 st.markdown(audio_html, unsafe_allow_html=True)
-                st.success("🎶 100번 고개를 넘어 시트 마지막 번호까지 무한 반복하는 진짜 라디오가 시작되었습니다!")
+                st.success("🎶 전체 문장 반복 재생이 시작되었습니다!")
             except Exception as e:
                 st.error("라디오 플레이어 컴파일 실패")
 
