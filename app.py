@@ -25,21 +25,15 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 👥 메뉴 설정 (세션 및 캐싱을 위해 미리 빌드)
-menu_options = ["동탕", "동탕 (우선순위)"]
+menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
 
 if "last_menu" not in st.session_state:
     st.session_state["last_menu"] = menu_options[0]
 
-# 🚨 [글자 크기 영구 박제 핵심 1] 앱이 실행될 때 주머니에 값이 없으면 초기값 26을 세팅합니다.
-if "dynamic_font_size" not in st.session_state:
-    st.session_state["dynamic_font_size"] = 26
-
 # 현재 상태 선언
 current_selection = st.session_state.get("selected_menu_box", menu_options[0])
 title_text = f"👑 {current_selection}의 스피킹 마스터 👑"
-
-# 🚨 [글자 크기 영구 박제 핵심 2] 스타일 조절 시 무조건 세션 저장소에서 최신 조절된 수치를 강제 렌더링합니다.
-font_size = st.session_state["dynamic_font_size"]
+font_size = st.session_state.get("dynamic_font_size", 26)
 
 # 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
 st.markdown(f"""
@@ -184,16 +178,15 @@ st.markdown(f"<div class='custom-title'>{title_text}</div>", unsafe_allow_html=T
 # 🥈 2층: 학습 모드 선택 상자
 selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="selected_menu_box")
 
-# 🚨 [자동화 핵심 수식 1] 뒤에 붙은 " (우선순위)" 글자를 알아서 제거하고 진짜 구글 시트 탭 이름을 자동 추출합니다.
-real_sheet_name = selected_menu.replace(" (우선순위)", "")
+if "동탕" in selected_menu:
+    real_sheet_name = "동탕"
+else:
+    real_sheet_name = "우진"
+
 is_priority_mode = "우선순위" in selected_menu
 
-# 🚨 [글자 크기 영구 박제 핵심 3] 모드를 바꾸기 전, 유저가 조절해놓은 슬라이더 값을 세션에 미리 안전하게 대피(백업)시킵니다.
 if st.session_state["last_menu"] != selected_menu:
     st.session_state["last_menu"] = selected_menu
-    # 슬라이더 컴포넌트 값이 세션에 있으면 강제로 고정
-    if "dynamic_font_size" in st.session_state:
-        st.session_state["dynamic_font_size"] = st.session_state["dynamic_font_size"]
     st.rerun()
 
 # 2. 구글 시트 연동 설정
@@ -260,7 +253,7 @@ else:
 
 # 🚀 [동탕 통짜 라디오] 하나의 완성된 웅장한 단일 버튼으로 병합 완료
 if total_sentences > 0:
-    if st.button(f"🎧 🔁 {selected_menu} 전체 문장 반복 재생", key=f"total_relay_btn_{real_sheet_name}"):
+    if st.button(f"🎧 🔁 {real_sheet_name} 전체 문장 반복 재생", key=f"total_relay_btn_{real_sheet_name}"):
         with st.spinner("⚡ 1번부터 끝까지 전체 문장 취합 중..."):
             try:
                 relay_audio = io.BytesIO()
@@ -333,15 +326,8 @@ if display_records:
             except:
                 st.error("오디오 생성 오류")
 
-# 🚨 [글자 크기 영구 박제 핵심 4] value를 세션 메모리 변수값으로 동기화시켜, 화면 새로고침 시에도 기존 입력값을 사수합니다.
-font_size = st.slider(
-    "🔤 문장 글자 크기 조절 (기본값: 26px)", 
-    min_value=24, 
-    max_value=50, 
-    value=st.session_state["dynamic_font_size"], 
-    step=1, 
-    key="dynamic_font_size"
-)
+# 🔤 [위치 이동] 선택된 책장 반복 재생 버튼 바로 밑으로 이동 완료
+font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=24, max_value=50, value=font_size, step=1, key="dynamic_font_size")
 
 st.write("---")
 
