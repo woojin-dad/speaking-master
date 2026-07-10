@@ -25,7 +25,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 👥 👑 [앞으로 새 탭이 추가되면 여기 딱 한 줄만 고치세요!] 👑
-menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
+menu_options = ["동탕", "동탕 (우선순위)"]
 
 if "last_menu" not in st.session_state:
     st.session_state["last_menu"] = menu_options[0]
