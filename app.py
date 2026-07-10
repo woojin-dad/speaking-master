@@ -188,15 +188,13 @@ selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_optio
 real_sheet_name = selected_menu.replace(" (우선순위)", "")
 is_priority_mode = "우선순위" in selected_menu
 
-# 🚨 [자물쇠 리셋 연동 1] 모드가 전과 달라지면 신호를 True로 켜고, 폰트 크기는 백업해 둡니다.
-if "menu_changed_signal" not in st.session_state:
-    st.session_state["menu_changed_signal"] = False
-
+# 🚨 [자물쇠 리셋 연동] 모드가 전과 달라지면 신호를 켜고 세션을 강제 동기화 재부팅합니다.
 if st.session_state["last_menu"] != selected_menu:
     st.session_state["last_menu"] = selected_menu
-    st.session_state["menu_changed_signal"] = True # 👈 모드 변경 신호탄 ON!
-    if "dynamic_font_size" in st.session_state:
-        st.session_state["dynamic_font_size"] = st.session_state["dynamic_font_size"]
+    # 💥 모드가 바뀔 때 기존 드롭박스 세션 키 청소하여 완벽 포맷
+    target_box_key = f"page_box_{real_sheet_name}"
+    if target_box_key in st.session_state:
+        del st.session_state[target_box_key]
     st.rerun()
 
 # 2. 구글 시트 연동 설정
@@ -297,22 +295,15 @@ st.write("---")
 
 # 📚 책장 고르기 본진 레이아웃
 if total_sentences > 0:
-    # 🚨 [자물쇠 리셋 연동 2] 신호가 켜져 있으면 책장 인덱스를 0번(1~100)으로 강제 지정하고 신호를 끕니다!
-    current_page_index = 0
-    if st.session_state.get("menu_changed_signal", False):
-        current_page_index = 0
-        st.session_state["menu_changed_signal"] = False # 다음 번을 위해 꺼줌
-    else:
-        # 신호가 없을 때는 유저가 원래 보고 있던 세션 텍스트 위치를 따라갑니다.
-        saved_page_str = st.session_state.get("page_select_box", page_options[0])
-        if saved_page_str in page_options:
-            current_page_index = page_options.index(saved_page_str)
-            
+    # 🚨 [UI 잔상 완전 박멸 핵심] 현재 선택된 real_sheet_name을 key 이름에 연동시킵니다!
+    # 이렇게 하면 모드가 교체될 때 컴포넌트 자체가 완전히 새로고침되어 껍데기가 1번 책장으로 완벽 동기화됩니다.
+    dynamic_box_key = f"page_box_{real_sheet_name}"
+    
     selected_page_str = st.selectbox(
         "📚 이동할 책장을 고르세요", 
         page_options, 
-        index=current_page_index, # 👈 강제 제어 열쇠 장착!
-        key="page_select_box"
+        index=0, # 껍데기가 다시 그려지므로 무조건 안전하게 첫 번째(0번 인덱스) 원점 정착!
+        key=dynamic_box_key
     )
     page_idx = page_options.index(selected_page_str)
     start_idx = page_idx * page_size
