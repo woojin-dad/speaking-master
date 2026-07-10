@@ -325,7 +325,7 @@ if display_records:
                     </script>
                 """
                 st.markdown(page_audio_html, unsafe_allow_html=True)
-                st.success(f"🎶 {selected_page_str} 범위 무한 반복 재생이 시작되었습니다!")
+                st.success(f"🎶 {selected_page_str} 반복 재생이 시작되었습니다!")
             except:
                 st.error("오디오 생성 오류")
     st.write("---")
