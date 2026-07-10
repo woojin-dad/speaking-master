@@ -256,7 +256,7 @@ else:
 
 # 🚀 [동탕 통짜 라디오] 하나의 완성된 웅장한 단일 버튼으로 병합 완료
 if total_sentences > 0:
-    if st.button(f"📻 🔁 {real_sheet_name} 전체 문장 반복 재생", key=f"total_relay_btn_{real_sheet_name}"):
+    if st.button(f"🎧 🔁 {real_sheet_name} 전체 문장 반복 재생", key=f"total_relay_btn_{real_sheet_name}"):
         with st.spinner("⚡ 1번부터 끝까지 전체 문장 취합 중..."):
             try:
                 relay_audio = io.BytesIO()
@@ -303,7 +303,7 @@ if is_priority_mode:
 
 # 🚀 [기능 2] 책장 선택 박스 바로 아래 붙는 '현재 책장 연속 재생' 버튼 통합 완료
 if display_records:
-    if st.button(f"🎧 선택된 {selected_page_str} 문장만 연속 듣기 시작", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
+    if st.button(f"🎧 선택된 {selected_page_str} 문장만 반복 재생", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
         with st.spinner("⚡ 현재 책장 100개 음성 결합 중..."):
             try:
                 page_audio = io.BytesIO()
