@@ -25,7 +25,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 👥 메뉴 설정 (세션 및 캐싱을 위해 미리 빌드)
-menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
+menu_options = ["동탕", "동탕 (우선순위)"]
 
 if "last_menu" not in st.session_state:
     st.session_state["last_menu"] = menu_options[0]
