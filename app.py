@@ -304,7 +304,7 @@ if is_priority_mode:
 # 🚀 [기능 2] 책장 선택 박스 바로 아래 붙는 '현재 책장 연속 재생' 버튼 통합 완료
 if display_records:
     if st.button(f"🎧 선택된 {selected_page_str} 문장만 반복 재생", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
-        with st.spinner("⚡ 현재 책장 100개 음성 결합 중..."):
+        with st.spinner("⚡ 현재 책장 문장 결합 중..."):
             try:
                 page_audio = io.BytesIO()
                 for item in display_records:
