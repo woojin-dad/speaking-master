@@ -30,7 +30,7 @@ menu_options = ["동탕", "동탕 (우선순위)"]
 if "last_menu" not in st.session_state:
     st.session_state["last_menu"] = menu_options[0]
 
-# 🚨 [글자 크기 영구 박제] 앱이 실행될 때 주머니에 값이 없으면 초기값 26을 세팅합니다.
+# 🚨 [글자 크기 영구 박제 핵심 1] 앱 처음 켤 때만 26으로 세팅
 if "dynamic_font_size" not in st.session_state:
     st.session_state["dynamic_font_size"] = 26
 
@@ -191,6 +191,11 @@ is_priority_mode = "우선순위" in selected_menu
 # 🚨 [자물쇠 리셋 연동] 모드가 전과 달라지면 신호를 켜고 세션을 강제 동기화 재부팅합니다.
 if st.session_state["last_menu"] != selected_menu:
     st.session_state["last_menu"] = selected_menu
+    
+    # 💥 [글자 크기 박제 백업] 리셋 타이밍 직전에 유저가 설정한 현재 글자 크기값을 무조건 가로채서 백업합니다.
+    current_saved_size = st.session_state.get("dynamic_font_size", 26)
+    st.session_state["dynamic_font_size"] = current_saved_size
+    
     # 💥 모드가 바뀔 때 기존 드롭박스 세션 키 청소하여 완벽 포맷
     target_box_key = f"page_box_{real_sheet_name}"
     if target_box_key in st.session_state:
@@ -295,14 +300,12 @@ st.write("---")
 
 # 📚 책장 고르기 본진 레이아웃
 if total_sentences > 0:
-    # 🚨 [UI 잔상 완전 박멸 핵심] 현재 선택된 real_sheet_name을 key 이름에 연동시킵니다!
-    # 이렇게 하면 모드가 교체될 때 컴포넌트 자체가 완전히 새로고침되어 껍데기가 1번 책장으로 완벽 동기화됩니다.
     dynamic_box_key = f"page_box_{real_sheet_name}"
     
     selected_page_str = st.selectbox(
         "📚 이동할 책장을 고르세요", 
         page_options, 
-        index=0, # 껍데기가 다시 그려지므로 무조건 안전하게 첫 번째(0번 인덱스) 원점 정착!
+        index=0, 
         key=dynamic_box_key
     )
     page_idx = page_options.index(selected_page_str)
@@ -343,7 +346,7 @@ if display_records:
             except:
                 st.error("오디오 생성 오류")
 
-# 🔤 글자 크기 조절 슬라이더 자물쇠
+# 🔤 [글자 크기 영구 박제 핵심 2] value 파라미터에 세션 값을 완벽 주입하여 슬라이더 손잡이를 고정시킵니다.
 font_size = st.slider(
     "🔤 문장 글자 크기 조절 (기본값: 26px)",
     min_value=24,
