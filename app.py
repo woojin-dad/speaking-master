@@ -327,7 +327,7 @@ if display_records:
                 st.error("오디오 생성 오류")
 
 # 🔤 [위치 이동] 선택된 책장 반복 재생 버튼 바로 밑으로 이동 완료
-font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=font_size, step=1, key="dynamic_font_size")
+font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=24, max_value=44, value=font_size, step=1, key="dynamic_font_size")
 
 st.write("---")
 
