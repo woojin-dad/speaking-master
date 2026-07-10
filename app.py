@@ -24,16 +24,19 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 👥 메뉴 설정 (세션 및 캐싱을 위해 미리 빌드)
+# 👥 메뉴 설정 (슬라이더 레이아웃을 위해 상단 배치)
 menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
+selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options)
 
-if "last_menu" not in st.session_state:
-    st.session_state["last_menu"] = menu_options[0]
+if "동탕" in selected_menu:
+    real_sheet_name = "동탕"
+else:
+    real_sheet_name = "우진"
 
-# 현재 상태 선언
-current_selection = st.session_state.get("selected_menu_box", menu_options[0])
-title_text = f"👑 {current_selection}의 스피킹 마스터 👑"
-font_size = st.session_state.get("dynamic_font_size", 26)
+is_priority_mode = "우선순위" in selected_menu
+
+# 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더 (기본값 26px 세팅)
+font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1)
 
 # 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
 st.markdown(f"""
@@ -65,8 +68,7 @@ st.markdown(f"""
         color: #2c3e50 !important;
         text-align: center !important;
         padding-top: 5px;
-        margin-top: 5px !important;
-        margin-bottom: 15px !important;
+        margin-top: 10px !important;
     }}
 
     /* 📻 1. 최상단 무한 반복 라디오 박스 디자인 (초록색 테두리) */
@@ -158,26 +160,6 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# 🥇 1층: 메인 타이틀 (최상단 안착)
-st.markdown(f"<div class='custom-title'>{title_text}</div>", unsafe_allow_html=True)
-
-# 🥈 2층: 학습 모드 선택 상자
-selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="selected_menu_box")
-
-if "동탕" in selected_menu:
-    real_sheet_name = "동탕"
-else:
-    real_sheet_name = "우진"
-
-is_priority_mode = "우선순위" in selected_menu
-
-if st.session_state["last_menu"] != selected_menu:
-    st.session_state["last_menu"] = selected_menu
-    st.rerun()
-
-# 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더
-font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=font_size, step=1, key="dynamic_font_size")
-
 # 2. 구글 시트 연동 설정
 @st.cache_resource
 def init_gspread():
@@ -188,6 +170,12 @@ def init_gspread():
 
 user_data_key = f"records_{real_sheet_name}"
 user_sheet_key = f"sheet_{real_sheet_name}"
+
+if "last_menu" not in st.session_state:
+    st.session_state["last_menu"] = selected_menu
+
+if st.session_state["last_menu"] != selected_menu:
+    st.session_state["last_menu"] = selected_menu
 
 if user_sheet_key not in st.session_state or st.session_state[user_sheet_key] is None:
     try:
@@ -240,7 +228,7 @@ if total_sentences > 0:
 else:
     page_options = []
 
-# 🚀 [동탕 통짜 라디오] 무한 반복 스피킹 라디오 (파이썬-자바스크립트 중괄호 충돈 철벽 해제)
+# 🚀 [동탕 통짜 라디오] 구글 시트 원본 전체를 한 번에 다 긁어 합쳐 뺑뺑이 돌리는 엔진
 if total_sentences > 0:
     st.markdown("<div class='total-relay-box'>📻 🔁 <b>동탕 무한 반복 스피킹 라디오 (전체 재생)</b></div>", unsafe_allow_html=True)
    
@@ -274,11 +262,13 @@ if total_sentences > 0:
             except Exception as e:
                 st.error("라디오 플레이어 컴파일 실패")
 
+# 👑 메인 타이틀 안착
+st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
 st.write("---")
 
 # 📚 책장 고르기 본진 레이아웃
 if total_sentences > 0:
-    selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options, key="page_select_box")
+    selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options)
     page_idx = page_options.index(selected_page_str)
     start_idx = page_idx * page_size
     end_idx = start_idx + page_size
