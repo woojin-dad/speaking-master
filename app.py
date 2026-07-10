@@ -158,10 +158,10 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# 🥇 [위치 교정] 1층: 대망의 메인 타이틀을 앱 최상단으로 강제 견인!
+# 🥇 1층: 메인 타이틀 (최상단 안착)
 st.markdown(f"<div class='custom-title'>{title_text}</div>", unsafe_allow_html=True)
 
-# 🥈 2층: 학습 모드 선택 상자 배치
+# 🥈 2층: 학습 모드 선택 상자
 selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="selected_menu_box")
 
 if "동탕" in selected_menu:
@@ -240,7 +240,7 @@ if total_sentences > 0:
 else:
     page_options = []
 
-# 🚀 [동탕 통짜 라디오] 무한 반복 스피킹 라디오
+# 🚀 [동탕 통짜 라디오] 무한 반복 스피킹 라디오 (파이썬-자바스크립트 중괄호 충돈 철벽 해제)
 if total_sentences > 0:
     st.markdown("<div class='total-relay-box'>📻 🔁 <b>동탕 무한 반복 스피킹 라디오 (전체 재생)</b></div>", unsafe_allow_html=True)
    
@@ -266,7 +266,7 @@ if total_sentences > 0:
                     <audio id="total-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%; margin-top: 10px;"></audio>
                     <script>
                         var player = document.getElementById('total-radio-player');
-                        player.play().catch(function(e) { console.log(e); });
+                        player.play().catch(function(e) {{ console.log(e); }});
                     </script>
                 """
                 st.markdown(audio_html, unsafe_allow_html=True)
