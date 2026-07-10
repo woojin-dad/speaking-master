@@ -30,7 +30,7 @@ menu_options = ["동탕", "동탕 (우선순위)"]
 if "last_menu" not in st.session_state:
     st.session_state["last_menu"] = menu_options[0]
 
-# 🚨 [글자 크기 영구 박제 핵심 1] 앱이 실행될 때 주머니에 값이 없으면 초기값 26을 세팅합니다.
+# 🚨 [글자 크기 영구 박제] 앱이 실행될 때 주머니에 값이 없으면 초기값 26을 세팅합니다.
 if "dynamic_font_size" not in st.session_state:
     st.session_state["dynamic_font_size"] = 26
 
@@ -38,7 +38,7 @@ if "dynamic_font_size" not in st.session_state:
 current_selection = st.session_state.get("selected_menu_box", menu_options[0])
 title_text = f"👑 {current_selection}의 스피킹 마스터 👑"
 
-# 🚨 [글자 크기 영구 박제 핵심 2] 스타일 조절 시 무조건 세션 저장소에서 최신 조절된 수치를 강제 렌더링합니다.
+# 스타일 조절용 최신 수치 
 font_size = st.session_state["dynamic_font_size"]
 
 # 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
@@ -184,15 +184,17 @@ st.markdown(f"<div class='custom-title'>{title_text}</div>", unsafe_allow_html=T
 # 🥈 2층: 학습 모드 선택 상자
 selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="selected_menu_box")
 
-# 🚨 [자동화 핵심 수식 1] 뒤에 붙은 " (우선순위)" 글자를 알아서 제거하고 진짜 구글 시트 탭 이름을 자동 추출합니다.
+# [자동화 핵심 수식] 탭 이름 자동 추출
 real_sheet_name = selected_menu.replace(" (우선순위)", "")
 is_priority_mode = "우선순위" in selected_menu
 
-# 🚨 [모드 변경 시 책장 초기화 대피소] 학습 모드가 변경되면 책장 선택박스의 인덱스 기억을 완전히 파괴하여 1번 책장으로 리셋시킵니다.
+# 🚨 [자물쇠 리셋 연동 1] 모드가 전과 달라지면 신호를 True로 켜고, 폰트 크기는 백업해 둡니다.
+if "menu_changed_signal" not in st.session_state:
+    st.session_state["menu_changed_signal"] = False
+
 if st.session_state["last_menu"] != selected_menu:
     st.session_state["last_menu"] = selected_menu
-    if "page_select_box" in st.session_state:
-        del st.session_state["page_select_box"] # 👈 기존 책장 위치 메모리를 삭제하여 강제 1번 행으로 리셋!
+    st.session_state["menu_changed_signal"] = True # 👈 모드 변경 신호탄 ON!
     if "dynamic_font_size" in st.session_state:
         st.session_state["dynamic_font_size"] = st.session_state["dynamic_font_size"]
     st.rerun()
@@ -295,7 +297,23 @@ st.write("---")
 
 # 📚 책장 고르기 본진 레이아웃
 if total_sentences > 0:
-    selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options, key="page_select_box")
+    # 🚨 [자물쇠 리셋 연동 2] 신호가 켜져 있으면 책장 인덱스를 0번(1~100)으로 강제 지정하고 신호를 끕니다!
+    current_page_index = 0
+    if st.session_state.get("menu_changed_signal", False):
+        current_page_index = 0
+        st.session_state["menu_changed_signal"] = False # 다음 번을 위해 꺼줌
+    else:
+        # 신호가 없을 때는 유저가 원래 보고 있던 세션 텍스트 위치를 따라갑니다.
+        saved_page_str = st.session_state.get("page_select_box", page_options[0])
+        if saved_page_str in page_options:
+            current_page_index = page_options.index(saved_page_str)
+            
+    selected_page_str = st.selectbox(
+        "📚 이동할 책장을 고르세요", 
+        page_options, 
+        index=current_page_index, # 👈 강제 제어 열쇠 장착!
+        key="page_select_box"
+    )
     page_idx = page_options.index(selected_page_str)
     start_idx = page_idx * page_size
     end_idx = start_idx + page_size
@@ -334,7 +352,7 @@ if display_records:
             except:
                 st.error("오디오 생성 오류")
 
-# 🚨 [글자 크기 영구 박제 핵심 4] value를 세션 메모리 변수값으로 동기화시켜, 화면 새로고침 시에도 기존 입력값을 사수합니다.
+# 🔤 글자 크기 조절 슬라이더 자물쇠
 font_size = st.slider(
     "🔤 문장 글자 크기 조절 (기본값: 26px)",
     min_value=24,
