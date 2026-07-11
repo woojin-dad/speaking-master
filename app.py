@@ -14,40 +14,29 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 💡 모바일 스크린 확대 허용 메타 태그 유지 + 🚨 [10분 타임아웃 방어 브라우저 저장소 연동 수식]
+# 💡 모바일 스크린 확대 허용 메타 태그 유지
 st.markdown("""
     <script>
         var meta = document.createElement('meta');
         meta.name = 'viewport';
         meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
         document.getElementsByTagName('head')[0].appendChild(meta);
-
-        // 스트림릿 서버가 리셋되어도 브라우저가 값을 보존하고 수시로 동기화하도록 추적 감지
-        window.addEventListener('blur', function() {
-            // 화면이 꺼지거나 안 볼 때 상태 안전 보존 트리거
-        });
     </script>
 """, unsafe_allow_html=True)
 
-# 👥 메뉴 설정 (세션 및 캐싱을 위해 미리 빌드)
-menu_options = ["동탕", "동탕 (우선순위)"]
+# 👥 메뉴 설정 (슬라이더 레이아웃을 위해 상단 배치)
+menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
+selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options)
 
-if "last_menu" not in st.session_state:
-    st.session_state["last_menu"] = menu_options[0]
+if "동탕" in selected_menu:
+    real_sheet_name = "동탕"
+else:
+    real_sheet_name = "우진"
 
-# 🚨 [자물쇠 리셋 연동 뼈대] 모드가 전과 달라지면 신호를 켜고 세션을 강제 동기화 재부팅합니다.
-current_selection = st.session_state.get("selected_menu_box", menu_options[0])
-title_text = f"👑 {current_selection}의 스피킹 마스터 👑"
+is_priority_mode = "우선순위" in selected_menu
 
-# [자동화 핵심 수식] 탭 이름 자동 추출
-real_sheet_name = current_selection.replace(" (우선순위)", "")
-is_priority_mode = "우선순위" in current_selection
-
-# 🚨 [10분 방어 자물쇠 1] 서버 메모리가 날아가도 브라우저 컴포넌트 내부 세션이 리셋되지 않도록 키 이름 고정화
-if "dynamic_font_size" not in st.session_state:
-    st.session_state["dynamic_font_size"] = 26
-
-font_size = st.session_state["dynamic_font_size"]
+# 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더 (기본값 26px 세팅)
+font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1)
 
 # 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
 st.markdown(f"""
@@ -74,48 +63,33 @@ st.markdown(f"""
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) {{ flex: 1.5 1 0% !important; min-width: 0 !important; }}
    
     .custom-title {{
-        font-size: 23px !important;
+        font-size: 26px !important;
         font-weight: bold !important;
         color: #2c3e50 !important;
         text-align: center !important;
         padding-top: 5px;
-        margin-top: 5px !important;
+        margin-top: 10px !important;
+    }}
+
+    /* 📻 1. 최상단 무한 반복 라디오 박스 디자인 (초록색 테두리) */
+    .total-relay-box {{
+        background-color: #f0fdf4 !important;
+        padding: 12px 15px !important;
+        border-radius: 12px !important;
+        border: 2px solid #2ecc71 !important;
+        text-align: center !important;
         margin-bottom: 15px !important;
     }}
 
-    /* 📻 1. 통합 무한 반복 라디오 버튼 디자인 (초록색 스타일) */
-    div.stButton > button[key^="total_relay_btn_"] {{
-        background-color: #f0fdf4 !important;
-        border: 2px solid #2ecc71 !important;
-        border-radius: 12px !important;
-        padding: 14px 15px !important;
-        width: 100% !important;
-        text-align: center !important;
-        margin-bottom: 5px !important;
-    }}
-    div.stButton > button[key^="total_relay_btn_"] p,
-    div.stButton > button[key^="total_relay_btn_"] * {{
-        color: #15803d !important;
-        font-size: 18px !important;
-        font-weight: bold !important;
-    }}
-
-    /* 🎧 2. 통합 책장별 연속 듣기 버튼 디자인 (파란색 스타일) */
-    div.stButton > button[key^="page_relay_btn_"] {{
+    /* 🎧 2. 중단 책장별 연속 듣기 박스 디자인 (파란색 테두리) */
+    .page-relay-box {{
         background-color: #f0f9ff !important;
-        border: 2px solid #3b82f6 !important;
-        border-radius: 12px !important;
-        padding: 14px 15px !important;
-        width: 100% !important;
+        padding: 10px 14px !important;
+        border-radius: 10px !important;
+        border: 1px solid #3b82f6 !important;
         text-align: center !important;
-        margin-top: 5px !important;
+        margin-top: 8px !important;
         margin-bottom: 5px !important;
-    }}
-    div.stButton > button[key^="page_relay_btn_"] p,
-    div.stButton > button[key^="page_relay_btn_"] * {{
-        color: #1d4ed8 !important;
-        font-size: 17px !important;
-        font-weight: bold !important;
     }}
    
     /* 🔤 슬라이더 조절에 따라 실시간으로 변하는 문장 버튼 크기 */
@@ -132,7 +106,7 @@ st.markdown(f"""
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button div,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button span,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button * {{
-        font-size: {font_size}px !important;
+        font-size: {font_size}px !important;   /* 👈 슬라이더 값이 실시간 주입됩니다! */
         font-weight: 900 !important;
         color: #ffffff !important;
         line-height: 1.2 !important;
@@ -186,20 +160,6 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# 🥈 2층: 학습 모드 선택 상자
-selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="selected_menu_box")
-
-if st.session_state["last_menu"] != selected_menu:
-    st.session_state["last_menu"] = selected_menu
-    st.session_state["dynamic_font_size"] = st.session_state.get("dynamic_font_size", 26)
-    
-    old_box_key_normal = f"page_box_{real_sheet_name}_False"
-    old_box_key_priority = f"page_box_{real_sheet_name}_True"
-    if old_box_key_normal in st.session_state: del st.session_state[old_box_key_normal]
-    if old_box_key_priority in st.session_state: del st.session_state[old_box_key_priority]
-    
-    st.rerun()
-
 # 2. 구글 시트 연동 설정
 @st.cache_resource
 def init_gspread():
@@ -210,6 +170,12 @@ def init_gspread():
 
 user_data_key = f"records_{real_sheet_name}"
 user_sheet_key = f"sheet_{real_sheet_name}"
+
+if "last_menu" not in st.session_state:
+    st.session_state["last_menu"] = selected_menu
+
+if st.session_state["last_menu"] != selected_menu:
+    st.session_state["last_menu"] = selected_menu
 
 if user_sheet_key not in st.session_state or st.session_state[user_sheet_key] is None:
     try:
@@ -262,10 +228,12 @@ if total_sentences > 0:
 else:
     page_options = []
 
-# 🚀 [동탕 통짜 라디오] 하나의 완성된 웅장한 단일 버튼으로 병합 완료
+# 🚀 [동탕 통짜 라디오] 구글 시트 원본 전체를 한 번에 다 긁어 합쳐 뺑뺑이 돌리는 엔진
 if total_sentences > 0:
-    if st.button(f"🎧 🔁 {selected_menu} 전체 문장 반복 재생", key=f"total_relay_btn_{real_sheet_name}_{is_priority_mode}"):
-        with st.spinner("⚡ 1번부터 끝까지 전체 문장 취합 중..."):
+    st.markdown("<div class='total-relay-box'>📻 🔁 <b>동탕 무한 반복 스피킹 라디오 (전체 재생)</b></div>", unsafe_allow_html=True)
+   
+    if st.button("▶️ 1번부터 끝까지 멈춤 없이 무한 반복 재생 시작", key=f"total_relay_btn_{real_sheet_name}"):
+        with st.spinner("⚡ 1번부터 끝까지 양식장 탈출 중... 전체 문장 취합 중"):
             try:
                 relay_audio = io.BytesIO()
                
@@ -277,7 +245,7 @@ if total_sentences > 0:
                         tts_part.write_to_fp(part_fp)
                         part_fp.seek(0)
                         relay_audio.write(part_fp.read())
-                        relay_audio.write(b'\x00' * 2500)
+                        relay_audio.write(b'\x00' * 2500) # 1.2초 공백 버퍼
                
                 relay_audio.seek(0)
                 audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
@@ -290,23 +258,17 @@ if total_sentences > 0:
                     </script>
                 """
                 st.markdown(audio_html, unsafe_allow_html=True)
-                st.success("🎶 전체 문장 반복 재생이 시작되었습니다!")
+                st.success("🎶 100번 고개를 넘어 시트 마지막 번호까지 무한 반복하는 진짜 라디오가 시작되었습니다!")
             except Exception as e:
                 st.error("라디오 플레이어 컴파일 실패")
 
+# 👑 메인 타이틀 안착
+st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
 st.write("---")
 
 # 📚 책장 고르기 본진 레이아웃
 if total_sentences > 0:
-    # 🚨 [10분 방어 자물쇠 2] 모드 이름과 연동하여 고유 뼈대 ID 생성
-    dynamic_box_key = f"page_box_{real_sheet_name}_{is_priority_mode}"
-   
-    selected_page_str = st.selectbox(
-        "📚 이동할 책장을 고르세요",
-        page_options,
-        index=0,
-        key=dynamic_box_key
-    )
+    selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options)
     page_idx = page_options.index(selected_page_str)
     start_idx = page_idx * page_size
     end_idx = start_idx + page_size
@@ -317,10 +279,12 @@ else:
 if is_priority_mode:
     display_records = sorted(display_records, key=lambda x: x['energy'])
 
-# 🚀 [기능 2] 책장 선택 박스 바로 아래 붙는 '현재 책장 연속 재생' 버튼 통합 완료
+# 🚀 [기능 2] 책장 선택 박스 바로 아래 붙는 '현재 책장 연속 재생' (파란색 박스)
 if display_records:
-    if st.button(f"🎧 선택된 {selected_page_str} 문장만 반복 재생", key=f"page_relay_btn_{real_sheet_name}_{page_idx}_{is_priority_mode}"):
-        with st.spinner("⚡ 현재 책장 문장 결합 중..."):
+    st.markdown(f"<div class='page-relay-box'>🎧 <b>선택된 {selected_page_str} 문장만 연속 듣기</b></div>", unsafe_allow_html=True)
+   
+    if st.button("▶️ 현재 책장 100개 문장 즉시 연속 재생 시작", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
+        with st.spinner("⚡ 현재 책장 100개 음성 결합 중..."):
             try:
                 page_audio = io.BytesIO()
                 for item in display_records:
@@ -341,21 +305,10 @@ if display_records:
                     </script>
                 """
                 st.markdown(page_audio_html, unsafe_allow_html=True)
-                st.success(f"🎶 {selected_page_str} 반복 재생이 시작되었습니다!")
+                st.success(f"🎶 {selected_page_str} 범위 무한 반복 재생이 시작되었습니다!")
             except:
                 st.error("오디오 생성 오류")
-
-# 🔤 글자 크기 조절 슬라이더 자물쇠
-font_size = st.slider(
-    "🔤 문장 글자 크기 조절 (기본값: 26px)",
-    min_value=24,
-    max_value=50,
-    value=st.session_state["dynamic_font_size"],
-    step=1,
-    key="dynamic_font_size"
-)
-
-st.write("---")
+    st.write("---")
 
 def save_to_google_sheet(sheet_obj, row, col, val):
     if sheet_obj:
@@ -373,7 +326,7 @@ for item in display_records:
     col1, col2 = st.columns([8.5, 1.5])
    
     with col1:
-        state_key = f"show_{real_sheet_name}_{orig_idx}_{is_priority_mode}"
+        state_key = f"show_{real_sheet_name}_{orig_idx}"
         if state_key not in st.session_state:
             st.session_state[state_key] = False
            
@@ -381,13 +334,13 @@ for item in display_records:
         text_content = item['en'] if is_english else item['kr']
         btn_label = f"{item['id']}. {text_content}"
        
-        if st.button(btn_label, key=f"sentence_{real_sheet_name}_{orig_idx}_{is_priority_mode}"):
+        if st.button(btn_label, key=f"sentence_{real_sheet_name}_{orig_idx}"):
             st.session_state[state_key] = not st.session_state[state_key]
             st.rerun()
            
     with col2:
         if is_english:
-            if st.button("🔊", key=f"audio_{real_sheet_name}_{orig_idx}_{is_priority_mode}", help="audio-btn"):
+            if st.button("🔊", key=f"audio_{real_sheet_name}_{orig_idx}", help="audio-btn"):
                 tts = gTTS(text=item['en'], lang='en')
                 fp = io.BytesIO()
                 tts.write_to_fp(fp)
@@ -403,7 +356,7 @@ for item in display_records:
             else:
                 color_block_text = "🟩"
            
-            if st.button(color_block_text, key=f"bar_touch_{real_sheet_name}_{orig_idx}_{is_priority_mode}"):
+            if st.button(color_block_text, key=f"bar_touch_{real_sheet_name}_{orig_idx}"):
                 new_energy = energy_val + 1 if energy_val < 3 else 0
                 st.session_state[user_data_key][orig_idx]['energy'] = new_energy
                
