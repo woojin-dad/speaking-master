@@ -30,13 +30,13 @@ menu_options = ["동탕", "동탕 (우선순위)"]
 if "last_menu" not in st.session_state:
     st.session_state["last_menu"] = menu_options[0]
 
-# 🚨 [글자 크기 영구 박제] 앱 처음 켤 때만 26으로 세팅
+# 🚨 [글자 크기 영구 박제]
 if "dynamic_font_size" not in st.session_state:
     st.session_state["dynamic_font_size"] = 26
 
-# 🚨 [재생 간격 영구 박제] 앱 처음 켤 때 기본 공백 간격을 2.0초로 세팅
+# 🚨 [재생 간격 영구 박제]
 if "audio_pause_time" not in st.session_state:
-    st.session_state["audio_pause_time"] = 2.0
+    st.session_state["audio_pause_time"] = 2
 
 # 현재 상태 선언
 current_selection = st.session_state.get("selected_menu_box", menu_options[0])
@@ -45,19 +45,6 @@ title_text = f"👑 {current_selection}의 스피킹 마스터 👑"
 # 스타일 및 오디오 조절용 최신 수치 
 font_size = st.session_state["dynamic_font_size"]
 pause_time = st.session_state["audio_pause_time"]
-
-# 🚨 [진짜 무음 MP3 데이터] 브라우저가 강제로 쉬게 만드는 1초짜리 실제 무음 MP3 바이너리
-SILENT_1SEC = base64.b64decode(
-    "SUQzBAAAAAAAF1RFTgAAAAQAAAFormFzbXAAAABVVDNDTwAAAAgAAAByZWNvcmRlZABUUEUxAAAACQAAAG5vX2F1ZGlvAFRTRU8AAAAK"
-    "AAAAdXNpbmdfZ1RUUwAvLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8v"
-    "Ly8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8v"
-    "VVAzAAAAAExBTUUzLjk5ckgBAAAAAAAAAAAAIDQAJgGAAMAAAYAAAOdbeV8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAXy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8v"
-    "Ly8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8v"
-    "Ly8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8v"
-)
 
 # 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
 st.markdown(f"""
@@ -206,20 +193,16 @@ selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_optio
 real_sheet_name = selected_menu.replace(" (우선순위)", "")
 is_priority_mode = "우선순위" in selected_menu
 
-# 🚨 [자물쇠 리셋 연동] 모드가 전과 달라지면 신호를 켜고 세션을 강제 동기화 재부팅합니다.
+# 🚨 [자물쇠 리셋 연동]
 if st.session_state["last_menu"] != selected_menu:
     st.session_state["last_menu"] = selected_menu
-    
-    # [설정값 박제 백업] 리셋 직전 글자 크기와 오디오 재생 간격을 가로채서 보존합니다.
     st.session_state["dynamic_font_size"] = st.session_state.get("dynamic_font_size", 26)
-    st.session_state["audio_pause_time"] = st.session_state.get("audio_pause_time", 2.0)
+    st.session_state["audio_pause_time"] = st.session_state.get("audio_pause_time", 2)
     
-    # 모드 교체 시 기존 드롭박스 세션 키들을 완벽하게 청소
     old_box_key_normal = f"page_box_{real_sheet_name}_False"
     old_box_key_priority = f"page_box_{real_sheet_name}_True"
     if old_box_key_normal in st.session_state: del st.session_state[old_box_key_normal]
     if old_box_key_priority in st.session_state: del st.session_state[old_box_key_priority]
-    
     st.rerun()
 
 # 2. 구글 시트 연동 설정
@@ -252,7 +235,7 @@ if user_data_key not in st.session_state:
 records = st.session_state[user_data_key]
 sheet = st.session_state[user_sheet_key]
 
-# 전체 데이터 가공
+# 데이터 가공
 all_display_records = []
 for idx, r in enumerate(records):
     try:
@@ -261,7 +244,6 @@ for idx, r in enumerate(records):
         elif e_val < 0: e_val = 0
     except:
         e_val = 0
-       
     all_display_records.append({
         'original_index': idx,
         'original_row': idx + 2,
@@ -284,43 +266,75 @@ if total_sentences > 0:
 else:
     page_options = []
 
-# 🚀 [동탕 통짜 라디오] 전체 문장 반복 재생 (물리 무음 MP3 결합 로직 적용)
+# 🚨 [자바스크립트 제어용 오디오 주머니 사전 빌드]
+# 브라우저 타이머 플레이어가 읽어갈 수 있도록 해당 데이터 목록의 영문 음성을 base64 묶음으로 파싱해둡니다.
+def build_js_audio_playlist(records_list):
+    playlist_json = []
+    for item in records_list:
+        eng_txt = str(item['en']).strip()
+        if eng_txt:
+            try:
+                tts = gTTS(text=eng_txt, lang='en')
+                fp = io.BytesIO()
+                tts.write_to_fp(fp)
+                fp.seek(0)
+                b64_audio = base64.b64encode(fp.read()).decode('utf-8')
+                playlist_json.append({"id": item['id'], "b64": b64_audio})
+            except:
+                pass
+    return json.dumps(playlist_json)
+
+# 🚀 [동탕 통짜 라디오]전체 문장 반복 재생 (브라우저 스크립트 시계 제어판 도입 완료)
 if total_sentences > 0:
     if st.button(f"🎧 🔁 {selected_menu} 전체 문장 반복 재생", key=f"total_relay_btn_{real_sheet_name}_{is_priority_mode}"):
-        with st.spinner("⚡ 1번부터 끝까지 전체 문장 취합 중..."):
-            try:
-                relay_audio = io.BytesIO()
-                
-                # 0.5초 단위 대응을 위한 수치 환산 (0.5초=500ms에 가까운 바이너리 슬라이싱 생략을 위해 1초짜리 배수 결합)
-                loop_count = int(pause_time) if pause_time >= 1.0 else 1
-                
-                for item in all_display_records:
-                    english_sentence = str(item['en']).strip()
-                    if english_sentence:
-                        tts_part = gTTS(text=english_sentence, lang='en')
-                        part_fp = io.BytesIO()
-                        tts_part.write_to_fp(part_fp)
-                        part_fp.seek(0)
-                        relay_audio.write(part_fp.read())
+        with st.spinner("⚡ 브라우저 초정밀 시간 제어 라디오 컴파일 중..."):
+            playlist_data = build_js_audio_playlist(all_display_records)
+            
+            # 🚨 [브라우저 내부 시계 제어 스크립트] 
+            # 문장 재생이 끝나는 이벤트('ended')를 잡아서, 유저가 지정한 pause_time (초) 만큼 타임아웃을 강제로 먹인 뒤 다음 문장으로 넘깁니다! 
+            js_script = f"""
+                <div style="background-color: #fafafa; border: 1px solid #e0e0e0; padding: 10px; border-radius: 8px;">
+                    <span style="font-weight: bold; color: #15803d; font-size: 14px;">📻 라디오 상태: </span> <span id="radio-status" style="font-weight: bold; color: #2c3e50;">대기 중...</span>
+                    <audio id="js-radio-player" style="width: 100%; margin-top: 5px;" controls></audio>
+                </div>
+                <script>
+                    var playlist = {playlist_data};
+                    var currentIndex = 0;
+                    var pauseSeconds = {pause_time};
+                    var audioPlayer = document.getElementById('js-radio-player');
+                    var statusTxt = document.getElementById('radio-status');
+
+                    function playNext() {{
+                        if (playlist.length == 0) return;
+                        if (currentIndex >= playlist.length) {{
+                            currentIndex = 0; // 전체 무한 루프 반복 설정
+                        }}
                         
-                        # 🚨 [물리적 강제 침묵 주입] 지정한 초만큼 진짜 무음 MP3 데이터를 이어 붙입니다!
-                        for _ in range(loop_count):
-                            relay_audio.write(SILENT_1SEC)
-               
-                relay_audio.seek(0)
-                audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
-               
-                audio_html = f"""
-                    <audio id="total-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%; margin-top: 10px;"></audio>
-                    <script>
-                        var player = document.getElementById('total-radio-player');
-                        player.play().catch(function(e) {{ console.log(e); }});
-                    </script>
-                """
-                st.markdown(audio_html, unsafe_allow_html=True)
-                st.success(f"🎶 전체 문장 연속 재생 시작! (문장 간 간격: {pause_time}초)")
-            except Exception as e:
-                st.error("라디오 플레이어 컴파일 실패")
+                        var currentItem = playlist[currentIndex];
+                        statusTxt.innerText = currentItem.id + "번 문장 재생 중...";
+                        statusTxt.style.color = "#1d4ed8";
+                        
+                        audioPlayer.src = "data:audio/mp3;base64," + currentItem.b64;
+                        audioPlayer.play().catch(function(err){{ console.log(err); }});
+                    }}
+
+                    audioPlayer.onended = function() {{
+                        currentIndex++;
+                        statusTxt.innerText = pauseSeconds + "초 동안 문장 생각하기 대기 중... ⏳";
+                        statusTxt.style.color = "#b45309";
+                        
+                        // 💥 브라우저 시계를 이용해 물리적으로 다음 플레이를 블로킹 차단합니다.
+                        setTimeout(function() {{
+                            playNext();
+                        }}, pauseSeconds * 1000);
+                    }};
+
+                    // 첫 시작 트리거
+                    setTimeout(playNext, 300);
+                </script>
+            """
+            st.markdown(js_script, unsafe_allow_html=True)
+            st.success(f"🎶 전체 문장 연속 재생 제어판이 연동되었습니다! (설정 간격: {pause_time}초)")
 
 st.write("---")
 
@@ -344,38 +358,54 @@ else:
 if is_priority_mode:
     display_records = sorted(display_records, key=lambda x: x['energy'])
 
-# 🚀 [기능 2] 현재 책장 선택 문장만 반복 재생 (물리 무음 MP3 결합 로직 적용)
+# 🚀 [기능 2] 선택된 책장 문장만 반복 재생 (브라우저 스크립트 시계 제어판 도입 완료)
 if display_records:
     if st.button(f"🎧 선택된 {selected_page_str} 문장만 반복 재생", key=f"page_relay_btn_{real_sheet_name}_{page_idx}_{is_priority_mode}"):
-        with st.spinner("⚡ 현재 책장 문장 결합 중..."):
-            try:
-                page_audio = io.BytesIO()
-                loop_count = int(pause_time) if pause_time >= 1.0 else 1
-                
-                for item in display_records:
-                    if item['en'].strip():
-                        tts_part = gTTS(text=item['en'], lang='en')
-                        part_fp = io.BytesIO()
-                        tts_part.write_to_fp(part_fp)
-                        part_fp.seek(0)
-                        page_audio.write(part_fp.read())
+        with st.spinner("⚡ 현재 책장 브라우저 시간 제어 라디오 컴파일 중..."):
+            page_playlist_data = build_js_audio_playlist(display_records)
+            
+            js_page_script = f"""
+                <div style="background-color: #fafafa; border: 1px solid #e0e0e0; padding: 10px; border-radius: 8px;">
+                    <span style="font-weight: bold; color: #1d4ed8; font-size: 14px;">🎧 책장 상태: </span> <span id="page-radio-status" style="font-weight: bold; color: #2c3e50;">대기 중...</span>
+                    <audio id="js-page-player" style="width: 100%; margin-top: 5px;" controls></audio>
+                </div>
+                <script>
+                    var page_playlist = {page_playlist_data};
+                    var p_currentIndex = 0;
+                    var p_pauseSeconds = {pause_time};
+                    var p_audioPlayer = document.getElementById('js-page-player');
+                    var p_statusTxt = document.getElementById('page-radio-status');
+
+                    function playPageNext() {{
+                        if (page_playlist.length == 0) return;
+                        if (p_currentIndex >= page_playlist.length) {{
+                            p_currentIndex = 0; // 책장 내부 무한 반복 루프
+                        }}
                         
-                        # 🚨 [물리적 강제 침묵 주입] 지정한 초만큼 진짜 무음 MP3 데이터를 이어 붙입니다!
-                        for _ in range(loop_count):
-                            page_audio.write(SILENT_1SEC)
-               
-                page_audio.seek(0)
-                page_base64 = base64.b64encode(page_audio.read()).decode('utf-8')
-                page_audio_html = f"""
-                    <audio id="page-radio-player" src="data:audio/mp3;base64,{page_base64}" controls loop style="width: 100%; margin-top: 10px;"></audio>
-                    <script>
-                        document.getElementById('page-radio-player').play();
-                    </script>
-                """
-                st.markdown(page_audio_html, unsafe_allow_html=True)
-                st.success(f"🎶 {selected_page_str} 연속 재생 시작! (문장 간 간격: {pause_time}초)")
-            except:
-                st.error("오디오 생성 오류")
+                        var p_currentItem = page_playlist[p_currentIndex];
+                        p_statusTxt.innerText = p_currentItem.id + "번 문장 재생 중...";
+                        p_statusTxt.style.color = "#1d4ed8";
+                        
+                        p_audioPlayer.src = "data:audio/mp3;base64," + p_currentItem.b64;
+                        p_audioPlayer.play().catch(function(err){{ console.log(err); }});
+                    }}
+
+                    p_audioPlayer.onended = function() {{
+                        p_currentIndex++;
+                        p_statusTxt.innerText = p_pauseSeconds + "초 동안 문장 생각하기 대기 중... ⏳";
+                        p_statusTxt.style.color = "#b45309";
+                        
+                        // 💥 브라우저 시계를 이용해 물리적으로 다음 플레이를 블로킹 차단합니다.
+                        setTimeout(function() {{
+                            playPageNext();
+                        }}, p_pauseSeconds * 1000);
+                    }};
+
+                    setTimeout(playPageNext, 300);
+                </script>
+            """
+            st.markdown(js_page_script, unsafe_allow_html=True)
+            st.success(f"🎶 {selected_page_str} 연속 재생 제어판이 연동되었습니다! (설정 간격: {pause_time}초)")
 
 # 🔤 글자 크기 조절 슬라이더 자물쇠
 font_size = st.slider(
@@ -389,11 +419,11 @@ font_size = st.slider(
 
 # 🎧 문장 사이 간격 조절 슬라이더 자물쇠
 pause_time = st.slider(
-    "🎧 문장 사이 간격 조절 (기본값: 2.0초)",
-    min_value=1.0,
-    max_value=5.0,
+    "🎧 문장 사이 간격 조절 (기본값: 2초)",
+    min_value=1,
+    max_value=10, # 넉넉하게 생각하실 수 있도록 10초까지 범위 대폭 확장!
     value=st.session_state["audio_pause_time"],
-    step=1.0, # 🚨 [안전 조치] 물리 무음 MP3와 1:1 매칭을 위해 깔끔하게 1초 단위로 조정합니다!
+    step=1,
     key="audio_pause_time"
 )
 
