@@ -34,12 +34,17 @@ if "last_menu" not in st.session_state:
 if "dynamic_font_size" not in st.session_state:
     st.session_state["dynamic_font_size"] = 26
 
+# 🚨 [재생 간격 영구 박제 핵심 1] 앱 처음 켤 때 기본 공백 간격을 2.0초로 세팅
+if "audio_pause_time" not in st.session_state:
+    st.session_state["audio_pause_time"] = 2.0
+
 # 현재 상태 선언
 current_selection = st.session_state.get("selected_menu_box", menu_options[0])
 title_text = f"👑 {current_selection}의 스피킹 마스터 👑"
 
-# 스타일 조절용 최신 수치 
+# 스타일 및 오디오 조절용 최신 수치 
 font_size = st.session_state["dynamic_font_size"]
+pause_time = st.session_state["audio_pause_time"] # 👈 선택된 간격 초(sec)를 불러옵니다.
 
 # 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
 st.markdown(f"""
@@ -192,11 +197,11 @@ is_priority_mode = "우선순위" in selected_menu
 if st.session_state["last_menu"] != selected_menu:
     st.session_state["last_menu"] = selected_menu
     
-    # [글자 크기 박제 백업] 리셋 타이밍 직전에 유저가 설정한 현재 글자 크기값을 가로채서 백업합니다.
-    current_saved_size = st.session_state.get("dynamic_font_size", 26)
-    st.session_state["dynamic_font_size"] = current_saved_size
+    # [설정값 박제 백업] 리셋 직전 글자 크기와 오디오 재생 간격을 가로채서 보존합니다.
+    st.session_state["dynamic_font_size"] = st.session_state.get("dynamic_font_size", 26)
+    st.session_state["audio_pause_time"] = st.session_state.get("audio_pause_time", 2.0)
     
-    # 💥 모드 교체 시 기존 드롭박스 세션 키들을 완벽하게 청소
+    # 모드 교체 시 기존 드롭박스 세션 키들을 완벽하게 청소
     old_box_key_normal = f"page_box_{real_sheet_name}_False"
     old_box_key_priority = f"page_box_{real_sheet_name}_True"
     if old_box_key_normal in st.session_state: del st.session_state[old_box_key_normal]
@@ -266,13 +271,16 @@ if total_sentences > 0:
 else:
     page_options = []
 
-# 🚀 [동탕 통짜 라디오] 하나의 완성된 웅장한 단일 버튼으로 병합 완료
+# 🚀 [동탕 통짜 라디오] 전체 문장 반복 재생 (간격 조절 변수 주입 완료)
 if total_sentences > 0:
     if st.button(f"🎧 🔁 {selected_menu} 전체 문장 반복 재생", key=f"total_relay_btn_{real_sheet_name}_{is_priority_mode}"):
         with st.spinner("⚡ 1번부터 끝까지 전체 문장 취합 중..."):
             try:
                 relay_audio = io.BytesIO()
                
+                # 🚨 [간격 공식] gTTS mp3 바이트에 공백 버퍼를 실시간 주입 (1초당 약 2000-2200 바이트 버퍼 대응)
+                silence_bytes = int(pause_time * 2000)
+                
                 for item in all_display_records:
                     english_sentence = str(item['en']).strip()
                     if english_sentence:
@@ -281,7 +289,7 @@ if total_sentences > 0:
                         tts_part.write_to_fp(part_fp)
                         part_fp.seek(0)
                         relay_audio.write(part_fp.read())
-                        relay_audio.write(b'\x00' * 2500)
+                        relay_audio.write(b'\x00' * silence_bytes) # 👈 유저가 지정한 시간만큼 공백 버퍼 결합
                
                 relay_audio.seek(0)
                 audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
@@ -294,7 +302,7 @@ if total_sentences > 0:
                     </script>
                 """
                 st.markdown(audio_html, unsafe_allow_html=True)
-                st.success("🎶 전체 문장 반복 재생이 시작되었습니다!")
+                st.success(f"🎶 전체 문장 연속 재생 시작! (문장 간 간격: {pause_time}초)")
             except Exception as e:
                 st.error("라디오 플레이어 컴파일 실패")
 
@@ -302,7 +310,6 @@ st.write("---")
 
 # 📚 책장 고르기 본진 레이아웃
 if total_sentences > 0:
-    # 🚨 [UI 잔상 원천 차단 핵심] key에 우선순위 모드 여부(is_priority_mode)를 결합하여 완전 격리!
     dynamic_box_key = f"page_box_{real_sheet_name}_{is_priority_mode}"
     
     selected_page_str = st.selectbox(
@@ -321,12 +328,14 @@ else:
 if is_priority_mode:
     display_records = sorted(display_records, key=lambda x: x['energy'])
 
-# 🚀 [기능 2] 책장 선택 박스 바로 아래 붙는 '현재 책장 연속 재생' 버튼 통합 완료
+# 🚀 [기능 2] 현재 책장 선택 문장만 반복 재생 (간격 조절 변수 주입 완료)
 if display_records:
     if st.button(f"🎧 선택된 {selected_page_str} 문장만 반복 재생", key=f"page_relay_btn_{real_sheet_name}_{page_idx}_{is_priority_mode}"):
         with st.spinner("⚡ 현재 책장 문장 결합 중..."):
             try:
                 page_audio = io.BytesIO()
+                silence_bytes = int(pause_time * 1800) # 책장별 연속재생용 버퍼 보정
+                
                 for item in display_records:
                     if item['en'].strip():
                         tts_part = gTTS(text=item['en'], lang='en')
@@ -334,7 +343,7 @@ if display_records:
                         tts_part.write_to_fp(part_fp)
                         part_fp.seek(0)
                         page_audio.write(part_fp.read())
-                        page_audio.write(b'\x00' * 2000)
+                        page_audio.write(b'\x00' * silence_bytes) # 👈 유저가 지정한 시간만큼 공백 버퍼 결합
                
                 page_audio.seek(0)
                 page_base64 = base64.b64encode(page_audio.read()).decode('utf-8')
@@ -345,7 +354,7 @@ if display_records:
                     </script>
                 """
                 st.markdown(page_audio_html, unsafe_allow_html=True)
-                st.success(f"🎶 {selected_page_str} 반복 재생이 시작되었습니다!")
+                st.success(f"🎶 {selected_page_str} 연속 재생 시작! (문장 간 간격: {pause_time}초)")
             except:
                 st.error("오디오 생성 오류")
 
@@ -357,6 +366,16 @@ font_size = st.slider(
     value=st.session_state["dynamic_font_size"],
     step=1,
     key="dynamic_font_size"
+)
+
+# 🚨 [새로운 기능 🚀] 문장과 문장 사이의 재생 간격(초)을 미세 조절하는 세션 자물쇠 슬라이더
+pause_time = st.slider(
+    "🎧 문장 사이 간격 조절 (기본값: 2.0초)",
+    min_value=1.0,
+    max_value=5.0,
+    value=st.session_state["audio_pause_time"],
+    step=0.5,
+    key="audio_pause_time"
 )
 
 st.write("---")
