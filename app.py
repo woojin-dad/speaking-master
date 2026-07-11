@@ -191,17 +191,17 @@ is_priority_mode = "우선순위" in selected_menu
 # 🚨 [자물쇠 리셋 연동] 모드가 전과 달라지면 신호를 켜고 세션을 강제 동기화 재부팅합니다.
 if st.session_state["last_menu"] != selected_menu:
     st.session_state["last_menu"] = selected_menu
-   
+    
     # [글자 크기 박제 백업] 리셋 타이밍 직전에 유저가 설정한 현재 글자 크기값을 가로채서 백업합니다.
     current_saved_size = st.session_state.get("dynamic_font_size", 26)
     st.session_state["dynamic_font_size"] = current_saved_size
-   
+    
     # 💥 모드 교체 시 기존 드롭박스 세션 키들을 완벽하게 청소
     old_box_key_normal = f"page_box_{real_sheet_name}_False"
     old_box_key_priority = f"page_box_{real_sheet_name}_True"
     if old_box_key_normal in st.session_state: del st.session_state[old_box_key_normal]
     if old_box_key_priority in st.session_state: del st.session_state[old_box_key_priority]
-   
+    
     st.rerun()
 
 # 2. 구글 시트 연동 설정
@@ -302,7 +302,7 @@ st.write("---")
 
 # 📚 책장 고르기 본진 레이아웃
 if total_sentences > 0:
-    # 🚨 [UI 잔상 원천 차단 핵심] key에 우선순위 모드 여부(is_priority_mode)를 결합하여 완전 격리!
+    # 🚨 [UI 잔상 원천 차단 핵심] key에 우선순위 모드 여부를 결합하여 완전 격리
     dynamic_box_key = f"page_box_{real_sheet_name}_{is_priority_mode}"
    
     selected_page_str = st.selectbox(
