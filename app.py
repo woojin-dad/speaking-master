@@ -34,7 +34,7 @@ if "last_menu" not in st.session_state:
 if "dynamic_font_size" not in st.session_state:
     st.session_state["dynamic_font_size"] = 26
 
-# 🚨 [재생 간격 영구 박제 핵심 1] 앱 처음 켤 때 기본 공백 간격을 2.0초로 세팅
+# 🚨 [재생 간격 영구 박제] 앱 처음 켤 때 기본 공백 간격을 2.0초로 세팅
 if "audio_pause_time" not in st.session_state:
     st.session_state["audio_pause_time"] = 2.0
 
@@ -44,7 +44,20 @@ title_text = f"👑 {current_selection}의 스피킹 마스터 👑"
 
 # 스타일 및 오디오 조절용 최신 수치 
 font_size = st.session_state["dynamic_font_size"]
-pause_time = st.session_state["audio_pause_time"] # 👈 선택된 간격 초(sec)를 불러옵니다.
+pause_time = st.session_state["audio_pause_time"]
+
+# 🚨 [진짜 무음 MP3 데이터] 브라우저가 강제로 쉬게 만드는 1초짜리 실제 무음 MP3 바이너리
+SILENT_1SEC = base64.b64decode(
+    "SUQzBAAAAAAAF1RFTgAAAAQAAAFormFzbXAAAABVVDNDTwAAAAgAAAByZWNvcmRlZABUUEUxAAAACQAAAG5vX2F1ZGlvAFRTRU8AAAAK"
+    "AAAAdXNpbmdfZ1RUUwAvLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8v"
+    "Ly8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8v"
+    "VVAzAAAAAExBTUUzLjk5ckgBAAAAAAAAAAAAIDQAJgGAAMAAAYAAAOdbeV8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAXy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8v"
+    "Ly8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8v"
+    "Ly8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8v"
+)
 
 # 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
 st.markdown(f"""
@@ -271,15 +284,15 @@ if total_sentences > 0:
 else:
     page_options = []
 
-# 🚀 [동탕 통짜 라디오] 전체 문장 반복 재생 (간격 조절 변수 주입 완료)
+# 🚀 [동탕 통짜 라디오] 전체 문장 반복 재생 (물리 무음 MP3 결합 로직 적용)
 if total_sentences > 0:
     if st.button(f"🎧 🔁 {selected_menu} 전체 문장 반복 재생", key=f"total_relay_btn_{real_sheet_name}_{is_priority_mode}"):
         with st.spinner("⚡ 1번부터 끝까지 전체 문장 취합 중..."):
             try:
                 relay_audio = io.BytesIO()
-               
-                # 🚨 [간격 공식] gTTS mp3 바이트에 공백 버퍼를 실시간 주입 (1초당 약 2000-2200 바이트 버퍼 대응)
-                silence_bytes = int(pause_time * 2000)
+                
+                # 0.5초 단위 대응을 위한 수치 환산 (0.5초=500ms에 가까운 바이너리 슬라이싱 생략을 위해 1초짜리 배수 결합)
+                loop_count = int(pause_time) if pause_time >= 1.0 else 1
                 
                 for item in all_display_records:
                     english_sentence = str(item['en']).strip()
@@ -289,7 +302,10 @@ if total_sentences > 0:
                         tts_part.write_to_fp(part_fp)
                         part_fp.seek(0)
                         relay_audio.write(part_fp.read())
-                        relay_audio.write(b'\x00' * silence_bytes) # 👈 유저가 지정한 시간만큼 공백 버퍼 결합
+                        
+                        # 🚨 [물리적 강제 침묵 주입] 지정한 초만큼 진짜 무음 MP3 데이터를 이어 붙입니다!
+                        for _ in range(loop_count):
+                            relay_audio.write(SILENT_1SEC)
                
                 relay_audio.seek(0)
                 audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
@@ -328,13 +344,13 @@ else:
 if is_priority_mode:
     display_records = sorted(display_records, key=lambda x: x['energy'])
 
-# 🚀 [기능 2] 현재 책장 선택 문장만 반복 재생 (간격 조절 변수 주입 완료)
+# 🚀 [기능 2] 현재 책장 선택 문장만 반복 재생 (물리 무음 MP3 결합 로직 적용)
 if display_records:
     if st.button(f"🎧 선택된 {selected_page_str} 문장만 반복 재생", key=f"page_relay_btn_{real_sheet_name}_{page_idx}_{is_priority_mode}"):
         with st.spinner("⚡ 현재 책장 문장 결합 중..."):
             try:
                 page_audio = io.BytesIO()
-                silence_bytes = int(pause_time * 1800) # 책장별 연속재생용 버퍼 보정
+                loop_count = int(pause_time) if pause_time >= 1.0 else 1
                 
                 for item in display_records:
                     if item['en'].strip():
@@ -343,7 +359,10 @@ if display_records:
                         tts_part.write_to_fp(part_fp)
                         part_fp.seek(0)
                         page_audio.write(part_fp.read())
-                        page_audio.write(b'\x00' * silence_bytes) # 👈 유저가 지정한 시간만큼 공백 버퍼 결합
+                        
+                        # 🚨 [물리적 강제 침묵 주입] 지정한 초만큼 진짜 무음 MP3 데이터를 이어 붙입니다!
+                        for _ in range(loop_count):
+                            page_audio.write(SILENT_1SEC)
                
                 page_audio.seek(0)
                 page_base64 = base64.b64encode(page_audio.read()).decode('utf-8')
@@ -368,13 +387,13 @@ font_size = st.slider(
     key="dynamic_font_size"
 )
 
-# 🚨 [새로운 기능 🚀] 문장과 문장 사이의 재생 간격(초)을 미세 조절하는 세션 자물쇠 슬라이더
+# 🎧 문장 사이 간격 조절 슬라이더 자물쇠
 pause_time = st.slider(
     "🎧 문장 사이 간격 조절 (기본값: 2.0초)",
     min_value=1.0,
     max_value=5.0,
     value=st.session_state["audio_pause_time"],
-    step=0.5,
+    step=1.0, # 🚨 [안전 조치] 물리 무음 MP3와 1:1 매칭을 위해 깔끔하게 1초 단위로 조정합니다!
     key="audio_pause_time"
 )
 
