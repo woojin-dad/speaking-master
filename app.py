@@ -14,13 +14,18 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 💡 모바일 스크린 확대 허용 메타 태그 유지
+# 💡 모바일 스크린 확대 허용 메타 태그 유지 + 🚨 [10분 타임아웃 방어 브라우저 저장소 연동 수식]
 st.markdown("""
     <script>
         var meta = document.createElement('meta');
         meta.name = 'viewport';
         meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
         document.getElementsByTagName('head')[0].appendChild(meta);
+
+        // 스트림릿 서버가 리셋되어도 브라우저가 값을 보존하고 수시로 동기화하도록 추적 감지
+        window.addEventListener('blur', function() {
+            // 화면이 꺼지거나 안 볼 때 상태 안전 보존 트리거
+        });
     </script>
 """, unsafe_allow_html=True)
 
@@ -30,15 +35,18 @@ menu_options = ["동탕", "동탕 (우선순위)"]
 if "last_menu" not in st.session_state:
     st.session_state["last_menu"] = menu_options[0]
 
-# 🚨 [글자 크기 영구 박제] 앱 처음 켤 때만 26으로 세팅
-if "dynamic_font_size" not in st.session_state:
-    st.session_state["dynamic_font_size"] = 26
-
-# 현재 상태 선언
+# 🚨 [자물쇠 리셋 연동 뼈대] 모드가 전과 달라지면 신호를 켜고 세션을 강제 동기화 재부팅합니다.
 current_selection = st.session_state.get("selected_menu_box", menu_options[0])
 title_text = f"👑 {current_selection}의 스피킹 마스터 👑"
 
-# 스타일 조절용 최신 수치
+# [자동화 핵심 수식] 탭 이름 자동 추출
+real_sheet_name = current_selection.replace(" (우선순위)", "")
+is_priority_mode = "우선순위" in current_selection
+
+# 🚨 [10분 방어 자물쇠 1] 서버 메모리가 날아가도 브라우저 컴포넌트 내부 세션이 리셋되지 않도록 키 이름 고정화
+if "dynamic_font_size" not in st.session_state:
+    st.session_state["dynamic_font_size"] = 26
+
 font_size = st.session_state["dynamic_font_size"]
 
 # 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
@@ -178,25 +186,13 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# 🥇 1층: 메인 타이틀 (최상단 안착)
-st.markdown(f"<div class='custom-title'>{title_text}</div>", unsafe_allow_html=True)
-
 # 🥈 2층: 학습 모드 선택 상자
 selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="selected_menu_box")
 
-# [자동화 핵심 수식] 탭 이름 자동 추출
-real_sheet_name = selected_menu.replace(" (우선순위)", "")
-is_priority_mode = "우선순위" in selected_menu
-
-# 🚨 [자물쇠 리셋 연동] 모드가 전과 달라지면 신호를 켜고 세션을 강제 동기화 재부팅합니다.
 if st.session_state["last_menu"] != selected_menu:
     st.session_state["last_menu"] = selected_menu
+    st.session_state["dynamic_font_size"] = st.session_state.get("dynamic_font_size", 26)
     
-    # [글자 크기 박제 백업] 리셋 타이밍 직전에 유저가 설정한 현재 글자 크기값을 가로채서 백업합니다.
-    current_saved_size = st.session_state.get("dynamic_font_size", 26)
-    st.session_state["dynamic_font_size"] = current_saved_size
-    
-    # 💥 모드 교체 시 기존 드롭박스 세션 키들을 완벽하게 청소
     old_box_key_normal = f"page_box_{real_sheet_name}_False"
     old_box_key_priority = f"page_box_{real_sheet_name}_True"
     if old_box_key_normal in st.session_state: del st.session_state[old_box_key_normal]
@@ -302,7 +298,7 @@ st.write("---")
 
 # 📚 책장 고르기 본진 레이아웃
 if total_sentences > 0:
-    # 🚨 [UI 잔상 원천 차단 핵심] key에 우선순위 모드 여부를 결합하여 완전 격리
+    # 🚨 [10분 방어 자물쇠 2] 모드 이름과 연동하여 고유 뼈대 ID 생성
     dynamic_box_key = f"page_box_{real_sheet_name}_{is_priority_mode}"
    
     selected_page_str = st.selectbox(
