@@ -34,12 +34,17 @@ if "last_menu" not in st.session_state:
 if "dynamic_font_size" not in st.session_state:
     st.session_state["dynamic_font_size"] = 26
 
+# 🚨 [말하기 배속 영구 박제 핵심 1] 앱 처음 켤 때 기본 배속을 1.0(정속)으로 세팅
+if "dynamic_speech_rate" not in st.session_state:
+    st.session_state["dynamic_speech_size"] = 1.0
+
 # 현재 상태 선언
 current_selection = st.session_state.get("selected_menu_box", menu_options[0])
 title_text = f"👑 {current_selection}의 스피킹 마스터 👑"
 
-# 스타일 조절용 최신 수치
+# 스타일 및 배속 제어용 최신 수치 추출
 font_size = st.session_state["dynamic_font_size"]
+speech_rate = st.session_state.get("dynamic_speech_rate", 1.0) # 👈 세션 배속 장착!
 
 # 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
 st.markdown(f"""
@@ -191,17 +196,17 @@ is_priority_mode = "우선순위" in selected_menu
 # 🚨 [자물쇠 리셋 연동] 모드가 전과 달라지면 신호를 켜고 세션을 강제 동기화 재부팅합니다.
 if st.session_state["last_menu"] != selected_menu:
     st.session_state["last_menu"] = selected_menu
-   
-    # [글자 크기 박제 백업] 리셋 타이밍 직전에 유저가 설정한 현재 글자 크기값을 가로채서 백업합니다.
-    current_saved_size = st.session_state.get("dynamic_font_size", 26)
-    st.session_state["dynamic_font_size"] = current_saved_size
-   
+    
+    # [설정값 박제 백업] 리셋 타이밍 직전에 유저가 설정한 현재 글자 크기와 배속값을 백업합니다.
+    st.session_state["dynamic_font_size"] = st.session_state.get("dynamic_font_size", 26)
+    st.session_state["dynamic_speech_rate"] = st.session_state.get("dynamic_speech_rate", 1.0)
+    
     # 💥 모드 교체 시 기존 드롭박스 세션 키들을 완벽하게 청소
     old_box_key_normal = f"page_box_{real_sheet_name}_False"
     old_box_key_priority = f"page_box_{real_sheet_name}_True"
     if old_box_key_normal in st.session_state: del st.session_state[old_box_key_normal]
     if old_box_key_priority in st.session_state: del st.session_state[old_box_key_priority]
-   
+    
     st.rerun()
 
 # 2. 구글 시트 연동 설정
@@ -286,15 +291,17 @@ if total_sentences > 0:
                 relay_audio.seek(0)
                 audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
                
+                # 🚨 [속도 제어 핵심 수식 1] 자바스크립트를 사용해 플레이어 배속(playbackRate)을 실시간 강제 고정 주입합니다.
                 audio_html = f"""
                     <audio id="total-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%; margin-top: 10px;"></audio>
                     <script>
                         var player = document.getElementById('total-radio-player');
+                        player.playbackRate = {speech_rate}; 
                         player.play().catch(function(e) {{ console.log(e); }});
                     </script>
                 """
                 st.markdown(audio_html, unsafe_allow_html=True)
-                st.success("🎶 전체 문장 반복 재생이 시작되었습니다!")
+                st.success(f"🎶 전체 문장 반복 재생 시작! (현재 스피드: {speech_rate}배속)")
             except Exception as e:
                 st.error("라디오 플레이어 컴파일 실패")
 
@@ -302,7 +309,6 @@ st.write("---")
 
 # 📚 책장 고르기 본진 레이아웃
 if total_sentences > 0:
-    # 🚨 [UI 잔상 원천 차단 핵심] key에 우선순위 모드 여부(is_priority_mode)를 결합하여 완전 격리!
     dynamic_box_key = f"page_box_{real_sheet_name}_{is_priority_mode}"
    
     selected_page_str = st.selectbox(
@@ -338,14 +344,18 @@ if display_records:
                
                 page_audio.seek(0)
                 page_base64 = base64.b64encode(page_audio.read()).decode('utf-8')
+                
+                # 🚨 [속도 제어 핵심 수식 2] 자바스크립트를 사용해 책장 플레이어 배속(playbackRate)을 실시간 강제 고정 주입합니다.
                 page_audio_html = f"""
                     <audio id="page-radio-player" src="data:audio/mp3;base64,{page_base64}" controls loop style="width: 100%; margin-top: 10px;"></audio>
                     <script>
-                        document.getElementById('page-radio-player').play();
+                        var p_player = document.getElementById('page-radio-player');
+                        p_player.playbackRate = {speech_rate};
+                        p_player.play();
                     </script>
                 """
                 st.markdown(page_audio_html, unsafe_allow_html=True)
-                st.success(f"🎶 {selected_page_str} 반복 재생이 시작되었습니다!")
+                st.success(f"🎶 {selected_page_str} 반복 재생 시작! (현재 스피드: {speech_rate}배속)")
             except:
                 st.error("오디오 생성 오류")
 
@@ -357,6 +367,16 @@ font_size = st.slider(
     value=st.session_state["dynamic_font_size"],
     step=1,
     key="dynamic_font_size"
+)
+
+# 🐌 [새로운 마스터 기능 🚀] 영어가 귀에 쏙쏙 박히도록 속도를 미세 제어하는 세션 자물쇠 슬라이더
+speech_rate = st.slider(
+    "🐌 영어 말하기 속도 조절 (기본값: 1.0정속)",
+    min_value=0.7,
+    max_value=1.3,
+    value=st.session_state.get("dynamic_speech_rate", 1.0),
+    step=0.05, # 👈 0.05 단위로 아주 정밀하게 조절할 수 있습니다!
+    key="dynamic_speech_rate"
 )
 
 st.write("---")
@@ -396,7 +416,18 @@ for item in display_records:
                 fp = io.BytesIO()
                 tts.write_to_fp(fp)
                 fp.seek(0)
-                st.audio(fp, format='audio/mp3', autoplay=True)
+                b64_single = base64.b64encode(fp.read()).decode('utf-8')
+                
+                # 🚨 [속도 제어 핵심 수식 3] 개별 문장의 🔊 버튼을 누를 때도 동탕님이 지정한 배속이 완벽 연동됩니다.
+                single_audio_html = f"""
+                    <audio id="single-player-{orig_idx}" src="data:audio/mp3;base64,{b64_single}"></audio>
+                    <script>
+                        var s_player = document.getElementById('single-player-{orig_idx}');
+                        s_player.playbackRate = {speech_rate};
+                        s_player.play();
+                    </script>
+                """
+                st.markdown(single_audio_html, unsafe_allow_html=True)
         else:
             if energy_val == 0:
                 color_block_text = "🟥\n🟥\n🟥\n🟥"
