@@ -1,4 +1,4 @@
-import streamlit as st  # 🚨 [오타 원천 복구 완동!] as st 정상 이식 완료
+import streamlit as st
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import json
@@ -24,9 +24,20 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 👥 메뉴 설정 (슬라이더 레이아웃을 위해 상단 배치)
+# 👥 메뉴 설정 (세션 및 기본 데이터 가공을 위해 최상단에 목록만 빌드)
 menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
 
+# 🚨 [임시 상태 세션 자물쇠] 서버 부팅 시 드롭박스가 그려지기 전 타이틀 텍스트를 미리 확보하기 위한 안전장치
+if "pure_main_menu_box" in st.session_state:
+    current_menu_text = st.session_state["pure_main_menu_box"]
+else:
+    current_menu_text = menu_options[0]
+
+# 🥇 [대장님 주문 완벽 이식 🚀] 제목을 그리는 코드를 모드 선택 상자보다 '위쪽'으로 전격 전진 배치!
+st.markdown(f"<div class='custom-title'>👑 {current_menu_text}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
+st.write("---")
+
+# 🥈 2층: 학습 모드 선택 상자 안착
 # 🚨 [화면 영구 유지 핵심 1] 메뉴 고유 키를 완전히 고정하여 서버 리부팅 시 리셋 방지
 selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="pure_main_menu_box")
 
@@ -178,10 +189,6 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# 🥇 메인 타이틀(제목) 최상단 배치
-st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
-st.write("---")
-
 # 2. 구글 시트 연동 설정
 @st.cache_resource
 def init_gspread():
@@ -198,6 +205,8 @@ if "last_menu" not in st.session_state:
 
 if st.session_state["last_menu"] != selected_menu:
     st.session_state["last_menu"] = selected_menu
+    # 모드가 바뀔 때 최상단 간판 텍스트의 부드러운 새로고침 싱크를 위해 리런 한 번만 수동 발동합니다.
+    st.rerun()
 
 if user_sheet_key not in st.session_state or st.session_state[user_sheet_key] is None:
     try:
