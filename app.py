@@ -24,7 +24,7 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 👥 메뉴 설정 (슬라이더 레이아웃을 위해 상단 배치)
+# 👥 메뉴 설정 (슬라이더 레이아웃 및 제목 연동을 위해 상단 배치)
 menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
 
 # 🚨 [화면 영구 유지 핵심 1] 메뉴 고유 키를 완전히 고정하여 서버 리부팅 시 리셋 방지
@@ -37,9 +37,11 @@ else:
 
 is_priority_mode = "우선순위" in selected_menu
 
-# 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더
-# 🚨 [화면 영구 유지 핵심 2] 슬라이더 키도 고정 식별표(pure_font_slider)를 부여하여 10분 뒤 자동 복원 유도
-font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1, key="pure_font_slider")
+# 🚨 [위치 이동 사전 세션 동기화] 슬라이더 값을 매끄럽게 연동하기 위해 세션 상태를 먼저 체크합니다.
+if "pure_font_slider" not in st.session_state:
+    st.session_state["pure_font_slider"] = 26
+
+font_size = st.session_state["pure_font_slider"]
 
 # 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
 st.markdown(f"""
@@ -277,9 +279,7 @@ if total_sentences > 0:
             except Exception as e:
                 st.error("라디오 플레이어 컴파일 실패")
 
-# 🥇 [순정 스위치 방식 대통합 완료 🚀] 
-# 드롭박스가 완벽하게 동기화를 끝마친 직후, HTML5 오디오 태그를 쏴주는 빈 도화지(st.empty) 꼼수 대신 
-# 화면 배치를 위해 스트림릿 순정 흐름 안에서 타이틀을 안전하게 렌더링합니다.
+# 🥇 [대장님 주문 완료 1 🚀] 메인 타이틀(제목)을 화면 최상단 위치로 안전하게 재배치!
 st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
 st.write("---")
 
@@ -326,6 +326,11 @@ if display_records:
                 st.error("오디오 생성 오류")
     st.write("---")
 
+# 🥇 [대장님 주문 완료 2 🚀] 글자 크기 조절 슬라이더를 연속 재생 버튼 바로 아래(첫 문장 바로 위)로 강제 이동!
+# 🚨 [화면 영구 유지 핵심 4] 슬라이더 키 명찰(pure_font_slider)을 철저히 유지하여 10분 자동 복원력 사수
+font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=st.session_state["pure_font_slider"], step=1, key="pure_font_slider")
+st.write("---")
+
 def save_to_google_sheet(sheet_obj, row, col, val):
     if sheet_obj:
         try:
@@ -333,7 +338,7 @@ def save_to_google_sheet(sheet_obj, row, col, val):
         except:
             pass
 
-# 3. 화면에 선택된 책장의 문장 리스트 출력
+# 3. 화면에 선택된 책장의 문장 리스트 출력 (첫 문장 시작 본진)
 for item in display_records:
     orig_idx = item['original_index']
     row_idx = item['original_row']
@@ -342,7 +347,7 @@ for item in display_records:
     col1, col2 = st.columns([8.5, 1.5])
    
     with col1:
-        # 🚨 [화면 영구 유지 핵심 4] 문장 접고 펴는 토글 상태도 순정 명찰 규칙 철저 고수
+        # 🚨 [화면 영구 유지 핵심 5] 문장 접고 펴는 토글 상태도 순정 명찰 규칙 철저 고수
         state_key = f"show_{real_sheet_name}_{orig_idx}"
         if state_key not in st.session_state:
             st.session_state[state_key] = False
