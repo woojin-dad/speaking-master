@@ -24,22 +24,10 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 👥 메뉴 설정 (최상단 데이터 판정을 위해 리스트 선언만 먼저 실행)
+# 👥 메뉴 설정 (슬라이더 레이아웃을 위해 상단 배치)
 menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
 
-# 🚨 [화면 영구 유지 핵심 1] 10분 뒤 부팅될 때 스마트폰 브라우저가 보관한 값을 안전하게 마중 나가기 위해
-# 드롭박스 이전에 세션에 저장된 현재 모드 텍스트를 충돌 없이 부드럽게 먼저 긁어옵니다.
-if "pure_main_menu_box" in st.session_state:
-    display_title_menu = st.session_state["pure_main_menu_box"]
-else:
-    display_title_menu = menu_options[0]
-
-# 🥇 [대장님 주문 완료 🚀] 진짜 웹페이지 최상단 1등석 자리에 타이틀 간판 전격 배치!
-st.markdown(f"<div class='custom-title'>👑 {display_title_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
-st.write("---")
-
-# 🥈 2층: 학습 모드 선택 상자 안착
-# 🚨 [화면 영구 유지 핵심 2] 메뉴 고유 키를 완전히 고정하여 서버 리부팅 시 리셋 방지
+# 🚨 [화면 영구 유지 핵심 1] 메뉴 고유 키를 완전히 고정하여 서버 리부팅 시 리셋 방지
 selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="pure_main_menu_box")
 
 if "동탕" in selected_menu:
@@ -49,7 +37,8 @@ else:
 
 is_priority_mode = "우선순위" in selected_menu
 
-# 🚨 [위치 이동 사전 세션 동기화] 슬라이더 값을 매끄럽게 연동하기 위해 세션 상태를 먼저 체크합니다.
+# 🚨 [세션 증발 버그 차단 핵심 2] 슬라이더가 아래로 내려가더라도 
+# 최상단 CSS 주입 시 글자 크기가 실시간 반영되도록 세션에 기록된 수치를 먼저 확보합니다.
 if "pure_font_slider" not in st.session_state:
     st.session_state["pure_font_slider"] = 26
 
@@ -85,8 +74,7 @@ st.markdown(f"""
         color: #2c3e50 !important;
         text-align: center !important;
         padding-top: 5px;
-        margin-top: 5px !important;
-        margin-bottom: 15px !important;
+        margin-top: 10px !important;
     }}
 
     /* 📻 1. 최상단 무한 반복 라디오 단일 버튼 통합 디자인 (초록색 테두리) */
@@ -208,8 +196,6 @@ if "last_menu" not in st.session_state:
 
 if st.session_state["last_menu"] != selected_menu:
     st.session_state["last_menu"] = selected_menu
-    # 모드가 바뀔 때 최상단 간판 텍스트를 부드럽게 새로고침 싱크 맞추기 위해 1회 리런
-    st.rerun()
 
 if user_sheet_key not in st.session_state or st.session_state[user_sheet_key] is None:
     try:
@@ -294,6 +280,10 @@ if total_sentences > 0:
             except Exception as e:
                 st.error("라디오 플레이어 컴파일 실패")
 
+# 🥇 [대장님 주문 완료 1 🚀] 제목 간판을 그 무엇보다 웹페이지 '최상단' 첫 기선제압 위치로 고정 이동!
+st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
+st.write("---")
+
 # 📚 책장 고르기 본진 레이아웃
 if total_sentences > 0:
     # 🚨 [화면 영구 유지 핵심 3] 책장 드롭박스 고유 식별 명찰(pure_page_box) 완전 고정
@@ -337,8 +327,8 @@ if display_records:
                 st.error("오디오 생성 오류")
     st.write("---")
 
-# 🥇 [대장님 주문 완료 🚀] 글자 크기 조절 슬라이더를 책장 반복 재생시작 버튼 바로 아래로 안착!
-# 🚨 [화면 영구 유지 핵심 4] 슬라이더 키 명찰(pure_font_slider)을 철저히 유지하여 10분 자동 복원력 사수
+# 🥇 [대장님 주문 완료 2 🚀] 글자 크기 조절 슬라이더를 연속 재생 파란 버튼 아래(첫 문장 바로 위)로 정직하게 이동 배치!
+# 🚨 [화면 영구 유지 핵심 4] 대장님의 순정 명찰(pure_font_slider) 체계를 완벽하게 적용하여 세션 증발 방지
 font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=st.session_state["pure_font_slider"], step=1, key="pure_font_slider")
 st.write("---")
 
