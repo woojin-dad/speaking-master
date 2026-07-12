@@ -26,7 +26,9 @@ st.markdown("""
 
 # 👥 메뉴 설정 (슬라이더 레이아웃을 위해 상단 배치)
 menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
-selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options)
+
+# 🚨 [화면 영구 유지 핵심 1] 메뉴 고유 키를 완전히 고정하여 서버 리부팅 시 리셋 방지
+selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="pure_main_menu_box")
 
 if "동탕" in selected_menu:
     real_sheet_name = "동탕"
@@ -35,8 +37,9 @@ else:
 
 is_priority_mode = "우선순위" in selected_menu
 
-# 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더 (기본값 26px 세팅)
-font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1)
+# 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더
+# 🚨 [화면 영구 유지 핵심 2] 슬라이더 키도 고정 식별표(pure_font_slider)를 부여하여 10분 뒤 자동 복원 유도
+font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1, key="pure_font_slider")
 
 # 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
 st.markdown(f"""
@@ -106,7 +109,7 @@ st.markdown(f"""
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button div,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button span,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button * {{
-        font-size: {font_size}px !important;   /* 👈 슬라이더 값이 실시간 주입됩니다! */
+        font-size: {font_size}px !important;
         font-weight: 900 !important;
         color: #ffffff !important;
         line-height: 1.2 !important;
@@ -228,12 +231,12 @@ if total_sentences > 0:
 else:
     page_options = []
 
-# 🚀 [동탕 통짜 라디오] 구글 시트 원본 전체를 한 번에 다 긁어 합쳐 뺑뺑이 돌리는 엔진
+# 🚀 [동탕 통짜 라디오] 구글 시트 원본 전체 재생 엔진
 if total_sentences > 0:
     st.markdown("<div class='total-relay-box'>📻 🔁 <b>동탕 무한 반복 스피킹 라디오 (전체 재생)</b></div>", unsafe_allow_html=True)
    
     if st.button("▶️ 1번부터 끝까지 멈춤 없이 무한 반복 재생 시작", key=f"total_relay_btn_{real_sheet_name}"):
-        with st.spinner("⚡ 1번부터 끝까지 양식장 탈출 중... 전체 문장 취합 중"):
+        with st.spinner("⚡ 전체 문장 취합 중..."):
             try:
                 relay_audio = io.BytesIO()
                
@@ -245,7 +248,7 @@ if total_sentences > 0:
                         tts_part.write_to_fp(part_fp)
                         part_fp.seek(0)
                         relay_audio.write(part_fp.read())
-                        relay_audio.write(b'\x00' * 2500) # 1.2초 공백 버퍼
+                        relay_audio.write(b'\x00' * 2500)
                
                 relay_audio.seek(0)
                 audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
@@ -268,7 +271,8 @@ st.write("---")
 
 # 📚 책장 고르기 본진 레이아웃
 if total_sentences > 0:
-    selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options)
+    # 🚨 [화면 영구 유지 핵심 3] 책장 드롭박스 고유 식별 명찰(pure_page_box) 완전 고정
+    selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options, key="pure_page_box")
     page_idx = page_options.index(selected_page_str)
     start_idx = page_idx * page_size
     end_idx = start_idx + page_size
@@ -279,7 +283,7 @@ else:
 if is_priority_mode:
     display_records = sorted(display_records, key=lambda x: x['energy'])
 
-# 🚀 [기능 2] 책장 선택 박스 바로 아래 붙는 '현재 책장 연속 재생' (파란색 박스)
+# 🚀 [기능 2] 선택된 책장 문장만 연속 듣기 (파란색 박스)
 if display_records:
     st.markdown(f"<div class='page-relay-box'>🎧 <b>선택된 {selected_page_str} 문장만 연속 듣기</b></div>", unsafe_allow_html=True)
    
@@ -326,6 +330,7 @@ for item in display_records:
     col1, col2 = st.columns([8.5, 1.5])
    
     with col1:
+        # 🚨 [화면 영구 유지 핵심 4] 문장 접고 펴는 토글 상태도 순정 명찰 규칙 철저 고수
         state_key = f"show_{real_sheet_name}_{orig_idx}"
         if state_key not in st.session_state:
             st.session_state[state_key] = False
