@@ -74,25 +74,39 @@ st.markdown(f"""
         margin-top: 10px !important;
     }}
 
-    /* 📻 1. 최상단 무한 반복 라디오 박스 디자인 (초록색 테두리) */
-    .total-relay-box {{
+    /* 📻 1. 최상단 무한 반복 라디오 단일 버튼 통합 디자인 (초록색 테두리) */
+    div.stButton > button[key^="total_relay_btn_"] {{
         background-color: #f0fdf4 !important;
-        padding: 12px 15px !important;
-        border-radius: 12px !important;
         border: 2px solid #2ecc71 !important;
+        border-radius: 12px !important;
+        padding: 14px 15px !important;
+        width: 100% !important;
         text-align: center !important;
         margin-bottom: 15px !important;
     }}
+    div.stButton > button[key^="total_relay_btn_"] p,
+    div.stButton > button[key^="total_relay_btn_"] * {{
+        color: #15803d !important;
+        font-size: 17px !important;
+        font-weight: bold !important;
+    }}
 
-    /* 🎧 2. 중단 책장별 연속 듣기 박스 디자인 (파란색 테두리) */
-    .page-relay-box {{
+    /* 🎧 2. 중단 책장별 연속 듣기 단일 버튼 통합 디자인 (파란색 테두리) */
+    div.stButton > button[key^="page_relay_btn_"] {{
         background-color: #f0f9ff !important;
-        padding: 10px 14px !important;
-        border-radius: 10px !important;
-        border: 1px solid #3b82f6 !important;
+        border: 2px solid #3b82f6 !important;
+        border-radius: 12px !important;
+        padding: 14px 15px !important;
+        width: 100% !important;
         text-align: center !important;
         margin-top: 8px !important;
         margin-bottom: 5px !important;
+    }}
+    div.stButton > button[key^="page_relay_btn_"] p,
+    div.stButton > button[key^="page_relay_btn_"] * {{
+        color: #1d4ed8 !important;
+        font-size: 16px !important;
+        font-weight: bold !important;
     }}
    
     /* 🔤 슬라이더 조절에 따라 실시간으로 변하는 문장 버튼 크기 */
@@ -231,11 +245,9 @@ if total_sentences > 0:
 else:
     page_options = []
 
-# 🚀 [동탕 통짜 라디오] 구글 시트 원본 전체 재생 엔진
+# 🚀 [동탕 통짜 라디오] 🚨 2개로 쪼개져 있던 박스와 버튼을 웅장한 하나의 단일 초록 버튼으로 대통합!
 if total_sentences > 0:
-    st.markdown("<div class='total-relay-box'>📻 🔁 <b>동탕 무한 반복 스피킹 라디오 (전체 재생)</b></div>", unsafe_allow_html=True)
-   
-    if st.button("▶️ 1번부터 끝까지 멈춤 없이 무한 반복 재생 시작", key=f"total_relay_btn_{real_sheet_name}"):
+    if st.button(f"📻 🔁 {selected_menu} 전체 문장 반복 재생 시작 (1번 ~ 끝까지)", key=f"total_relay_btn_{real_sheet_name}"):
         with st.spinner("⚡ 전체 문장 취합 중..."):
             try:
                 relay_audio = io.BytesIO()
@@ -283,11 +295,9 @@ else:
 if is_priority_mode:
     display_records = sorted(display_records, key=lambda x: x['energy'])
 
-# 🚀 [기능 2] 선택된 책장 문장만 연속 듣기 (파란색 박스)
+# 🚀 [기능 2] 선택된 책장 문장만 연속 듣기 🚨 박스와 버튼을 하나의 깔끔한 단일 파란 버튼으로 대통합!
 if display_records:
-    st.markdown(f"<div class='page-relay-box'>🎧 <b>선택된 {selected_page_str} 문장만 연속 듣기</b></div>", unsafe_allow_html=True)
-   
-    if st.button("▶️ 현재 책장 100개 문장 즉시 연속 재생 시작", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
+    if st.button(f"🎧 {selected_page_str} 문장만 연속 듣기 반복 재생 시작", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
         with st.spinner("⚡ 현재 책장 100개 음성 결합 중..."):
             try:
                 page_audio = io.BytesIO()
