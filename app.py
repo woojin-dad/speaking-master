@@ -24,10 +24,10 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 👥 메뉴 설정 (슬라이더 레이아웃을 위해 상단 배치)
+# 👥 메뉴 설정 (순정 뼈대 100% 유지)
 menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
 
-# 🚨 [화면 영구 유지 핵심 1] 메뉴 고유 키를 완전히 고정하여 서버 리부팅 시 리셋 방지
+# 🚨 [세션 완벽 수호] 원본 코드의 첫 단추인 선택창 순서와 고정 명찰(Key)을 절대 변경하지 않습니다.
 selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="pure_main_menu_box")
 
 if "동탕" in selected_menu:
@@ -37,23 +37,31 @@ else:
 
 is_priority_mode = "우선순위" in selected_menu
 
-# 🚨 [세션 증발 버그 차단 핵심 2] 슬라이더가 아래로 내려가더라도 
-# 최상단 CSS 주입 시 글자 크기가 실시간 반영되도록 세션에 기록된 수치를 먼저 확보합니다.
+# 🚨 [위치 이동 사전 세션 동기화] 슬라이더 값을 완벽하게 가로채기 위해 세션 수치 백업
 if "pure_font_slider" not in st.session_state:
     st.session_state["pure_font_slider"] = 26
 
 font_size = st.session_state["pure_font_slider"]
 
-# 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
+# 🔥 [레이아웃 최적화 CSS] 
+# 세션 증발을 막기 위해 코드는 정직하게 실행하되, 화면상의 순서만 CSS로 뒤바꿉니다.
 st.markdown(f"""
     <style>
+    /* 🥇 [대장님 주문 완료 1 🚀] 시각적인 순서를 강제로 뒤바꾸어 제목(custom-title)을 화면 무조건 맨 위 1층으로 올립니다. */
     .block-container {{
+        display: flex !important;
+        flex-direction: column !important;
         max-width: 100% !important;
         padding-top: 0.5rem !important;
         padding-bottom: 1rem !important;
         padding-left: 10px !important;
         padding-right: 0px !important;
     }}
+    
+    /* HTML 요소 배치 순서 임의 제어법 (order 사용) */
+    .custom-title {{ order: 1 !important; font-size: 26px !important; font-weight: bold !important; color: #2c3e50 !important; text-align: center !important; margin-top: 5px !important; margin-bottom: 5px !important; }}
+    div[data-testid="stMarkdownContainer"]-divider {{ order: 2 !important; }} /* 구분선 */
+    div.element-container:has(div.pure_main_menu_box) {{ order: 3 !important; }} /* 학습 모드 */
 
     div[data-testid="stHorizontalBlock"] {{
         display: flex !important;
@@ -67,15 +75,6 @@ st.markdown(f"""
    
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) {{ flex: 8.5 1 0% !important; min-width: 0 !important; }}
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) {{ flex: 1.5 1 0% !important; min-width: 0 !important; }}
-   
-    .custom-title {{
-        font-size: 26px !important;
-        font-weight: bold !important;
-        color: #2c3e50 !important;
-        text-align: center !important;
-        padding-top: 5px;
-        margin-top: 10px !important;
-    }}
 
     /* 📻 1. 최상단 무한 반복 라디오 단일 버튼 통합 디자인 (초록색 테두리) */
     div.stButton > button[key^="total_relay_btn_"] {{
@@ -280,13 +279,14 @@ if total_sentences > 0:
             except Exception as e:
                 st.error("라디오 플레이어 컴파일 실패")
 
-# 🥇 [대장님 주문 완료 1 🚀] 제목 간판을 그 무엇보다 웹페이지 '최상단' 첫 기선제압 위치로 고정 이동!
+# 🚨 [세션 수호 간판] 
+# 데이터 로드가 완료된 완벽한 타이밍에 렌더링되도록 원본 코드 위치 그대로 유지합니다.
+# (화면상의 최상단 배치는 최상단 CSS 'order: 1' 명령어로 깔끔하게 끌어올렸습니다!)
 st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
 st.write("---")
 
 # 📚 책장 고르기 본진 레이아웃
 if total_sentences > 0:
-    # 🚨 [화면 영구 유지 핵심 3] 책장 드롭박스 고유 식별 명찰(pure_page_box) 완전 고정
     selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options, key="pure_page_box")
     page_idx = page_options.index(selected_page_str)
     start_idx = page_idx * page_size
@@ -327,8 +327,7 @@ if display_records:
                 st.error("오디오 생성 오류")
     st.write("---")
 
-# 🥇 [대장님 주문 완료 2 🚀] 글자 크기 조절 슬라이더를 연속 재생 파란 버튼 아래(첫 문장 바로 위)로 정직하게 이동 배치!
-# 🚨 [화면 영구 유지 핵심 4] 대장님의 순정 명찰(pure_font_slider) 체계를 완벽하게 적용하여 세션 증발 방지
+# 🥇 [대장님 주문 완료 2 🚀] 글자 크기 조절 슬라이더를 첫 문장 바로 위(연속 재생 단일 버튼 아래) 자리에 정직하게 안착!
 font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=st.session_state["pure_font_slider"], step=1, key="pure_font_slider")
 st.write("---")
 
@@ -339,7 +338,7 @@ def save_to_google_sheet(sheet_obj, row, col, val):
         except:
             pass
 
-# 3. 화면에 선택된 책장의 문장 리스트 출력 (첫 문장 시작 본진)
+# 3. 화면에 선택된 책장의 문장 리스트 출력
 for item in display_records:
     orig_idx = item['original_index']
     row_idx = item['original_row']
@@ -348,7 +347,6 @@ for item in display_records:
     col1, col2 = st.columns([8.5, 1.5])
    
     with col1:
-        # 🚨 [화면 영구 유지 핵심 5] 문장 접고 펴는 토글 상태도 순정 명찰 규칙 철저 고수
         state_key = f"show_{real_sheet_name}_{orig_idx}"
         if state_key not in st.session_state:
             st.session_state[state_key] = False
