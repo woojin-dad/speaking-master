@@ -1,4 +1,4 @@
-import streamlit st
+import streamlit as st  # 🚨 [오타 원천 복구 완동!] as st 정상 이식 완료
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import json
@@ -178,7 +178,7 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# 🥇 [대장님 주문 완료 🚀] 메인 타이틀(제목)을 화면 최상단 1등석으로 강제 이동 배치!
+# 🥇 메인 타이틀(제목) 최상단 배치
 st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
 st.write("---")
 
