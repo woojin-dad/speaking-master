@@ -1,4 +1,4 @@
-import streamlit as st  # 🚨 [오타 원천 복구 완동!] as st 정상 이식 완료
+import streamlit as st
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import json
@@ -71,8 +71,7 @@ st.markdown(f"""
         color: #2c3e50 !important;
         text-align: center !important;
         padding-top: 5px;
-        margin-top: 5px !important;
-        margin-bottom: 15px !important;
+        margin-top: 10px !important;
     }}
 
     /* 📻 1. 최상단 무한 반복 라디오 단일 버튼 통합 디자인 (초록색 테두리) */
@@ -178,10 +177,6 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# 🥇 메인 타이틀(제목) 최상단 배치
-st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
-st.write("---")
-
 # 2. 구글 시트 연동 설정
 @st.cache_resource
 def init_gspread():
@@ -281,6 +276,12 @@ if total_sentences > 0:
                 st.success("🎶 100번 고개를 넘어 시트 마지막 번호까지 무한 반복하는 진짜 라디오가 시작되었습니다!")
             except Exception as e:
                 st.error("라디오 플레이어 컴파일 실패")
+
+# 🥇 [순정 스위치 방식 대통합 완료 🚀] 
+# 드롭박스가 완벽하게 동기화를 끝마친 직후, HTML5 오디오 태그를 쏴주는 빈 도화지(st.empty) 꼼수 대신 
+# 화면 배치를 위해 스트림릿 순정 흐름 안에서 타이틀을 안전하게 렌더링합니다.
+st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
+st.write("---")
 
 # 📚 책장 고르기 본진 레이아웃
 if total_sentences > 0:
