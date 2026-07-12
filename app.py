@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit st
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import json
@@ -71,7 +71,8 @@ st.markdown(f"""
         color: #2c3e50 !important;
         text-align: center !important;
         padding-top: 5px;
-        margin-top: 10px !important;
+        margin-top: 5px !important;
+        margin-bottom: 15px !important;
     }}
 
     /* 📻 1. 최상단 무한 반복 라디오 단일 버튼 통합 디자인 (초록색 테두리) */
@@ -177,6 +178,10 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
+# 🥇 [대장님 주문 완료 🚀] 메인 타이틀(제목)을 화면 최상단 1등석으로 강제 이동 배치!
+st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
+st.write("---")
+
 # 2. 구글 시트 연동 설정
 @st.cache_resource
 def init_gspread():
@@ -245,7 +250,7 @@ if total_sentences > 0:
 else:
     page_options = []
 
-# 🚀 [동탕 통짜 라디오] 🚨 2개로 쪼개져 있던 박스와 버튼을 웅장한 하나의 단일 초록 버튼으로 대통합!
+# 🚀 [동탕 통짜 라디오] 단일 통합 초록 버튼
 if total_sentences > 0:
     if st.button(f"📻 🔁 {selected_menu} 전체 문장 반복 재생 시작 (1번 ~ 끝까지)", key=f"total_relay_btn_{real_sheet_name}"):
         with st.spinner("⚡ 전체 문장 취합 중..."):
@@ -277,10 +282,6 @@ if total_sentences > 0:
             except Exception as e:
                 st.error("라디오 플레이어 컴파일 실패")
 
-# 👑 메인 타이틀 안착
-st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
-st.write("---")
-
 # 📚 책장 고르기 본진 레이아웃
 if total_sentences > 0:
     # 🚨 [화면 영구 유지 핵심 3] 책장 드롭박스 고유 식별 명찰(pure_page_box) 완전 고정
@@ -295,7 +296,7 @@ else:
 if is_priority_mode:
     display_records = sorted(display_records, key=lambda x: x['energy'])
 
-# 🚀 [기능 2] 선택된 책장 문장만 연속 듣기 🚨 박스와 버튼을 하나의 깔끔한 단일 파란 버튼으로 대통합!
+# 🚀 [기능 2] 선택된 책장 문장만 연속 듣기 단일 통합 파란 버튼
 if display_records:
     if st.button(f"🎧 {selected_page_str} 문장만 연속 듣기 반복 재생 시작", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
         with st.spinner("⚡ 현재 책장 100개 음성 결합 중..."):
