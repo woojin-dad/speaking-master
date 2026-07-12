@@ -24,10 +24,10 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 👥 메뉴 설정 (순정 뼈대 100% 유지)
+# 👥 메뉴 설정 (슬라이더 레이아웃을 위해 상단 배치)
 menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
 
-# 🚨 [세션 완벽 수호] 원본 코드의 첫 단추인 선택창 순서와 고정 명찰(Key)을 절대 변경하지 않습니다.
+# 🚨 [화면 영구 유지 핵심 1] 메뉴 고유 키를 완전히 고정하여 서버 리부팅 시 리셋 방지
 selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="pure_main_menu_box")
 
 if "동탕" in selected_menu:
@@ -37,17 +37,15 @@ else:
 
 is_priority_mode = "우선순위" in selected_menu
 
-# 🚨 [위치 이동 사전 세션 동기화] 슬라이더 값을 완벽하게 가로채기 위해 세션 수치 백업
-if "pure_font_slider" not in st.session_state:
-    st.session_state["pure_font_slider"] = 26
+# 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더
+# 🚨 [화면 영구 유지 핵심 2] 슬라이더 키도 고정 식별표(pure_font_slider)를 부여하여 10분 뒤 자동 복원 유도
+font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1, key="pure_font_slider")
 
-font_size = st.session_state["pure_font_slider"]
-
-# 🔥 [레이아웃 최적화 CSS] 
-# 세션 증발을 막기 위해 코드는 정직하게 실행하되, 화면상의 순서만 CSS로 뒤바꿉니다.
+# 🔥 [레이아웃 최적화 및 위치 강제 이동 CSS]
+# 🚨 세션 버그를 원천 차단하기 위해 파이썬 코드는 순정 순서대로 실행하되, 화면에 보여지는 배치 순서만 강제로 뒤바꿉니다.
 st.markdown(f"""
     <style>
-    /* 🥇 [대장님 주문 완료 1 🚀] 시각적인 순서를 강제로 뒤바꾸어 제목(custom-title)을 화면 무조건 맨 위 1층으로 올립니다. */
+    /* 전체 레이아웃을 세로 정렬 상자로 변경 */
     .block-container {{
         display: flex !important;
         flex-direction: column !important;
@@ -57,13 +55,39 @@ st.markdown(f"""
         padding-left: 10px !important;
         padding-right: 0px !important;
     }}
-    
-    /* HTML 요소 배치 순서 임의 제어법 (order 사용) */
-    .custom-title {{ order: 1 !important; font-size: 26px !important; font-weight: bold !important; color: #2c3e50 !important; text-align: center !important; margin-top: 5px !important; margin-bottom: 5px !important; }}
-    div[data-testid="stMarkdownContainer"]-divider {{ order: 2 !important; }} /* 구분선 */
-    div.element-container:has(div.pure_main_menu_box) {{ order: 3 !important; }} /* 학습 모드 */
 
+    /* 🥇 [주문 완료 1] 제목 간판을 시각적으로 화면 무조건 맨 위(1등)로 올립니다. */
+    .custom-title {{
+        order: 1 !important;
+        font-size: 26px !important;
+        font-weight: bold !important;
+        color: #2c3e50 !important;
+        text-align: center !important;
+        padding-top: 5px;
+        margin-top: 10px !important;
+    }}
+    
+    /* 구분선(hr)과 학습모드 선택창 순서 배치 */
+    .block-container > div:nth-child(4) {{ order: 2 !important; }} /* 첫 번째 hr 구분선 */
+    div.element-container:has(div.pure_main_menu_box),
+    .block-container > div:nth-child(3) {{ order: 3 !important; }} /* 학습 모드 선택창 */
+    
+    /* 라디오 버튼과 책장 선택 상자, 연속 재생 영역 배치 */
+    div.element-container:has(button[key^="total_relay_btn_"]) {{ order: 4 !important; }} /* 전체 라디오 버튼 */
+    .block-container > div:nth-child(6) {{ order: 5 !important; }} /* 제목 아래 hr 구분선 */
+    div.element-container:has(div.pure_page_box) {{ order: 6 !important; }} /* 책장 이동 선택창 */
+    div.element-container:has(button[key^="page_relay_btn_"]) {{ order: 7 !important; }} /* 책장 연속 재생 버튼 */
+    .block-container > div:nth-child(9) {{ order: 8 !important; }} /* 연속 재생 아래 hr 구분선 */
+    
+    /* 🥈 [주문 완료 2] 글자 크기 조절 슬라이더를 책장 재생 버튼 아래(첫 문장 바로 위)로 강제 배치 */
+    div.element-container:has(div.pure_font_slider) {{
+        order: 9 !important;
+    }}
+    .block-container > div:nth-child(11) {{ order: 10 !important; }} /* 슬라이더 아래 hr 구분선 */
+
+    /* 문장 리스트 본진 영역 배치 */
     div[data-testid="stHorizontalBlock"] {{
+        order: 11 !important;
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
@@ -111,7 +135,7 @@ st.markdown(f"""
         font-weight: bold !important;
     }}
    
-    /* 🔤 슬라이더 조절에 따라 실시간으로 변하는 문장 버튼 크기 */
+    /* 문장 버튼 크기 디자인 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {{
         width: 100% !important;
         text-align: left !important;
@@ -171,7 +195,7 @@ st.markdown(f"""
         line-height: 1.2 !important;
     }}
    
-    hr {{ margin: 6px 0px !important; padding: 0px !important; }}
+    hr {{ order: 12 !important; margin: 6px 0px !important; padding: 0px !important; }}
     [data-testid="stStatusWidget"] {{display: none !important; visibility: hidden !important;}}
     footer {{visibility: hidden !important; height: 0px !important; padding: 0px !important;}}
     header {{visibility: hidden !important; height: 0px !important;}}
@@ -279,14 +303,13 @@ if total_sentences > 0:
             except Exception as e:
                 st.error("라디오 플레이어 컴파일 실패")
 
-# 🚨 [세션 수호 간판] 
-# 데이터 로드가 완료된 완벽한 타이밍에 렌더링되도록 원본 코드 위치 그대로 유지합니다.
-# (화면상의 최상단 배치는 최상단 CSS 'order: 1' 명령어로 깔끔하게 끌어올렸습니다!)
+# 👑 메인 타이틀 안착 (위치와 고정 키가 완벽히 증명된 원본 코드 순서 그대로 보존)
 st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
 st.write("---")
 
 # 📚 책장 고르기 본진 레이아웃
 if total_sentences > 0:
+    # 🚨 [화면 영구 유지 핵심 3] 책장 드롭박스 고유 식별 명찰(pure_page_box) 완전 고정
     selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options, key="pure_page_box")
     page_idx = page_options.index(selected_page_str)
     start_idx = page_idx * page_size
@@ -327,17 +350,6 @@ if display_records:
                 st.error("오디오 생성 오류")
     st.write("---")
 
-# 🥇 [대장님 주문 완료 2 🚀] 글자 크기 조절 슬라이더를 첫 문장 바로 위(연속 재생 단일 버튼 아래) 자리에 정직하게 안착!
-font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=st.session_state["pure_font_slider"], step=1, key="pure_font_slider")
-st.write("---")
-
-def save_to_google_sheet(sheet_obj, row, col, val):
-    if sheet_obj:
-        try:
-            sheet_obj.update_cell(row, col, str(val))
-        except:
-            pass
-
 # 3. 화면에 선택된 책장의 문장 리스트 출력
 for item in display_records:
     orig_idx = item['original_index']
@@ -347,6 +359,7 @@ for item in display_records:
     col1, col2 = st.columns([8.5, 1.5])
    
     with col1:
+        # 🚨 [화면 영구 유지 핵심 4] 문장 접고 펴는 토글 상태도 순정 명찰 규칙 철저 고수
         state_key = f"show_{real_sheet_name}_{orig_idx}"
         if state_key not in st.session_state:
             st.session_state[state_key] = False
