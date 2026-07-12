@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as st  # 🚨 [오타 원천 복구 완동!] as st 정상 이식 완료
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import json
@@ -24,21 +24,10 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 👥 메뉴 설정 (세션 및 기본 데이터 가공을 위해 최상단에 목록만 빌드)
+# 👥 메뉴 설정 (슬라이더 레이아웃을 위해 상단 배치)
 menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
 
-# 🚨 [화면 영구 유지 핵심 1] 서버 부팅 시 드롭박스가 그려지기 전 타이틀 텍스트를 미리 확보하기 위한 안전장치
-if "pure_main_menu_box" in st.session_state:
-    current_menu_text = st.session_state["pure_main_menu_box"]
-else:
-    current_menu_text = menu_options[0]
-
-# 🥇 1층: 제목 간판 (최상단 1등석 자리 사수)
-st.markdown(f"<div class='custom-title'>👑 {current_menu_text}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
-st.write("---")
-
-# 🥈 2층: 학습 모드 선택 상자 안착
-# 🚨 [화면 영구 유지 핵심 2] 메뉴 고유 키를 완전히 고정하여 서버 리부팅 시 리셋 방지
+# 🚨 [화면 영구 유지 핵심 1] 메뉴 고유 키를 완전히 고정하여 서버 리부팅 시 리셋 방지
 selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="pure_main_menu_box")
 
 if "동탕" in selected_menu:
@@ -48,11 +37,9 @@ else:
 
 is_priority_mode = "우선순위" in selected_menu
 
-# 🚨 [위치 이동을 위한 사전 값 가로채기] CSS 내부에 실시간 글자 크기를 주입하기 위해 슬라이더 데이터 세션 값을 미리 체크합니다.
-if "pure_font_slider" not in st.session_state:
-    st.session_state["pure_font_slider"] = 26
-
-font_size = st.session_state["pure_font_slider"]
+# 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더
+# 🚨 [화면 영구 유지 핵심 2] 슬라이더 키도 고정 식별표(pure_font_slider)를 부여하여 10분 뒤 자동 복원 유도
+font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1, key="pure_font_slider")
 
 # 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
 st.markdown(f"""
@@ -191,6 +178,10 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
+# 🥇 메인 타이틀(제목) 최상단 배치
+st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
+st.write("---")
+
 # 2. 구글 시트 연동 설정
 @st.cache_resource
 def init_gspread():
@@ -207,7 +198,6 @@ if "last_menu" not in st.session_state:
 
 if st.session_state["last_menu"] != selected_menu:
     st.session_state["last_menu"] = selected_menu
-    st.rerun()
 
 if user_sheet_key not in st.session_state or st.session_state[user_sheet_key] is None:
     try:
@@ -335,11 +325,6 @@ if display_records:
                 st.error("오디오 생성 오류")
     st.write("---")
 
-# 🥇 [대장님 주문 완료 🚀] 글자 크기 조절 슬라이더를 첫 문장이 출력되기 직전 바로 위 칸으로 이동 배치!
-# 🚨 [화면 영구 유지 핵심 4] 슬라이더 키 이름(pure_font_slider)을 철저히 사수하여 자동 복원력 유지
-font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=st.session_state["pure_font_slider"], step=1, key="pure_font_slider")
-st.write("---")
-
 def save_to_google_sheet(sheet_obj, row, col, val):
     if sheet_obj:
         try:
@@ -347,7 +332,7 @@ def save_to_google_sheet(sheet_obj, row, col, val):
         except:
             pass
 
-# 3. 화면에 선택된 책장의 문장 리스트 출력 (첫 문장 시작 본진)
+# 3. 화면에 선택된 책장의 문장 리스트 출력
 for item in display_records:
     orig_idx = item['original_index']
     row_idx = item['original_row']
@@ -356,7 +341,7 @@ for item in display_records:
     col1, col2 = st.columns([8.5, 1.5])
    
     with col1:
-        # 🚨 [화면 영구 유지 핵심 5] 문장 접고 펴는 토글 상태도 순정 명찰 규칙 철저 고수
+        # 🚨 [화면 영구 유지 핵심 4] 문장 접고 펴는 토글 상태도 순정 명찰 규칙 철저 고수
         state_key = f"show_{real_sheet_name}_{orig_idx}"
         if state_key not in st.session_state:
             st.session_state[state_key] = False
