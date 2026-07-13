@@ -27,7 +27,7 @@ st.markdown("""
 # 👥 메뉴 설정 (순정 데이터 배열 유지)
 menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
 
-# 🚨 [화면 영구 유지 핵심 1] 메뉴 고유 키를 완전히 고정하여 서버 리부팅 시 리셋 방지
+# 🚨 [세션 증발 버그 차단 핵심 1] 메뉴 고유 키를 완전히 고정하여 서버 리부팅 시 리셋 방지
 selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="pure_main_menu_box")
 
 if "동탕" in selected_menu:
@@ -37,12 +37,158 @@ else:
 
 is_priority_mode = "우선순위" in selected_menu
 
-# 🚨 [세션 증발 버그 차단 핵심 2] 슬라이더가 아래로 내려가더라도 
-# 상단 CSS 주입 연산 시 글자 크기가 실시간 반영되도록 세션에 기록된 수치를 먼저 안정적으로 확보합니다.
-if "pure_font_slider" not in st.session_state:
-    st.session_state["pure_font_slider"] = 26
+# 🥇 [대장님 주문 완료 1 🚀] 
+# 데이터 판정이 끝난 즉시, 그 어떤 재생 버튼이나 슬라이더보다 웹페이지 가장 최상단 1등석 자리에 타이틀 간판을 출력합니다!
+st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
+st.write("---")
 
-font_size = st.session_state["pure_font_slider"]
+# 2. 구글 시트 연동 설정
+@st.cache_resource
+def init_gspread():
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds_dict = json.loads(st.secrets["gcp_service_account"])
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    return gspread.authorize(creds)
+
+user_data_key = f"records_{real_sheet_name}"
+user_sheet_key = f"sheet_{real_sheet_name}"
+
+if "last_menu" not in st.session_state:
+    st.session_state["last_menu"] = selected_menu
+
+if st.session_state["last_menu"] != selected_menu:
+    st.session_state["last_menu"] = selected_menu
+
+if user_sheet_key not in st.session_state or st.session_state[user_sheet_key] is None:
+    try:
+        client = init_gspread()
+        st.session_state[user_sheet_key] = client.open("SpeakingMaster").worksheet(real_sheet_name)
+    except:
+        st.session_state[user_sheet_key] = None
+
+if user_data_key not in st.session_state:
+    if st.session_state[user_sheet_key]:
+        try:
+            st.session_state[user_data_key] = st.session_state[user_sheet_key].get_all_records()
+        except:
+            st.session_state[user_data_key] = []
+    else:
+        st.session_state[user_data_key] = []
+
+records = st.session_state[user_data_key]
+sheet = st.session_state[user_sheet_key]
+
+# 전체 데이터 가공
+all_display_records = []
+for idx, r in enumerate(records):
+    try:
+        e_val = int(r['energy'])
+        if e_val > 3: e_val = 3
+        elif e_val < 0: e_val = 0
+    except:
+        e_val = 0
+       
+    all_display_records.append({
+        'original_index': idx,
+        'original_row': idx + 2,
+        'id': r['id'],
+        'kr': r['kr'],
+        'en': r['en'],
+        'energy': e_val
+    })
+
+# 📖 100개 단위로 책장 나누기 로직
+total_sentences = len(all_display_records)
+page_size = 100  
+
+if total_sentences > 0:
+    page_options = []
+    for i in range(0, total_sentences, page_size):
+        start_num = i + 1
+        end_num = min(i + page_size, total_sentences)
+        page_options.append(f"📖 책장: {start_num} ~ {end_num}번")
+else:
+    page_options = []
+
+# 🚀 [동탕 통짜 라디오] 단일 통합 초록 버튼
+if total_sentences > 0:
+    if st.button(f"📻 🔁 {selected_menu} 전체 문장 반복 재생 시작 (1번 ~ 끝까지)", key=f"total_relay_btn_{real_sheet_name}"):
+        with st.spinner("⚡ 전체 문장 취합 중..."):
+            try:
+                relay_audio = io.BytesIO()
+               
+                for item in all_display_records:
+                    english_sentence = str(item['en']).strip()
+                    if english_sentence:
+                        tts_part = gTTS(text=english_sentence, lang='en')
+                        part_fp = io.BytesIO()
+                        tts_part.write_to_fp(part_fp)
+                        part_fp.seek(0)
+                        relay_audio.write(part_fp.read())
+                        relay_audio.write(b'\x00' * 2500)
+               
+                relay_audio.seek(0)
+                audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
+               
+                audio_html = f"""
+                    <audio id="total-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%; margin-top: 10px;"></audio>
+                    <script>
+                        var player = document.getElementById('total-radio-player');
+                        player.play().catch(function(e) {{ console.log(e); }});
+                    </script>
+                """
+                st.markdown(audio_html, unsafe_allow_html=True)
+                st.success("🎶 100번 고개를 넘어 시트 마지막 번호까지 무한 반복하는 진짜 라디오가 시작되었습니다!")
+            except Exception as e:
+                st.error("라디오 플레이어 컴파일 실패")
+
+# 📚 책장 고르기 본진 레이아웃
+if total_sentences > 0:
+    # 🚨 [화면 영구 유지 핵심 3] 책장 드롭박스 고유 식별 명찰(pure_page_box) 완전 고정
+    selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options, key="pure_page_box")
+    page_idx = page_options.index(selected_page_str)
+    start_idx = page_idx * page_size
+    end_idx = start_idx + page_size
+    display_records = all_display_records[start_idx:end_idx]
+else:
+    display_records = []
+
+if is_priority_mode:
+    display_records = sorted(display_records, key=lambda x: x['energy'])
+
+# 🚀 [기능 2] 선택된 책장 문장만 연속 듣기 단일 통합 파란 버튼
+if display_records:
+    if st.button(f"🎧 {selected_page_str} 문장만 연속 듣기 반복 재생 시작", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
+        with st.spinner("⚡ 현재 책장 100개 음성 결합 중..."):
+            try:
+                page_audio = io.BytesIO()
+                for item in display_records:
+                    if item['en'].strip():
+                        tts_part = gTTS(text=item['en'], lang='en')
+                        part_fp = io.BytesIO()
+                        tts_part.write_to_fp(part_fp)
+                        part_fp.seek(0)
+                        page_audio.write(part_fp.read())
+                        page_audio.write(b'\x00' * 2000)
+               
+                page_audio.seek(0)
+                page_base64 = base64.b64encode(page_audio.read()).decode('utf-8')
+                page_audio_html = f"""
+                    <audio id="page-radio-player" src="data:audio/mp3;base64,{page_base64}" controls loop style="width: 100%; margin-top: 10px;"></audio>
+                    <script>
+                        document.getElementById('page-radio-player').play();
+                    </script>
+                """
+                st.markdown(page_audio_html, unsafe_allow_html=True)
+                st.success(f"🎶 {selected_page_str} 범위 무한 반복 재생이 시작되었습니다!")
+            except:
+                st.error("오디오 생성 오류")
+    st.write("---")
+
+# 🥇 [대장님 주문 완료 2 🚀] 
+# 글자 크기 조절 슬라이더를 첫 문장이 시작되기 직전 바로 위 칸(연속 재생 파란 버튼 바로 아래)으로 이동 배치!
+# 🚨 [세션 증발 버그 차단 핵심 4] 대장님의 성공 보증 수표 명찰(pure_font_slider) 체계를 원형 그대로 계승합니다.
+font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1, key="pure_font_slider")
 
 # 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
 st.markdown(f"""
@@ -161,6 +307,7 @@ st.markdown(f"""
         white-space: pre-line !important;
         line-height: 1.0 !important;
         text-align: center !important;
+    
         padding: 0px !important;
         margin: 0px !important;
     }}
@@ -179,158 +326,6 @@ st.markdown(f"""
     .stAppDeployButton {{display: none !important;}}
     </style>
 """, unsafe_allow_html=True)
-
-# 2. 구글 시트 연동 설정
-@st.cache_resource
-def init_gspread():
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds_dict = json.loads(st.secrets["gcp_service_account"])
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-    return gspread.authorize(creds)
-
-user_data_key = f"records_{real_sheet_name}"
-user_sheet_key = f"sheet_{real_sheet_name}"
-
-if "last_menu" not in st.session_state:
-    st.session_state["last_menu"] = selected_menu
-
-if st.session_state["last_menu"] != selected_menu:
-    st.session_state["last_menu"] = selected_menu
-
-if user_sheet_key not in st.session_state or st.session_state[user_sheet_key] is None:
-    try:
-        client = init_gspread()
-        st.session_state[user_sheet_key] = client.open("SpeakingMaster").worksheet(real_sheet_name)
-    except:
-        st.session_state[user_sheet_key] = None
-
-if user_data_key not in st.session_state:
-    if st.session_state[user_sheet_key]:
-        try:
-            st.session_state[user_data_key] = st.session_state[user_sheet_key].get_all_records()
-        except:
-            st.session_state[user_data_key] = []
-    else:
-        st.session_state[user_data_key] = []
-
-records = st.session_state[user_data_key]
-sheet = st.session_state[user_sheet_key]
-
-# 전체 데이터 가공
-all_display_records = []
-for idx, r in enumerate(records):
-    try:
-        e_val = int(r['energy'])
-        if e_val > 3: e_val = 3
-        elif e_val < 0: e_val = 0
-    except:
-        e_val = 0
-       
-    all_display_records.append({
-        'original_index': idx,
-        'original_row': idx + 2,
-        'id': r['id'],
-        'kr': r['kr'],
-        'en': r['en'],
-        'energy': e_val
-    })
-
-# 📖 100개 단위로 책장 나누기 로직
-total_sentences = len(all_display_records)
-page_size = 100  
-
-if total_sentences > 0:
-    page_options = []
-    for i in range(0, total_sentences, page_size):
-        start_num = i + 1
-        end_num = min(i + page_size, total_sentences)
-        page_options.append(f"📖 책장: {start_num} ~ {end_num}번")
-else:
-    page_options = []
-
-# 🚀 [동탕 통짜 라디오] 단일 통합 초록 버튼
-if total_sentences > 0:
-    if st.button(f"📻 🔁 {selected_menu} 전체 문장 반복 재생 시작 (1번 ~ 끝까지)", key=f"total_relay_btn_{real_sheet_name}"):
-        with st.spinner("⚡ 전체 문장 취합 중..."):
-            try:
-                relay_audio = io.BytesIO()
-               
-                for item in all_display_records:
-                    english_sentence = str(item['en']).strip()
-                    if english_sentence:
-                        tts_part = gTTS(text=english_sentence, lang='en')
-                        part_fp = io.BytesIO()
-                        tts_part.write_to_fp(part_fp)
-                        part_fp.seek(0)
-                        relay_audio.write(part_fp.read())
-                        relay_audio.write(b'\x00' * 2500)
-               
-                relay_audio.seek(0)
-                audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
-               
-                audio_html = f"""
-                    <audio id="total-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%; margin-top: 10px;"></audio>
-                    <script>
-                        var player = document.getElementById('total-radio-player');
-                        player.play().catch(function(e) {{ console.log(e); }});
-                    </script>
-                """
-                st.markdown(audio_html, unsafe_allow_html=True)
-                st.success("🎶 100번 고개를 넘어 시트 마지막 번호까지 무한 반복하는 진짜 라디오가 시작되었습니다!")
-            except Exception as e:
-                st.error("라디오 플레이어 컴파일 실패")
-
-# 👑 메인 타이틀 안착
-st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
-st.write("---")
-
-# 📚 책장 고르기 본진 레이아웃
-if total_sentences > 0:
-    # 🚨 [화면 영구 유지 핵심 3] 책장 드롭박스 고유 식별 명찰(pure_page_box) 완전 고정
-    selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options, key="pure_page_box")
-    page_idx = page_options.index(selected_page_str)
-    start_idx = page_idx * page_size
-    end_idx = start_idx + page_size
-    display_records = all_display_records[start_idx:end_idx]
-else:
-    display_records = []
-
-if is_priority_mode:
-    display_records = sorted(display_records, key=lambda x: x['energy'])
-
-# 🚀 [기능 2] 선택된 책장 문장만 연속 듣기 단일 통합 파란 버튼
-if display_records:
-    if st.button(f"🎧 {selected_page_str} 문장만 연속 듣기 반복 재생 시작", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
-        with st.spinner("⚡ 현재 책장 100개 음성 결합 중..."):
-            try:
-                page_audio = io.BytesIO()
-                for item in display_records:
-                    if item['en'].strip():
-                        tts_part = gTTS(text=item['en'], lang='en')
-                        part_fp = io.BytesIO()
-                        tts_part.write_to_fp(part_fp)
-                        part_fp.seek(0)
-                        page_audio.write(part_fp.read())
-                        page_audio.write(b'\x00' * 2000)
-               
-                page_audio.seek(0)
-                page_base64 = base64.b64encode(page_audio.read()).decode('utf-8')
-                page_audio_html = f"""
-                    <audio id="page-radio-player" src="data:audio/mp3;base64,{page_base64}" controls loop style="width: 100%; margin-top: 10px;"></audio>
-                    <script>
-                        document.getElementById('page-radio-player').play();
-                    </script>
-                """
-                st.markdown(page_audio_html, unsafe_allow_html=True)
-                st.success(f"🎶 {selected_page_str} 범위 무한 반복 재생이 시작되었습니다!")
-            except:
-                st.error("오디오 생성 오류")
-    st.write("---")
-
-# 🥇 [대장님 주문 완벽 이식 🚀] 
-# 글자 크기 조절 슬라이더를 첫 문장이 시작되기 직전 바로 위 칸(연속 재생 파란 버튼 바로 아래)으로 이동 배치!
-# 🚨 [세션 증발 버그 차단 핵심 3] 원본의 성공 명찰(pure_font_slider)과 순정 데이터 주입 방식을 원형 그대로 보존했습니다.
-font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=st.session_state["pure_font_slider"], step=1, key="pure_font_slider")
 st.write("---")
 
 def save_to_google_sheet(sheet_obj, row, col, val):
@@ -349,7 +344,7 @@ for item in display_records:
     col1, col2 = st.columns([8.5, 1.5])
    
     with col1:
-        # 🚨 [화면 영구 유지 핵심 4] 문장 접고 펴는 토글 상태도 순정 명찰 규칙 철저 고수
+        # 🚨 [화면 영구 유지 핵심 5] 문장 접고 펴는 토글 상태도 순정 명찰 규칙 철저 고수
         state_key = f"show_{real_sheet_name}_{orig_idx}"
         if state_key not in st.session_state:
             st.session_state[state_key] = False
