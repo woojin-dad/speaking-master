@@ -24,10 +24,14 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
+# 🥇 [대장님 주문 완료 핵심 1 - 영구 임대 도화지 공법]
+# 세션 증발을 막기 위해 연산 순서는 지키되, 화면 맨 꼭대기 1층 자리를 제목 전용으로 선점합니다.
+top_title_space = st.empty()
+
 # 👥 메뉴 설정 (순정 데이터 배열 유지)
 menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
 
-# 🚨 [세션 증발 버그 차단 핵심 1] 메뉴 고유 키를 완전히 고정하여 서버 리부팅 시 리셋 방지
+# 🚨 [화면 영구 유지 핵심 1] 메뉴 고유 키를 완전히 고정하여 서버 리부팅 시 리셋 방지
 selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="pure_main_menu_box")
 
 if "동탕" in selected_menu:
@@ -37,10 +41,141 @@ else:
 
 is_priority_mode = "우선순위" in selected_menu
 
-# 🥇 [대장님 주문 완료 1 🚀] 
-# 데이터 판정이 끝난 즉시, 그 어떤 재생 버튼이나 슬라이더보다 웹페이지 가장 최상단 1등석 자리에 타이틀 간판을 출력합니다!
-st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
-st.write("---")
+# 🔥 [레이아웃 최적화 CSS]
+st.markdown(f"""
+    <style>
+    .block-container {{
+        max-width: 100% !important;
+        padding-top: 0.5rem !important;
+        padding-bottom: 1rem !important;
+        padding-left: 10px !important;
+        padding-right: 0px !important;
+    }}
+
+    div[data-testid="stHorizontalBlock"] {{
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 20px !important;
+        width: 100% !important;
+    }}
+   
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) {{ flex: 8.5 1 0% !important; min-width: 0 !important; }}
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) {{ flex: 1.5 1 0% !important; min-width: 0 !important; }}
+   
+    .custom-title {{
+        font-size: 26px !important;
+        font-weight: bold !important;
+        color: #2c3e50 !important;
+        text-align: center !important;
+        padding-top: 5px;
+        margin-top: 10px !important;
+    }}
+
+    /* 📻 1. 최상단 무한 반복 라디오 단일 버튼 통합 디자인 (초록색 테두리) */
+    div.stButton > button[key^="total_relay_btn_"] {{
+        background-color: #f0fdf4 !important;
+        border: 2px solid #2ecc71 !important;
+        border-radius: 12px !important;
+        padding: 14px 15px !important;
+        width: 100% !important;
+        text-align: center !important;
+        margin-bottom: 15px !important;
+    }}
+    div.stButton > button[key^="total_relay_btn_"] p,
+    div.stButton > button[key^="total_relay_btn_"] * {{
+        color: #15803d !important;
+        font-size: 17px !important;
+        font-weight: bold !important;
+    }}
+
+    /* 🎧 2. 중단 책장별 연속 듣기 단일 버튼 통합 디자인 (파란색 테두리) */
+    div.stButton > button[key^="page_relay_btn_"] {{
+        background-color: #f0f9ff !important;
+        border: 2px solid #3b82f6 !important;
+        border-radius: 12px !important;
+        padding: 14px 15px !important;
+        width: 100% !important;
+        text-align: center !important;
+        margin-top: 8px !important;
+        margin-bottom: 5px !important;
+    }}
+    div.stButton > button[key^="page_relay_btn_"] p,
+    div.stButton > button[key^="page_relay_btn_"] * {{
+        color: #1d4ed8 !important;
+        font-size: 16px !important;
+        font-weight: bold !important;
+    }}
+   
+    /* 🔤 슬라이더 조절에 따라 실시간으로 변하는 문장 버튼 크기 주입 */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {{
+        width: 100% !important;
+        text-align: left !important;
+        background-color: #2c3e50 !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 8px 10px !important;
+    }}
+   
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button p,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button div,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button span,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button * {{
+        font-size: {st.session_state.get('pure_font_slider', 26)}px !important;
+        font-weight: 900 !important;
+        color: #ffffff !important;
+        line-height: 1.2 !important;
+    }}
+   
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button:hover * {{
+        color: #f1c40f !important;
+    }}
+   
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton {{
+        text-align: right !important;
+        width: 100% !important;
+        display: flex !important;
+        justify-content: flex-end !important;
+    }}
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button {{
+        background-color: #ffffff !important;
+        border: none !important;
+        padding: 0px !important;
+        margin: 0px !important;
+        width: auto !important;
+        display: flex !important;
+        justify-content: flex-end !important;
+        align-items: center !important;
+    }}
+   
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button p,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button div,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button span,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button * {{
+        font-size: 16px !important;
+        white-space: pre-line !important;
+        line-height: 1.0 !important;
+        text-align: center !important;
+        padding: 0px !important;
+        margin: 0px !important;
+    }}
+   
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[help="audio-btn"] * {{
+        font-size: 16px !important;
+        color: #2c3e50 !important;
+        font-weight: bold !important;
+        line-height: 1.2 !important;
+    }}
+   
+    hr {{ margin: 6px 0px !important; padding: 0px !important; }}
+    [data-testid="stStatusWidget"] {{display: none !important; visibility: hidden !important;}}
+    footer {{visibility: hidden !important; height: 0px !important; padding: 0px !important;}}
+    header {{visibility: hidden !important; height: 0px !important;}}
+    .stAppDeployButton {{display: none !important;}}
+    </style>
+""", unsafe_allow_html=True)
 
 # 2. 구글 시트 연동 설정
 @st.cache_resource
@@ -142,9 +277,13 @@ if total_sentences > 0:
             except Exception as e:
                 st.error("라디오 플레이어 컴파일 실패")
 
+# 🥇 [대장님 주문 완료 1 🚀] 
+# 비동기 로딩 딜레이로 새치기당하지 않게, 코드 초입에 미리 찜해둔 '가장 맨 위 1층' 예약 도화지에 간판 제목을 완전히 꽂아 넣습니다!
+top_title_space.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
+
 # 📚 책장 고르기 본진 레이아웃
 if total_sentences > 0:
-    # 🚨 [화면 영구 유지 핵심 3] 책장 드롭박스 고유 식별 명찰(pure_page_box) 완전 고정
+    # 🚨 [화면 영구 유지 핵심 2] 책장 드롭박스 고유 식별 명찰(pure_page_box) 완전 고정
     selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options, key="pure_page_box")
     page_idx = page_options.index(selected_page_str)
     start_idx = page_idx * page_size
@@ -186,146 +325,9 @@ if display_records:
     st.write("---")
 
 # 🥇 [대장님 주문 완료 2 🚀] 
-# 글자 크기 조절 슬라이더를 첫 문장이 시작되기 직전 바로 위 칸(연속 재생 파란 버튼 바로 아래)으로 이동 배치!
-# 🚨 [세션 증발 버그 차단 핵심 4] 대장님의 성공 보증 수표 명찰(pure_font_slider) 체계를 원형 그대로 계승합니다.
+# 글자 크기 조절 슬라이더를 첫 문장이 시작되기 직전 바로 위 칸(연속 재생 파란 버튼 바로 아래)으로 정직하게 이동 배치!
+# 🚨 [화면 영구 유지 핵심 3] 대장님의 성공 보증 수표 명찰(pure_font_slider) 체계를 원형 그대로 계승하여 세션 증발을 원천 봉쇄합니다.
 font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1, key="pure_font_slider")
-
-# 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
-st.markdown(f"""
-    <style>
-    .block-container {{
-        max-width: 100% !important;
-        padding-top: 0.5rem !important;
-        padding-bottom: 1rem !important;
-        padding-left: 10px !important;
-        padding-right: 0px !important;
-    }}
-
-    div[data-testid="stHorizontalBlock"] {{
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        gap: 20px !important;
-        width: 100% !important;
-    }}
-   
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) {{ flex: 8.5 1 0% !important; min-width: 0 !important; }}
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) {{ flex: 1.5 1 0% !important; min-width: 0 !important; }}
-   
-    .custom-title {{
-        font-size: 26px !important;
-        font-weight: bold !important;
-        color: #2c3e50 !important;
-        text-align: center !important;
-        padding-top: 5px;
-        margin-top: 10px !important;
-    }}
-
-    /* 📻 1. 최상단 무한 반복 라디오 단일 버튼 통합 디자인 (초록색 테두리) */
-    div.stButton > button[key^="total_relay_btn_"] {{
-        background-color: #f0fdf4 !important;
-        border: 2px solid #2ecc71 !important;
-        border-radius: 12px !important;
-        padding: 14px 15px !important;
-        width: 100% !important;
-        text-align: center !important;
-        margin-bottom: 15px !important;
-    }}
-    div.stButton > button[key^="total_relay_btn_"] p,
-    div.stButton > button[key^="total_relay_btn_"] * {{
-        color: #15803d !important;
-        font-size: 17px !important;
-        font-weight: bold !important;
-    }}
-
-    /* 🎧 2. 중단 책장별 연속 듣기 단일 버튼 통합 디자인 (파란색 테두리) */
-    div.stButton > button[key^="page_relay_btn_"] {{
-        background-color: #f0f9ff !important;
-        border: 2px solid #3b82f6 !important;
-        border-radius: 12px !important;
-        padding: 14px 15px !important;
-        width: 100% !important;
-        text-align: center !important;
-        margin-top: 8px !important;
-        margin-bottom: 5px !important;
-    }}
-    div.stButton > button[key^="page_relay_btn_"] p,
-    div.stButton > button[key^="page_relay_btn_"] * {{
-        color: #1d4ed8 !important;
-        font-size: 16px !important;
-        font-weight: bold !important;
-    }}
-   
-    /* 🔤 슬라이더 조절에 따라 실시간으로 변하는 문장 버튼 크기 */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {{
-        width: 100% !important;
-        text-align: left !important;
-        background-color: #2c3e50 !important;
-        border: none !important;
-        border-radius: 8px !important;
-        padding: 8px 10px !important;
-    }}
-   
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button p,
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button div,
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button span,
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button * {{
-        font-size: {font_size}px !important;
-        font-weight: 900 !important;
-        color: #ffffff !important;
-        line-height: 1.2 !important;
-    }}
-   
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button:hover * {{
-        color: #f1c40f !important;
-    }}
-   
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton {{
-        text-align: right !important;
-        width: 100% !important;
-        display: flex !important;
-        justify-content: flex-end !important;
-    }}
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button {{
-        background-color: #ffffff !important;
-        border: none !important;
-        padding: 0px !important;
-        margin: 0px !important;
-        width: auto !important;
-        display: flex !important;
-        justify-content: flex-end !important;
-        align-items: center !important;
-    }}
-   
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button p,
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button div,
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button span,
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button * {{
-        font-size: 16px !important;
-        white-space: pre-line !important;
-        line-height: 1.0 !important;
-        text-align: center !important;
-    
-        padding: 0px !important;
-        margin: 0px !important;
-    }}
-   
-    div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[help="audio-btn"] * {{
-        font-size: 16px !important;
-        color: #2c3e50 !important;
-        font-weight: bold !important;
-        line-height: 1.2 !important;
-    }}
-   
-    hr {{ margin: 6px 0px !important; padding: 0px !important; }}
-    [data-testid="stStatusWidget"] {{display: none !important; visibility: hidden !important;}}
-    footer {{visibility: hidden !important; height: 0px !important; padding: 0px !important;}}
-    header {{visibility: hidden !important; height: 0px !important;}}
-    .stAppDeployButton {{display: none !important;}}
-    </style>
-""", unsafe_allow_html=True)
 st.write("---")
 
 def save_to_google_sheet(sheet_obj, row, col, val):
@@ -344,7 +346,7 @@ for item in display_records:
     col1, col2 = st.columns([8.5, 1.5])
    
     with col1:
-        # 🚨 [화면 영구 유지 핵심 5] 문장 접고 펴는 토글 상태도 순정 명찰 규칙 철저 고수
+        # 🚨 [화면 영구 유지 핵심 4] 문장 접고 펴는 토글 상태도 순정 명찰 규칙 철저 고수
         state_key = f"show_{real_sheet_name}_{orig_idx}"
         if state_key not in st.session_state:
             st.session_state[state_key] = False
