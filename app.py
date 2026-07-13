@@ -27,20 +27,8 @@ st.markdown("""
 # 👥 메뉴 설정 (순정 데이터 배열 유지)
 menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
 
-# 🚨 [세션 증발 버그 차단 1단계] 
-# 데이터 식별과 10분 뒤 브라우저 백업 복원을 위해 selectbox를 화면에 그리기 전 데이터 연산만 보이지 않게 먼저 잡아줍니다.
-if "pure_main_menu_box" in st.session_state:
-    selected_menu = st.session_state["pure_main_menu_box"]
-else:
-    selected_menu = menu_options[0]
-
-# 🥇 [대장님 주문 완료 🚀] 그 어떤 컴포넌트보다 웹페이지 가장 최상단 1등석 자리에 타이틀 간판 배치!
-st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
-st.write("---")
-
-# 🥈 2층: 학습 모드 선택 상자 안착
 # 🚨 [화면 영구 유지 핵심 1] 메뉴 고유 키를 완전히 고정하여 서버 리부팅 시 리셋 방지
-st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="pure_main_menu_box")
+selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="pure_main_menu_box")
 
 if "동탕" in selected_menu:
     real_sheet_name = "동탕"
@@ -49,9 +37,12 @@ else:
 
 is_priority_mode = "우선순위" in selected_menu
 
-# 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더
-# 🚨 [화면 영구 유지 핵심 2] 슬라이더 키도 고정 식별표(pure_font_slider)를 부여하여 10분 뒤 자동 복원 유도
-font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1, key="pure_font_slider")
+# 🚨 [세션 증발 버그 차단 핵심 2] 슬라이더가 아래로 내려가더라도 
+# 상단 CSS 주입 연산 시 글자 크기가 실시간 반영되도록 세션에 기록된 수치를 먼저 안정적으로 확보합니다.
+if "pure_font_slider" not in st.session_state:
+    st.session_state["pure_font_slider"] = 26
+
+font_size = st.session_state["pure_font_slider"]
 
 # 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
 st.markdown(f"""
@@ -289,6 +280,10 @@ if total_sentences > 0:
             except Exception as e:
                 st.error("라디오 플레이어 컴파일 실패")
 
+# 👑 메인 타이틀 안착
+st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
+st.write("---")
+
 # 📚 책장 고르기 본진 레이아웃
 if total_sentences > 0:
     # 🚨 [화면 영구 유지 핵심 3] 책장 드롭박스 고유 식별 명찰(pure_page_box) 완전 고정
@@ -331,6 +326,12 @@ if display_records:
             except:
                 st.error("오디오 생성 오류")
     st.write("---")
+
+# 🥇 [대장님 주문 완벽 이식 🚀] 
+# 글자 크기 조절 슬라이더를 첫 문장이 시작되기 직전 바로 위 칸(연속 재생 파란 버튼 바로 아래)으로 이동 배치!
+# 🚨 [세션 증발 버그 차단 핵심 3] 원본의 성공 명찰(pure_font_slider)과 순정 데이터 주입 방식을 원형 그대로 보존했습니다.
+font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=st.session_state["pure_font_slider"], step=1, key="pure_font_slider")
+st.write("---")
 
 def save_to_google_sheet(sheet_obj, row, col, val):
     if sheet_obj:
