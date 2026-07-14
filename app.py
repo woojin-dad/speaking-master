@@ -38,7 +38,7 @@ else:
 st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
 st.write("---")
 
-# 2 층: 학습 모드 선택 상자 안착
+# 🥈 2층: 학습 모드 선택 상자 안착
 # 🚨 [화면 영구 유지 핵심 1] 메뉴 고유 키를 완전히 고정하여 서버 리부팅 시 리셋 방지
 st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="pure_main_menu_box")
 
@@ -53,39 +53,16 @@ is_priority_mode = "우선순위" in selected_menu
 # 🚨 [화면 영구 유지 핵심 2] 슬라이더 키도 고정 식별표(pure_font_slider)를 부여하여 10분 뒤 자동 복원 유도
 font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1, key="pure_font_slider")
 
-# 🔥 [시각적 위치 재정렬 및 깜빡임 차단 CSS 🛠️]
+# 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
 st.markdown(f"""
     <style>
-    /* 🚨 전체 감싸는 상자를 유연한 정렬 상자(Flex)로 바꾸어 물리적 위치 순서를 뒤바꿉니다. */
     .block-container {{
-        display: flex !important;
-        flex-direction: column !important;
         max-width: 100% !important;
         padding-top: 0.5rem !important;
         padding-bottom: 1rem !important;
         padding-left: 10px !important;
         padding-right: 0px !important;
     }}
-
-    /* 🥇 진짜 최상단 배치: 타이틀 간판을 무조건 1등으로 끌어올림 */
-    div.element-container:has(.custom-title) {{ order: 1 !important; }}
-    .block-container > hr:nth-of-type(1) {{ order: 2 !important; }} /* 타이틀 아래 구분선 */
-    
-    /* 상단 기본 인프라 제어 영역 배치 */
-    div.element-container:has(div.pure_main_menu_box) {{ order: 3 !important; }} /* 학습 모드 상자 */
-    div.element-container:has(button[key^="total_relay_btn_"]) {{ order: 4 !important; }} /* 전체 무한 라디오 */
-    div.element-container:has(div.pure_page_box) {{ order: 5 !important; }} /* 책장 선택 상자 */
-    div.element-container:has(button[key^="page_relay_btn_"]) {{ order: 6 !important; }} /* 책장 연속 재생 파란버튼 */
-    .block-container > hr:nth-of-type(2) {{ order: 7 !important; }} /* 연속재생 아래 구분선 */
-
-    /* 🥈 슬라이더 위치 강제 고정: 첫 문장 리스트 바로 진입 장벽 머리맡(8등)으로 강착! */
-    div.element-container:has(div.pure_font_slider) {{ order: 8 !important; margin-bottom: 5px !important; }}
-    .block-container > hr:nth-of-type(3) {{ order: 9 !important; }} /* 슬라이더 아래 구분선 */
-
-    /* 문장 리스트 영역 최종 배치 */
-    div[data-testid="stHorizontalBlock"] {{ order: 10 !important; }}
-    .block-container > hr:nth-of-type(4),
-    .block-container > hr {{ order: 11 !important; }}
 
     div[data-testid="stHorizontalBlock"] {{
         display: flex !important;
@@ -109,7 +86,7 @@ st.markdown(f"""
         margin-top: 10px !important;
     }}
 
-    /* 📻 1. 무한 반복 라디오 단일 버튼 통합 디자인 (초록색 테두리) */
+    /* 📻 1. 최상단 무한 반복 라디오 단일 버튼 통합 디자인 (초록색 테두리) */
     div.stButton > button[key^="total_relay_btn_"] {{
         background-color: #f0fdf4 !important;
         border: 2px solid #2ecc71 !important;
@@ -350,7 +327,7 @@ if display_records:
                     </script>
                 """
                 st.markdown(page_audio_html, unsafe_allow_html=True)
-                st.success("🎶 100번 고개를 넘어 시트 마지막 번호까지 무한 반복하는 진짜 라디오가 시작되었습니다!")
+                st.success(f"🎶 {selected_page_str} 범위 무한 반복 재생이 시작되었습니다!")
             except:
                 st.error("오디오 생성 오류")
     st.write("---")
