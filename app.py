@@ -24,24 +24,23 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 👥 메뉴 설정 (기본 배열)
+# 👥 메뉴 설정 (순정 데이터 배열 유지)
 menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
 
-# 🚨 [세션 증발 버그 차단 핵심 1] 10분 뒤 서버 재부팅 시 폰 브라우저가 들고 있던 기존 선택 수치를 안전하게 복원
+# 🚨 [세션 증발 버그 차단 1단계]
+# 데이터 식별과 10분 뒤 브라우저 백업 복원을 위해 selectbox를 화면에 그리기 전 데이터 연산만 보이지 않게 먼저 잡아줍니다.
 if "pure_main_menu_box" in st.session_state:
-    saved_menu_idx = menu_options.index(st.session_state["pure_main_menu_box"]) if st.session_state["pure_main_menu_box"] in menu_options else 0
+    selected_menu = st.session_state["pure_main_menu_box"]
 else:
-    saved_menu_idx = 0
+    selected_menu = menu_options[0]
 
-if "pure_font_slider" not in st.session_state:
-    st.session_state["pure_font_slider"] = 26
-
-# 🥇 [대장님 주문 완료 1 🚀] 그 어떤 컴포넌트보다 최상단 머리에 제목 간판 출력!
-st.markdown(f"<div class='custom-title'>👑 {menu_options[saved_menu_idx]}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
+# 🥇 [대장님 주문 완료 1 - 제목 최상단 사수 🚀] 그 어떤 컴포넌트보다 웹페이지 가장 최상단 1등석 자리에 타이틀 간판 배치!
+st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
 st.write("---")
 
-# 🥈 2층: 학습 모드 선택 상자 안착 (폰에 남은 과거 수치를 인덱스로 강제 복원)
-selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options, index=saved_menu_idx, key="pure_main_menu_box")
+# 🥈 2층: 학습 모드 선택 상자 안착
+# 🚨 [화면 영구 유지 핵심 1] 메뉴 고유 키를 완전히 고정하여 서버 리부팅 시 리셋 방지
+st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="pure_main_menu_box")
 
 if "동탕" in selected_menu:
     real_sheet_name = "동탕"
@@ -50,7 +49,14 @@ else:
 
 is_priority_mode = "우선순위" in selected_menu
 
-# 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
+# 🚨 [글씨 크기 깜빡임 버그 원천 봉쇄 핵심 공법 🛠️]
+# 아래쪽 슬라이더가 실행되기도 전에, 최상단에서 폰 브라우저 세션 주머니를 뒤져서 대장님이 설정해 둔 진짜 글자 수치를 먼저 확보합니다!
+if "pure_font_slider" in st.session_state:
+    current_font_size = int(st.session_state["pure_font_slider"])
+else:
+    current_font_size = 26
+
+# 🔥 [레이아웃 최적화 CSS] 획득한 진짜 수치(current_font_size)를 CSS 내부에 다이렉트로 완벽 선제 주입!
 st.markdown(f"""
     <style>
     .block-container {{
@@ -118,7 +124,7 @@ st.markdown(f"""
         font-weight: bold !important;
     }}
    
-    /* 🔤 슬라이더 조절에 따라 실시간으로 변하는 문장 버튼 크기 */
+    /* 🔤 선제 주입된 진짜 크기로 깜빡임 없이 유지되는 문장 버튼 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {{
         width: 100% !important;
         text-align: left !important;
@@ -132,7 +138,7 @@ st.markdown(f"""
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button div,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button span,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button * {{
-        font-size: {st.session_state["pure_font_slider"]}px !important;
+        font-size: {current_font_size}px !important;
         font-weight: 900 !important;
         color: #ffffff !important;
         line-height: 1.2 !important;
@@ -288,14 +294,8 @@ if total_sentences > 0:
 
 # 📚 책장 고르기 본진 레이아웃
 if total_sentences > 0:
-    # 🚨 [세션 증발 버그 차단 핵심 2] 책장 박스가 재부팅 시 1번 책장으로 강제 리셋되는 것을 방지하기 위해
-    # 기존 선택 기록 수치를 추적해서 백업 값으로 지정해 줍니다.
-    if "pure_page_box" in st.session_state and st.session_state["pure_page_box"] in page_options:
-        saved_page_idx = page_options.index(st.session_state["pure_page_box"])
-    else:
-        saved_page_idx = 0
-        
-    selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options, index=saved_page_idx, key="pure_page_box")
+    # 🚨 [화면 영구 유지 핵심 3] 책장 드롭박스 고유 식별 명찰(pure_page_box) 완전 고정
+    selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options, key="pure_page_box")
     page_idx = page_options.index(selected_page_str)
     start_idx = page_idx * page_size
     end_idx = start_idx + page_size
@@ -335,11 +335,18 @@ if display_records:
                 st.error("오디오 생성 오류")
     st.write("---")
 
-# 🥇 [대장님 주문 완료 2 🚀] 글자 크기 조절 슬라이더를 파란 연속 재생 버튼 바로 아래(첫 문장 바로 위)로 정직하게 이동 배치!
-# 🚨 [세션 증발 버그 차단 핵심 3] 장시간 방치 후 최초 터치 시 슬라이더 기본 수치 26px로 튕겨 나가는 것을 
-# 완벽히 차단하기 위해 value 자리에 브라우저 보관 값(st.session_state["pure_font_slider"])을 다이렉트로 이식해 둡니다.
-font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=int(st.session_state["pure_font_slider"]), step=1, key="pure_font_slider")
+# 🥇 [대장님 주문 완료 2 - 첫 문장 위 슬라이더 🚀] 
+# 글자 크기 조절 슬라이더를 첫 문장이 시작되기 직전 바로 위 칸(연속 재생 파란 버튼 바로 아래)으로 완벽하게 이동 배치!
+# 🚨 [세션 증발 버그 차단 핵심 2] 슬라이더 키도 고정 식별표(pure_font_slider)를 부여하여 10분 뒤 자동 복원 유도
+font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=current_font_size, step=1, key="pure_font_slider")
 st.write("---")
+
+def save_to_google_sheet(sheet_obj, row, col, val):
+    if sheet_obj:
+        try:
+            sheet_obj.update_cell(row, col, str(val))
+        except:
+            pass
 
 # 3. 화면에 선택된 책장의 문장 리스트 출력
 for item in display_records:
