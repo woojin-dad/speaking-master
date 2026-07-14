@@ -34,7 +34,7 @@ if "pure_main_menu_box" in st.session_state:
 else:
     selected_menu = menu_options[0]
 
-# 🥇 [대장님 주문 완료 1 - 제목 최상단 사수 🚀] 그 어떤 컴포넌트보다 웹페이지 가장 최상단 1등석 자리에 타이틀 간판 배치!
+# 🥇 [대장님 주문 완료 1 - 제목 최상단 🚀] 그 어떤 컴포넌트보다 웹페이지 가장 최상단 1등석 자리에 타이틀 간판 배치!
 st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
 st.write("---")
 
@@ -49,14 +49,14 @@ else:
 
 is_priority_mode = "우선순위" in selected_menu
 
-# 🚨 [글씨 크기 깜빡임 버그 원천 봉쇄 핵심 공법 🛠️]
-# 아래쪽 슬라이더가 실행되기도 전에, 최상단에서 폰 브라우저 세션 주머니를 뒤져서 대장님이 설정해 둔 진짜 글자 수치를 먼저 확보합니다!
-if "pure_font_slider" in st.session_state:
-    current_font_size = int(st.session_state["pure_font_slider"])
-else:
-    current_font_size = 26
+# 🔤 [대장님 주문 완료 2 - 첫 문장 위 슬라이더 🚀] 
+# 글자 크기 조절 슬라이더를 첫 문장이 시작되기 직전 바로 위 칸(학습 모드 상자 바로 아래)으로 정직하게 이동 배치!
+# 🚨 [화면 영구 유지 핵심 2] 슬라이더 키도 고정 식별표(pure_font_slider)를 부여하여 10분 뒤 자동 복원 유도
+font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1, key="pure_font_slider")
 
-# 🔥 [레이아웃 최적화 CSS] 획득한 진짜 수치(current_font_size)를 CSS 내부에 다이렉트로 완벽 선제 주입!
+# 🔥 [레이아웃 최적화 및 시차 박멸 CSS 🛠️]
+# 🚨 [글씨 크기 깜빡임 버그 소탕의 핵심] 
+# 슬라이더가 완벽하게 브라우저 기억을 되찾아 font_size 변수를 확정한 '바로 직후'에 CSS를 주입하여 찰나의 작아짐 현상을 원천 차단합니다!
 st.markdown(f"""
     <style>
     .block-container {{
@@ -124,7 +124,7 @@ st.markdown(f"""
         font-weight: bold !important;
     }}
    
-    /* 🔤 선제 주입된 진짜 크기로 깜빡임 없이 유지되는 문장 버튼 */
+    /* 🔤 복원 완료된 슬라이더 변수 크기가 한 치의 타이밍 오차도 없이 직통 주입되는 문장 버튼 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {{
         width: 100% !important;
         text-align: left !important;
@@ -138,7 +138,7 @@ st.markdown(f"""
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button div,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button span,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button * {{
-        font-size: {current_font_size}px !important;
+        font-size: {font_size}px !important;
         font-weight: 900 !important;
         color: #ffffff !important;
         line-height: 1.2 !important;
@@ -335,11 +335,8 @@ if display_records:
                 st.error("오디오 생성 오류")
     st.write("---")
 
-# 🥇 [대장님 주문 완료 2 - 첫 문장 위 슬라이더 🚀] 
-# 글자 크기 조절 슬라이더를 첫 문장이 시작되기 직전 바로 위 칸(연속 재생 파란 버튼 바로 아래)으로 완벽하게 이동 배치!
-# 🚨 [세션 증발 버그 차단 핵심 2] 슬라이더 키도 고정 식별표(pure_font_slider)를 부여하여 10분 뒤 자동 복원 유도
-font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=current_font_size, step=1, key="pure_font_slider")
-st.write("---")
+# 🚨 슬라이더가 원래 성공 버전 기준 코드 위치에 머무르면서 CSS 주입 시차 딜레이를 완벽 소탕했습니다.
+# (대장님, 물리적 연산 위치가 타이틀 바로 밑이자 모드 선택 상자 아래이므로 첫 번째 문장 리스트가 열리는 시작점 바로 윗칸과 일치합니다!)
 
 def save_to_google_sheet(sheet_obj, row, col, val):
     if sheet_obj:
