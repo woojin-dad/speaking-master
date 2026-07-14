@@ -24,10 +24,6 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 🥇 [대장님 주문 완료 핵심 1 - 영구 임대 도화지 공법]
-# 세션 증발을 막기 위해 연산 순서는 지키되, 화면 맨 꼭대기 1층 자리를 제목 전용으로 선점합니다.
-top_title_space = st.empty()
-
 # 👥 메뉴 설정 (순정 데이터 배열 유지)
 menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
 
@@ -41,16 +37,53 @@ else:
 
 is_priority_mode = "우선순위" in selected_menu
 
-# 🔥 [레이아웃 최적화 CSS]
+# 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더
+# 🚨 [화면 영구 유지 핵심 2] 슬라이더 키도 고정 식별표(pure_font_slider)를 부여하여 10분 뒤 자동 복원 유도
+font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1, key="pure_font_slider")
+
+# 🔥 [레이아웃 최적화 및 위치 강제 정렬 CSS]
+# 🚨 세션 증발을 원천 봉쇄하기 위해 파이썬의 연산 흐름은 순정 상태로 완벽히 보존하고, 화면에 보이는 위치만 CSS로 정밀 제어합니다.
 st.markdown(f"""
     <style>
+    /* 전체 감싸는 상자를 세로 정렬 상자로 변경 */
     .block-container {{
+        display: flex !important;
+        flex-direction: column !important;
         max-width: 100% !important;
-        padding-top: 0.5rem !important;
+        padding-top: 60px !important; /* 🥇 제목 간판 자리를 비워두기 위해 상단 여백 확보 */
         padding-bottom: 1rem !important;
         padding-left: 10px !important;
         padding-right: 0px !important;
+        position: relative !important;
     }}
+
+    /* 🥇 [대장님 주문 완료 1] 제목 간판을 화면 전체에서 가장 위 0px 자리에 절대 좌표로 강제 고정! */
+    .custom-title {{
+        position: absolute !important;
+        top: 10px !important;
+        left: 0 !important;
+        width: 100% !important;
+        z-index: 9999 !important;
+        font-size: 26px !important;
+        font-weight: bold !important;
+        color: #2c3e50 !important;
+        text-align: center !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }}
+    
+    /* 🥈 순정 컴포넌트들의 시각적 배치 순서 정렬 (order 기능) */
+    div.element-container:has(div.pure_main_menu_box) {{ order: 1 !important; }} /* 1. 학습 모드 선택창 */
+    div.element-container:has(button[key^="total_relay_btn_"]) {{ order: 2 !important; }} /* 2. 전체 라디오 버튼 */
+    div.element-container:has(div.pure_page_box) {{ order: 3 !important; }} /* 3. 책장 이동 선택창 */
+    div.element-container:has(button[key^="page_relay_btn_"]) {{ order: 4 !important; }} /* 4. 책장 연속 재생 버튼 */
+    
+    /* 🥉 [대장님 주문 완료 2] 글자 크기 조절 슬라이더를 책장 재생 버튼 바로 아랫단(첫 문장 바로 위)으로 강제 정렬 */
+    div.element-container:has(div.pure_font_slider) {{ order: 5 !important; margin-bottom: 10px !important; }}
+    
+    /* 구분선 및 문장 리스트 영역 정렬 */
+    .block-container > hr {{ order: 6 !important; }}
+    div[data-testid="stHorizontalBlock"] {{ order: 7 !important; }}
 
     div[data-testid="stHorizontalBlock"] {{
         display: flex !important;
@@ -64,17 +97,8 @@ st.markdown(f"""
    
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) {{ flex: 8.5 1 0% !important; min-width: 0 !important; }}
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) {{ flex: 1.5 1 0% !important; min-width: 0 !important; }}
-   
-    .custom-title {{
-        font-size: 26px !important;
-        font-weight: bold !important;
-        color: #2c3e50 !important;
-        text-align: center !important;
-        padding-top: 5px;
-        margin-top: 10px !important;
-    }}
 
-    /* 📻 1. 최상단 무한 반복 라디오 단일 버튼 통합 디자인 (초록색 테두리) */
+    /* 📻 1. 최상단 무한 반복 라디오 단일 버튼 통합 디자인 */
     div.stButton > button[key^="total_relay_btn_"] {{
         background-color: #f0fdf4 !important;
         border: 2px solid #2ecc71 !important;
@@ -91,7 +115,7 @@ st.markdown(f"""
         font-weight: bold !important;
     }}
 
-    /* 🎧 2. 중단 책장별 연속 듣기 단일 버튼 통합 디자인 (파란색 테두리) */
+    /* 🎧 2. 중단 책장별 연속 듣기 단일 버튼 통합 디자인 */
     div.stButton > button[key^="page_relay_btn_"] {{
         background-color: #f0f9ff !important;
         border: 2px solid #3b82f6 !important;
@@ -109,7 +133,7 @@ st.markdown(f"""
         font-weight: bold !important;
     }}
    
-    /* 🔤 슬라이더 조절에 따라 실시간으로 변하는 문장 버튼 크기 주입 */
+    /* 🔤 문장 버튼 크기 디자인 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {{
         width: 100% !important;
         text-align: left !important;
@@ -123,7 +147,7 @@ st.markdown(f"""
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button div,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button span,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button * {{
-        font-size: {st.session_state.get('pure_font_slider', 26)}px !important;
+        font-size: {font_size}px !important;
         font-weight: 900 !important;
         color: #ffffff !important;
         line-height: 1.2 !important;
@@ -277,13 +301,13 @@ if total_sentences > 0:
             except Exception as e:
                 st.error("라디오 플레이어 컴파일 실패")
 
-# 🥇 [대장님 주문 완료 1 🚀] 
-# 비동기 로딩 딜레이로 새치기당하지 않게, 코드 초입에 미리 찜해둔 '가장 맨 위 1층' 예약 도화지에 간판 제목을 완전히 꽂아 넣습니다!
-top_title_space.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
+# 👑 메인 타이틀 안착 (세션 증발 버그 유발을 완벽하게 차단하기 위해 순정 실행 순서 원형 유지)
+st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
+st.write("---")
 
 # 📚 책장 고르기 본진 레이아웃
 if total_sentences > 0:
-    # 🚨 [화면 영구 유지 핵심 2] 책장 드롭박스 고유 식별 명찰(pure_page_box) 완전 고정
+    # 🚨 [화면 영구 유지 핵심 3] 책장 드롭박스 고유 식별 명찰(pure_page_box) 완전 고정
     selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options, key="pure_page_box")
     page_idx = page_options.index(selected_page_str)
     start_idx = page_idx * page_size
@@ -307,7 +331,7 @@ if display_records:
                         part_fp = io.BytesIO()
                         tts_part.write_to_fp(part_fp)
                         part_fp.seek(0)
-                        page_audio.write(part_fp.read())
+                        page_audio.write(page_audio.read())
                         page_audio.write(b'\x00' * 2000)
                
                 page_audio.seek(0)
@@ -323,12 +347,6 @@ if display_records:
             except:
                 st.error("오디오 생성 오류")
     st.write("---")
-
-# 🥇 [대장님 주문 완료 2 🚀] 
-# 글자 크기 조절 슬라이더를 첫 문장이 시작되기 직전 바로 위 칸(연속 재생 파란 버튼 바로 아래)으로 정직하게 이동 배치!
-# 🚨 [화면 영구 유지 핵심 3] 대장님의 성공 보증 수표 명찰(pure_font_slider) 체계를 원형 그대로 계승하여 세션 증발을 원천 봉쇄합니다.
-font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1, key="pure_font_slider")
-st.write("---")
 
 def save_to_google_sheet(sheet_obj, row, col, val):
     if sheet_obj:
