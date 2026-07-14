@@ -27,8 +27,20 @@ st.markdown("""
 # 👥 메뉴 설정 (순정 데이터 배열 유지)
 menu_options = ["동탕", "동탕 (우선순위)", "우진", "우진 (우선순위)"]
 
+# 🚨 [세션 증발 버그 차단 1단계]
+# 데이터 식별과 10분 뒤 브라우저 백업 복원을 위해 selectbox를 화면에 그리기 전 데이터 연산만 보이지 않게 먼저 잡아줍니다.
+if "pure_main_menu_box" in st.session_state:
+    selected_menu = st.session_state["pure_main_menu_box"]
+else:
+    selected_menu = menu_options[0]
+
+# 🥇 [대장님 주문 완료 🚀] 그 어떤 컴포넌트보다 웹페이지 가장 최상단 1등석 자리에 타이틀 간판 배치!
+st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
+st.write("---")
+
+# 🥈 2층: 학습 모드 선택 상자 안착
 # 🚨 [화면 영구 유지 핵심 1] 메뉴 고유 키를 완전히 고정하여 서버 리부팅 시 리셋 방지
-selected_menu = st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="pure_main_menu_box")
+st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="pure_main_menu_box")
 
 if "동탕" in selected_menu:
     real_sheet_name = "동탕"
@@ -41,49 +53,16 @@ is_priority_mode = "우선순위" in selected_menu
 # 🚨 [화면 영구 유지 핵심 2] 슬라이더 키도 고정 식별표(pure_font_slider)를 부여하여 10분 뒤 자동 복원 유도
 font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1, key="pure_font_slider")
 
-# 🔥 [레이아웃 최적화 및 위치 강제 정렬 CSS]
-# 🚨 세션 증발을 원천 봉쇄하기 위해 파이썬의 연산 흐름은 순정 상태로 완벽히 보존하고, 화면에 보이는 위치만 CSS로 정밀 제어합니다.
+# 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
 st.markdown(f"""
     <style>
-    /* 전체 감싸는 상자를 세로 정렬 상자로 변경 */
     .block-container {{
-        display: flex !important;
-        flex-direction: column !important;
         max-width: 100% !important;
-        padding-top: 60px !important; /* 🥇 제목 간판 자리를 비워두기 위해 상단 여백 확보 */
+        padding-top: 0.5rem !important;
         padding-bottom: 1rem !important;
         padding-left: 10px !important;
         padding-right: 0px !important;
-        position: relative !important;
     }}
-
-    /* 🥇 [대장님 주문 완료 1] 제목 간판을 화면 전체에서 가장 위 0px 자리에 절대 좌표로 강제 고정! */
-    .custom-title {{
-        position: absolute !important;
-        top: 10px !important;
-        left: 0 !important;
-        width: 100% !important;
-        z-index: 9999 !important;
-        font-size: 26px !important;
-        font-weight: bold !important;
-        color: #2c3e50 !important;
-        text-align: center !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }}
-    
-    /* 🥈 순정 컴포넌트들의 시각적 배치 순서 정렬 (order 기능) */
-    div.element-container:has(div.pure_main_menu_box) {{ order: 1 !important; }} /* 1. 학습 모드 선택창 */
-    div.element-container:has(button[key^="total_relay_btn_"]) {{ order: 2 !important; }} /* 2. 전체 라디오 버튼 */
-    div.element-container:has(div.pure_page_box) {{ order: 3 !important; }} /* 3. 책장 이동 선택창 */
-    div.element-container:has(button[key^="page_relay_btn_"]) {{ order: 4 !important; }} /* 4. 책장 연속 재생 버튼 */
-    
-    /* 🥉 [대장님 주문 완료 2] 글자 크기 조절 슬라이더를 책장 재생 버튼 바로 아랫단(첫 문장 바로 위)으로 강제 정렬 */
-    div.element-container:has(div.pure_font_slider) {{ order: 5 !important; margin-bottom: 10px !important; }}
-    
-    /* 구분선 및 문장 리스트 영역 정렬 */
-    .block-container > hr {{ order: 6 !important; }}
-    div[data-testid="stHorizontalBlock"] {{ order: 7 !important; }}
 
     div[data-testid="stHorizontalBlock"] {{
         display: flex !important;
@@ -97,8 +76,17 @@ st.markdown(f"""
    
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) {{ flex: 8.5 1 0% !important; min-width: 0 !important; }}
     div[data-testid="stHorizontalBlock"] > div:nth-child(2) {{ flex: 1.5 1 0% !important; min-width: 0 !important; }}
+   
+    .custom-title {{
+        font-size: 26px !important;
+        font-weight: bold !important;
+        color: #2c3e50 !important;
+        text-align: center !important;
+        padding-top: 5px;
+        margin-top: 10px !important;
+    }}
 
-    /* 📻 1. 최상단 무한 반복 라디오 단일 버튼 통합 디자인 */
+    /* 📻 1. 최상단 무한 반복 라디오 단일 버튼 통합 디자인 (초록색 테두리) */
     div.stButton > button[key^="total_relay_btn_"] {{
         background-color: #f0fdf4 !important;
         border: 2px solid #2ecc71 !important;
@@ -115,7 +103,7 @@ st.markdown(f"""
         font-weight: bold !important;
     }}
 
-    /* 🎧 2. 중단 책장별 연속 듣기 단일 버튼 통합 디자인 */
+    /* 🎧 2. 중단 책장별 연속 듣기 단일 버튼 통합 디자인 (파란색 테두리) */
     div.stButton > button[key^="page_relay_btn_"] {{
         background-color: #f0f9ff !important;
         border: 2px solid #3b82f6 !important;
@@ -133,7 +121,7 @@ st.markdown(f"""
         font-weight: bold !important;
     }}
    
-    /* 🔤 문장 버튼 크기 디자인 */
+    /* 🔤 슬라이더 조절에 따라 실시간으로 변하는 문장 버튼 크기 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {{
         width: 100% !important;
         text-align: left !important;
@@ -301,10 +289,6 @@ if total_sentences > 0:
             except Exception as e:
                 st.error("라디오 플레이어 컴파일 실패")
 
-# 👑 메인 타이틀 안착 (세션 증발 버그 유발을 완벽하게 차단하기 위해 순정 실행 순서 원형 유지)
-st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
-st.write("---")
-
 # 📚 책장 고르기 본진 레이아웃
 if total_sentences > 0:
     # 🚨 [화면 영구 유지 핵심 3] 책장 드롭박스 고유 식별 명찰(pure_page_box) 완전 고정
@@ -331,7 +315,7 @@ if display_records:
                         part_fp = io.BytesIO()
                         tts_part.write_to_fp(part_fp)
                         part_fp.seek(0)
-                        page_audio.write(page_audio.read())
+                        page_audio.write(part_fp.read())
                         page_audio.write(b'\x00' * 2000)
                
                 page_audio.seek(0)
