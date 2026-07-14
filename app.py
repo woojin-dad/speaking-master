@@ -34,11 +34,11 @@ if "pure_main_menu_box" in st.session_state:
 else:
     selected_menu = menu_options[0]
 
-# 🥇 [대장님 주문 완료 1 - 제목 최상단 🚀] 그 어떤 컴포넌트보다 웹페이지 가장 최상단 1등석 자리에 타이틀 간판 배치!
+# 🥇 [대장님 주문 완료 🚀] 그 어떤 컴포넌트보다 웹페이지 가장 최상단 1등석 자리에 타이틀 간판 배치!
 st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
 st.write("---")
 
-# 🥈 2층: 학습 모드 선택 상자 안착
+# 2 층: 학습 모드 선택 상자 안착
 # 🚨 [화면 영구 유지 핵심 1] 메뉴 고유 키를 완전히 고정하여 서버 리부팅 시 리셋 방지
 st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="pure_main_menu_box")
 
@@ -49,23 +49,43 @@ else:
 
 is_priority_mode = "우선순위" in selected_menu
 
-# 🔤 [대장님 주문 완료 2 - 첫 문장 위 슬라이더 🚀] 
-# 글자 크기 조절 슬라이더를 첫 문장이 시작되기 직전 바로 위 칸(학습 모드 상자 바로 아래)으로 정직하게 이동 배치!
+# 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더
 # 🚨 [화면 영구 유지 핵심 2] 슬라이더 키도 고정 식별표(pure_font_slider)를 부여하여 10분 뒤 자동 복원 유도
 font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1, key="pure_font_slider")
 
-# 🔥 [레이아웃 최적화 및 시차 박멸 CSS 🛠️]
-# 🚨 [글씨 크기 깜빡임 버그 소탕의 핵심] 
-# 슬라이더가 완벽하게 브라우저 기억을 되찾아 font_size 변수를 확정한 '바로 직후'에 CSS를 주입하여 찰나의 작아짐 현상을 원천 차단합니다!
+# 🔥 [시각적 위치 재정렬 및 깜빡임 차단 CSS 🛠️]
 st.markdown(f"""
     <style>
+    /* 🚨 전체 감싸는 상자를 유연한 정렬 상자(Flex)로 바꾸어 물리적 위치 순서를 뒤바꿉니다. */
     .block-container {{
+        display: flex !important;
+        flex-direction: column !important;
         max-width: 100% !important;
         padding-top: 0.5rem !important;
         padding-bottom: 1rem !important;
         padding-left: 10px !important;
         padding-right: 0px !important;
     }}
+
+    /* 🥇 진짜 최상단 배치: 타이틀 간판을 무조건 1등으로 끌어올림 */
+    div.element-container:has(.custom-title) {{ order: 1 !important; }}
+    .block-container > hr:nth-of-type(1) {{ order: 2 !important; }} /* 타이틀 아래 구분선 */
+    
+    /* 상단 기본 인프라 제어 영역 배치 */
+    div.element-container:has(div.pure_main_menu_box) {{ order: 3 !important; }} /* 학습 모드 상자 */
+    div.element-container:has(button[key^="total_relay_btn_"]) {{ order: 4 !important; }} /* 전체 무한 라디오 */
+    div.element-container:has(div.pure_page_box) {{ order: 5 !important; }} /* 책장 선택 상자 */
+    div.element-container:has(button[key^="page_relay_btn_"]) {{ order: 6 !important; }} /* 책장 연속 재생 파란버튼 */
+    .block-container > hr:nth-of-type(2) {{ order: 7 !important; }} /* 연속재생 아래 구분선 */
+
+    /* 🥈 슬라이더 위치 강제 고정: 첫 문장 리스트 바로 진입 장벽 머리맡(8등)으로 강착! */
+    div.element-container:has(div.pure_font_slider) {{ order: 8 !important; margin-bottom: 5px !important; }}
+    .block-container > hr:nth-of-type(3) {{ order: 9 !important; }} /* 슬라이더 아래 구분선 */
+
+    /* 문장 리스트 영역 최종 배치 */
+    div[data-testid="stHorizontalBlock"] {{ order: 10 !important; }}
+    .block-container > hr:nth-of-type(4),
+    .block-container > hr {{ order: 11 !important; }}
 
     div[data-testid="stHorizontalBlock"] {{
         display: flex !important;
@@ -89,7 +109,7 @@ st.markdown(f"""
         margin-top: 10px !important;
     }}
 
-    /* 📻 1. 최상단 무한 반복 라디오 단일 버튼 통합 디자인 (초록색 테두리) */
+    /* 📻 1. 무한 반복 라디오 단일 버튼 통합 디자인 (초록색 테두리) */
     div.stButton > button[key^="total_relay_btn_"] {{
         background-color: #f0fdf4 !important;
         border: 2px solid #2ecc71 !important;
@@ -124,7 +144,7 @@ st.markdown(f"""
         font-weight: bold !important;
     }}
    
-    /* 🔤 복원 완료된 슬라이더 변수 크기가 한 치의 타이밍 오차도 없이 직통 주입되는 문장 버튼 */
+    /* 🔤 슬라이더 조절에 따라 실시간으로 변하는 문장 버튼 크기 */
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {{
         width: 100% !important;
         text-align: left !important;
@@ -330,13 +350,10 @@ if display_records:
                     </script>
                 """
                 st.markdown(page_audio_html, unsafe_allow_html=True)
-                st.success(f"🎶 {selected_page_str} 범위 무한 반복 재생이 시작되었습니다!")
+                st.success("🎶 100번 고개를 넘어 시트 마지막 번호까지 무한 반복하는 진짜 라디오가 시작되었습니다!")
             except:
                 st.error("오디오 생성 오류")
     st.write("---")
-
-# 🚨 슬라이더가 원래 성공 버전 기준 코드 위치에 머무르면서 CSS 주입 시차 딜레이를 완벽 소탕했습니다.
-# (대장님, 물리적 연산 위치가 타이틀 바로 밑이자 모드 선택 상자 아래이므로 첫 번째 문장 리스트가 열리는 시작점 바로 윗칸과 일치합니다!)
 
 def save_to_google_sheet(sheet_obj, row, col, val):
     if sheet_obj:
