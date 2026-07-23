@@ -32,9 +32,7 @@ def init_gspread():
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     return gspread.authorize(creds)
 
-# ⚡ [속도 폭발 핵심 최적화] 
-# @st.cache_resource를 적용하여 서버 로딩 시 딱 1번만 구글 시트 탭 목록을 조회하고 메모리에 상주시킵니다.
-# 문장 터치 시 더 이상 구글 본사와 재통신하지 않아 반응 속도가 이전처럼 0.1초 즉시 전환됩니다!
+# ⚡ [초고속 속도 보장] 서버 로딩 시 딱 1번만 구글 시트 탭 목록을 조회하여 메모리에 상주시킵니다.
 @st.cache_resource
 def get_sheet_titles():
     try:
@@ -42,7 +40,7 @@ def get_sheet_titles():
         doc = client.open("SpeakingMaster")
         return [ws.title for ws in doc.worksheets()]
     except:
-        return ["동탕"] # 통신 장애 발생 시 순정 기본값 안전 장치
+        return ["동탕"] # 통신 장애 발생 시 기본값 안전 장치
 
 # 👥 메뉴 동적 자동 생성 (실제 시트 탭 목록 연동)
 existing_sheets = get_sheet_titles()
@@ -57,7 +55,7 @@ if "pure_main_menu_box" in st.session_state and st.session_state["pure_main_menu
 else:
     selected_menu = menu_options[0]
 
-# 🥇 [최상단 1등석 타이틀 간판 고정]
+# 🥇 [대장님 주문 100% 반영: 1층 최상단 자리에 타이틀 간판 파이썬 직통 배치!]
 st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
 st.write("---")
 
@@ -71,35 +69,16 @@ is_priority_mode = "우선순위" in selected_menu
 # 🔤 [동탕 커스텀] 실시간 문장 글자 크기 조절 슬라이더
 font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1, key="pure_font_slider")
 
-# 🔥 [레이아웃 최적화 CSS] 순정 코드 실행 순서 및 order 배치 완전 보존
+# 🔥 [레이아웃 최적화 CSS]
 st.markdown(f"""
     <style>
     .block-container {{
-        display: flex !important;
-        flex-direction: column !important;
         max-width: 100% !important;
         padding-top: 0.5rem !important;
         padding-bottom: 1rem !important;
         padding-left: 10px !important;
         padding-right: 0px !important;
     }}
-
-    /* 1등: 최상단 제목 간판 고정 */
-    div.element-container:has(.custom-title) {{ order: 1 !important; }}
-    .block-container > hr:nth-of-type(1) {{ order: 2 !important; }}
-
-    /* 2등~5등: 기본 제어 인프라 순서 정렬 */
-    div.element-container:has(div.pure_main_menu_box) {{ order: 3 !important; }} /* 학습 모드 */
-    div.element-container:has(button[key^="total_relay_btn_"]) {{ order: 4 !important; }} /* 전체 무한 재생 */
-    div.element-container:has(div.pure_page_box) {{ order: 5 !important; }} /* 책장 선택 */
-    div.element-container:has(button[key^="page_relay_btn_"]) {{ order: 6 !important; }} /* 책장 연속 재생 */
-
-    /* 6등: 글자 크기 조절 슬라이더를 첫 문장 리스트 바로 위로 강제 이동 */
-    div.element-container:has(div.pure_font_slider) {{ order: 7 !important; margin-top: 5px !important; margin-bottom: 10px !important; }}
-
-    /* 7등: 문장 본진 리스트 출력 */
-    div[data-testid="stHorizontalBlock"] {{ order: 8 !important; }}
-    .block-container > hr {{ order: 9 !important; }}
 
     div[data-testid="stHorizontalBlock"] {{
         display: flex !important;
