@@ -6,6 +6,7 @@ from gtts import gTTS
 import io
 import threading
 import base64
+import re
 
 # 1. 웹페이지 기본 설정
 st.set_page_config(
@@ -413,41 +414,64 @@ if app_mode == "🗣️ 스피킹 마스터":
         st.write("---")
 
 # ==============================================================================
-# 🔀 [모드 2] 🎧 리스닝 마스터 (새로운 MP3 오디오 전용 플레이어)
+# 🔀 [모드 2] 🎧 리스닝 마스터 (직접 업로드 + 구글 드라이브 주소 지원)
 # ==============================================================================
 else:
     st.markdown("<div class='custom-title'>👑 리스닝 마스터 👑</div>", unsafe_allow_html=True)
     st.write("---")
     
-    st.info("💡 들으실 MP3, M4A, WAV 파일들을 아래 박스에 선택하거나 드래그해 오세요.")
-    
-    # MP3 파일 업로드 박스 (다중 선택 지원)
-    uploaded_files = st.file_uploader(
-        "📂 오디오 파일 업로드 (여러 개 선택 가능)", 
-        type=["mp3", "wav", "m4a", "ogg"], 
-        accept_multiple_files=True,
-        key="listening_master_uploader"
+    # 재생 방식 선택 (드라이브 링크 vs 직접 업로드)
+    source_type = st.radio(
+        "🎧 음성 불러오기 방식을 선택하세요", 
+        ["🔗 구글 드라이브 링크로 듣기 (대용량 강추)", "📂 폰/PC 파일 직접 올리기"],
+        key="listening_source_type",
+        horizontal=True
     )
-    
-    if uploaded_files:
-        st.success(f"🎵 총 {len(uploaded_files)}개의 오디오 파일이 준비되었습니다!")
+    st.write("---")
+
+    # 🔗 방식 1: 구글 드라이브 링크 방식 (용량 무제한)
+    if "🔗 구글 드라이브" in source_type:
+        st.subheader("🔗 구글 드라이브 링크 입력")
+        st.caption("💡 구글 드라이브 파일의 공유 권한을 '링크가 있는 모든 사용자에게 공개'로 설정한 후 링크를 붙여넣으세요.")
         
-        # 업로드된 파일 이름 리스트
-        file_names = [f.name for f in uploaded_files]
-        selected_file_name = st.selectbox("🎶 재생할 트랙 선택", file_names, key="listening_track_select")
+        gdrive_url = st.text_input("구글 드라이브 공유 링크를 붙여넣으세요:", placeholder="https://drive.google.com/file/d/...", key="gdrive_link_input")
         
-        # 선택한 파일 개체 가져오기
-        chosen_file = next(f for f in uploaded_files if f.name == selected_file_name)
-        
-        st.write("---")
-        st.subheader(f"▶️ 현재 재생 중: {chosen_file.name}")
-        
-        # 브라우저 순정 오디오 플레이어 (우측 점 3개 메뉴에서 0.5x~2.0x 속도 조절 지원)
-        st.audio(chosen_file, format=f"audio/{chosen_file.name.split('.')[-1]}")
-        
-        # 파일 메타 정보 (용량)
-        file_size_mb = round(chosen_file.size / (1024 * 1024), 2)
-        st.caption(f"📁 파일 용량: {file_size_mb} MB")
-        
+        if gdrive_url:
+            # 구글 드라이브 URL에서 File ID 추출하기
+            file_id_match = re.search(r'/d/([a-zA-Z0-9_-]+)', gdrive_url) or re.search(r'id=([a-zA-Z0-9_-]+)', gdrive_url)
+            
+            if file_id_match:
+                file_id = file_id_match.group(1)
+                # 구글 드라이브 MP3 직통 재생 URL 변환
+                direct_audio_url = f"https://docs.google.com/uc?export=download&id={file_id}"
+                
+                st.success("🎶 구글 드라이브 음성을 성공적으로 연결했습니다!")
+                st.audio(direct_audio_url)
+            else:
+                st.error("올바른 구글 드라이브 링크 형식이 아닙니다. 링크를 다시 확인해 주세요.")
+
+    # 📂 방식 2: 폰/PC 직접 업로드 방식
     else:
-        st.warning("듣고 싶은 MP3 파일(오디오북, 영어 듣기, 강의 등)을 업로드해 주세요.")
+        st.subheader("📂 직접 파일 선택")
+        uploaded_files = st.file_uploader(
+            "오디오 파일 선택 (여러 개 가능)", 
+            type=["mp3", "wav", "m4a", "ogg"], 
+            accept_multiple_files=True,
+            key="listening_master_uploader"
+        )
+        
+        if uploaded_files:
+            st.success(f"🎵 총 {len(uploaded_files)}개의 오디오 파일이 준비되었습니다!")
+            file_names = [f.name for f in uploaded_files]
+            selected_file_name = st.selectbox("🎶 재생할 트랙 선택", file_names, key="listening_track_select")
+            
+            chosen_file = next(f for f in uploaded_files if f.name == selected_file_name)
+            
+            st.write("---")
+            st.subheader(f"▶️ 현재 재생 중: {chosen_file.name}")
+            st.audio(chosen_file, format=f"audio/{chosen_file.name.split('.')[-1]}")
+            
+            file_size_mb = round(chosen_file.size / (1024 * 1024), 2)
+            st.caption(f"📁 파일 용량: {file_size_mb} MB")
+        else:
+            st.warning("듣고 싶은 오디오 파일을 선택해 주세요.")
