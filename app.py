@@ -53,16 +53,36 @@ is_priority_mode = "우선순위" in selected_menu
 # 🚨 [화면 영구 유지 핵심 2] 슬라이더 키도 고정 식별표(pure_font_slider)를 부여하여 10분 뒤 자동 복원 유도
 font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1, key="pure_font_slider")
 
-# 🔥 [레이아웃 최적화 CSS] font_size 변수를 CSS 내부에 실시간 주입
+# 🔥 [레이아웃 최적화 CSS] 
+# 🚨 순정 코드 실행 순서는 유지하면서 화면에 보이는 순서(order)만 완전하게 교정합니다.
 st.markdown(f"""
     <style>
     .block-container {{
+        display: flex !important;
+        flex-direction: column !important;
         max-width: 100% !important;
         padding-top: 0.5rem !important;
         padding-bottom: 1rem !important;
         padding-left: 10px !important;
         padding-right: 0px !important;
     }}
+
+    /* 1등: 최상단 제목 간판 고정 */
+    div.element-container:has(.custom-title) {{ order: 1 !important; }}
+    .block-container > hr:nth-of-type(1) {{ order: 2 !important; }}
+
+    /* 2등~5등: 기본 제어 인프라 순서 정렬 */
+    div.element-container:has(div.pure_main_menu_box) {{ order: 3 !important; }} /* 학습 모드 */
+    div.element-container:has(button[key^="total_relay_btn_"]) {{ order: 4 !important; }} /* 전체 무한 재생 */
+    div.element-container:has(div.pure_page_box) {{ order: 5 !important; }} /* 책장 선택 */
+    div.element-container:has(button[key^="page_relay_btn_"]) {{ order: 6 !important; }} /* 책장 연속 재생 */
+
+    /* 6등: 글자 크기 조절 슬라이더를 첫 문장 리스트 바로 위로 강제 이동! */
+    div.element-container:has(div.pure_font_slider) {{ order: 7 !important; margin-top: 5px !important; margin-bottom: 10px !important; }}
+
+    /* 7등: 문장 본진 리스트 출력 */
+    div[data-testid="stHorizontalBlock"] {{ order: 8 !important; }}
+    .block-container > hr {{ order: 9 !important; }}
 
     div[data-testid="stHorizontalBlock"] {{
         display: flex !important;
