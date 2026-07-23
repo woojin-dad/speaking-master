@@ -83,7 +83,7 @@ if app_mode == "🗣️ 스피킹 마스터":
     # 🔤 실시간 문장 글자 크기 조절 슬라이더
     font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1, key="pure_font_slider")
 
-    # 🔥 [레이아웃 최적화 CSS]
+    # 🔥 [레이아웃 최적화 CSS - Fork 및 상단 툴바 완벽 숨김 포함]
     st.markdown(f"""
         <style>
         .block-container {{
@@ -216,6 +216,9 @@ if app_mode == "🗣️ 스피킹 마스터":
         footer {{visibility: hidden !important; height: 0px !important; padding: 0px !important;}}
         header {{visibility: hidden !important; height: 0px !important;}}
         .stAppDeployButton {{display: none !important;}}
+        /* 🚨 Fork 버튼 및 상단 툴바 차단 */
+        [data-testid="stToolbar"] {{display: none !important; visibility: hidden !important;}}
+        button[title="Fork this app"] {{display: none !important; visibility: hidden !important;}}
         </style>
     """, unsafe_allow_html=True)
 
@@ -414,64 +417,39 @@ if app_mode == "🗣️ 스피킹 마스터":
         st.write("---")
 
 # ==============================================================================
-# 🔀 [모드 2] 🎧 리스닝 마스터 (직접 업로드 + 구글 드라이브 주소 지원)
+# 🔀 [모드 2] 🎧 리스닝 마스터 (구글 드라이브 주소 전용 플레이어)
 # ==============================================================================
 else:
+    # 🚨 상단 Fork 및 툴바 차단 스타일 동일 적용
+    st.markdown("""
+        <style>
+        [data-testid="stToolbar"] {display: none !important; visibility: hidden !important;}
+        button[title="Fork this app"] {display: none !important; visibility: hidden !important;}
+        header {visibility: hidden !important; height: 0px !important;}
+        footer {visibility: hidden !important; height: 0px !important;}
+        </style>
+    """, unsafe_allow_html=True)
+    
     st.markdown("<div class='custom-title'>👑 리스닝 마스터 👑</div>", unsafe_allow_html=True)
     st.write("---")
     
-    # 재생 방식 선택 (드라이브 링크 vs 직접 업로드)
-    source_type = st.radio(
-        "🎧 음성 불러오기 방식을 선택하세요", 
-        ["🔗 구글 드라이브 링크로 듣기 (대용량 강추)", "📂 폰/PC 파일 직접 올리기"],
-        key="listening_source_type",
-        horizontal=True
-    )
-    st.write("---")
-
-    # 🔗 방식 1: 구글 드라이브 링크 방식 (용량 무제한)
-    if "🔗 구글 드라이브" in source_type:
-        st.subheader("🔗 구글 드라이브 링크 입력")
-        st.caption("💡 구글 드라이브 파일의 공유 권한을 '링크가 있는 모든 사용자에게 공개'로 설정한 후 링크를 붙여넣으세요.")
+    st.subheader("🔗 구글 드라이브 오디오 연결")
+    st.caption("💡 구글 드라이브 MP3/오디오 파일의 공유 권한을 '링크가 있는 모든 사용자에게 공개'로 설정한 후 링크를 붙여넣으세요.")
+    
+    gdrive_url = st.text_input("구글 드라이브 공유 링크를 붙여넣으세요:", placeholder="https://drive.google.com/file/d/...", key="gdrive_link_input")
+    
+    if gdrive_url:
+        # 구글 드라이브 URL에서 File ID 추출하기
+        file_id_match = re.search(r'/d/([a-zA-Z0-9_-]+)', gdrive_url) or re.search(r'id=([a-zA-Z0-9_-]+)', gdrive_url)
         
-        gdrive_url = st.text_input("구글 드라이브 공유 링크를 붙여넣으세요:", placeholder="https://drive.google.com/file/d/...", key="gdrive_link_input")
-        
-        if gdrive_url:
-            # 구글 드라이브 URL에서 File ID 추출하기
-            file_id_match = re.search(r'/d/([a-zA-Z0-9_-]+)', gdrive_url) or re.search(r'id=([a-zA-Z0-9_-]+)', gdrive_url)
+        if file_id_match:
+            file_id = file_id_match.group(1)
+            # 구글 드라이브 오디오 스트리밍 직통 URL 변환
+            direct_audio_url = f"https://docs.google.com/uc?export=download&id={file_id}"
             
-            if file_id_match:
-                file_id = file_id_match.group(1)
-                # 구글 드라이브 MP3 직통 재생 URL 변환
-                direct_audio_url = f"https://docs.google.com/uc?export=download&id={file_id}"
-                
-                st.success("🎶 구글 드라이브 음성을 성공적으로 연결했습니다!")
-                st.audio(direct_audio_url)
-            else:
-                st.error("올바른 구글 드라이브 링크 형식이 아닙니다. 링크를 다시 확인해 주세요.")
-
-    # 📂 방식 2: 폰/PC 직접 업로드 방식
-    else:
-        st.subheader("📂 직접 파일 선택")
-        uploaded_files = st.file_uploader(
-            "오디오 파일 선택 (여러 개 가능)", 
-            type=["mp3", "wav", "m4a", "ogg"], 
-            accept_multiple_files=True,
-            key="listening_master_uploader"
-        )
-        
-        if uploaded_files:
-            st.success(f"🎵 총 {len(uploaded_files)}개의 오디오 파일이 준비되었습니다!")
-            file_names = [f.name for f in uploaded_files]
-            selected_file_name = st.selectbox("🎶 재생할 트랙 선택", file_names, key="listening_track_select")
+            st.success("🎶 구글 드라이브 음성을 성공적으로 연결했습니다!")
             
-            chosen_file = next(f for f in uploaded_files if f.name == selected_file_name)
-            
-            st.write("---")
-            st.subheader(f"▶️ 현재 재생 중: {chosen_file.name}")
-            st.audio(chosen_file, format=f"audio/{chosen_file.name.split('.')[-1]}")
-            
-            file_size_mb = round(chosen_file.size / (1024 * 1024), 2)
-            st.caption(f"📁 파일 용량: {file_size_mb} MB")
+            # 브라우저 순정 플레이어 (우측 점 3개 메뉴에서 재생 속도 0.5x~2.0x 지원)
+            st.audio(direct_audio_url)
         else:
-            st.warning("듣고 싶은 오디오 파일을 선택해 주세요.")
+            st.error("올바른 구글 드라이브 링크 형식이 아닙니다. 링크를 다시 확인해 주세요.")
