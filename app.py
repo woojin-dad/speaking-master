@@ -403,7 +403,7 @@ if app_mode == "🗣️ 스피킹 마스터":
         st.write("---")
 
 # ==============================================================================
-# 🔀 [모드 2] 🎧 리스닝 마스터 (메모 기능 추가)
+# 🔀 [모드 2] 🎧 리스닝 마스터 (타이틀 변경 반영 완료)
 # ==============================================================================
 else:
     st.markdown("""
@@ -448,7 +448,8 @@ else:
         </style>
     """, unsafe_allow_html=True)
     
-    st.markdown("<div class='custom-title'>👑 동탕의 리스닝 마스터 👑</div>", unsafe_allow_html=True)
+    # 📌 요청하신 타이틀 변경 완료: "👑 리스닝 마스터 👑"
+    st.markdown("<div class='custom-title'>👑 리스닝 마스터 👑</div>", unsafe_allow_html=True)
     st.write("---")
 
     TARGET_FOLDER_ID = "10jn33dgDqiBD_ovj6BYnUD_1Y9BQruwF"
@@ -460,7 +461,6 @@ else:
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         return gspread.authorize(creds)
 
-    # 완독 및 메모 데이터 로드
     def load_listening_records():
         try:
             client = init_gspread_listening()
@@ -479,7 +479,6 @@ else:
         except Exception as e:
             return {}, {}, None
 
-    # 완독 상태 토글
     def toggle_track_completed_in_sheet(ws, filename, mark_as_done):
         if not ws:
             return
@@ -503,7 +502,6 @@ else:
         except Exception as e:
             pass
 
-    # 📝 메모 저장 함수
     def save_track_note_in_sheet(ws, filename, note_text):
         if not ws:
             return
@@ -660,7 +658,6 @@ else:
                     """
                     st.components.v1.html(custom_player_html, height=140)
                     
-                    # 📝 나만의 청취 메모장 영역
                     user_note = st.text_area(
                         "📝 나만의 청취 메모 (중요 표현, 구간 적기):",
                         value=current_note,
@@ -681,7 +678,6 @@ else:
 
                     st.write("---")
 
-                    # 완독 및 취소 버튼
                     col_act1, col_act2 = st.columns([5, 5])
                     with col_act1:
                         if not is_done:
