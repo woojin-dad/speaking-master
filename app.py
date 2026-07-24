@@ -7,6 +7,7 @@ from gtts import gTTS
 import io
 import threading
 import base64
+import time
 
 # 1. 웹페이지 기본 설정
 st.set_page_config(
@@ -417,10 +418,9 @@ if app_mode == "🗣️ 스피킹 마스터":
         st.write("---")
 
 # ==============================================================================
-# 🔀 [모드 2] 🎧 리스닝 마스터 (구글 드라이브 폴더 ID 수정 완료)
+# 🔀 [모드 2] 🎧 리스닝 마스터 (SSL 연동 안전장치 및 자동 재시도 탑재)
 # ==============================================================================
 else:
-    # 🚨 상단 Fork 및 툴바 차단 스타일 동일 적용
     st.markdown("""
         <style>
         [data-testid="stToolbar"] {display: none !important; visibility: hidden !important;}
@@ -433,53 +433,49 @@ else:
     st.markdown("<div class='custom-title'>👑 리스닝 마스터 👑</div>", unsafe_allow_html=True)
     st.write("---")
 
-    # 📌 [수정 완료] 동탕 대장님의 정확한 ListeningMaster 폴더 ID
     TARGET_FOLDER_ID = "10jn33dgDqiBD_ovj6BYnUD_1Y9BQruwF"
 
-    # 🌐 구글 드라이브 API 서비스 연결
-    @st.cache_resource
-    def init_drive_service():
-        try:
-            creds_dict = json.loads(st.secrets["gcp_service_account"])
-            creds = ServiceAccountCredentials.from_json_keyfile_dict(
-                creds_dict, 
-                scopes=["https://www.googleapis.com/auth/drive.readonly"]
-            )
-            return build('drive', 'v3', credentials=creds)
-        except Exception as e:
-            return None
+    # 🌐 구글 드라이브 API 서비스 생성
+    def build_drive_service():
+        creds_dict = json.loads(st.secrets["gcp_service_account"])
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(
+            creds_dict, 
+            scopes=["https://www.googleapis.com/auth/drive.readonly"]
+        )
+        return build('drive', 'v3', credentials=creds)
 
-    # 📂 특정 폴더 내부의 오디오 파일 목록 읽어오기
-    def get_drive_audio_files(folder_id):
-        service = init_drive_service()
-        if not service:
-            return []
-        
-        try:
-            query = f"'{folder_id}' in parents and trashed = false and (mimeType contains 'audio/' or name contains '.mp3' or name contains '.m4a' or name contains '.wav')"
-            results = service.files().list(
-                q=query,
-                fields="files(id, name, mimeType)",
-                orderBy="name"
-            ).execute()
-            return results.get('files', [])
-        except Exception as e:
-            st.error(f"드라이브 접근 오류: {e}")
-            return []
+    # 🛡️ SSL 및 네트워크 일시 오류 발생 시 최대 3회 자동 재시도 함수
+    def get_drive_audio_files_safe(folder_id, max_retries=3):
+        for attempt in range(max_retries):
+            try:
+                service = build_drive_service()
+                query = f"'{folder_id}' in parents and trashed = false and (mimeType contains 'audio/' or name contains '.mp3' or name contains '.m4a' or name contains '.wav')"
+                results = service.files().list(
+                    q=query,
+                    fields="files(id, name, mimeType)",
+                    orderBy="name"
+                ).execute()
+                return results.get('files', []), None
+            except Exception as e:
+                time.sleep(1) # SSL 통신 대기시간 1초 부여 후 재시도
+                if attempt == max_retries - 1:
+                    return [], str(e)
 
-    # 화면 로딩 시 자동 스캔
+    # 화면 로딩 시 안전 스캔
     with st.spinner("⚡ 구글 드라이브 오디오 목록을 불러오는 중..."):
-        audio_files = get_drive_audio_files(TARGET_FOLDER_ID)
+        audio_files, error_msg = get_drive_audio_files_safe(TARGET_FOLDER_ID)
     
-    if audio_files:
-        st.success(f"🎶 총 {len(audio_files)}개의 오디오 트랙을 가져왔습니다!")
+    if error_msg:
+        st.warning("⚠️ 구글 서버와의 일시적인 네트워크(SSL) 연결 지연이 발생했습니다.")
+        if st.button("🔄 다시 시도하기", key="retry_ssl_btn"):
+            st.rerun()
+    elif audio_files:
+        st.success(f"🎶 총 {len(audio_files)}개의 오디오 트랙을 성공적으로 가져왔습니다!")
         st.write("---")
         
-        # 파일 목록을 드롭다운 상자로 선택
         file_names = [f['name'] for f in audio_files]
         selected_file_name = st.selectbox("🎵 들으실 음성 파일(트랙)을 선택하세요:", file_names, key="drive_track_select")
         
-        # 선택된 파일 ID 가져오기 및 스트리밍 URL 생성
         selected_file = next(f for f in audio_files if f['name'] == selected_file_name)
         file_id = selected_file['id']
         direct_audio_url = f"https://docs.google.com/uc?export=download&id={file_id}"
@@ -487,13 +483,11 @@ else:
         st.write("---")
         st.subheader(f"▶️ 현재 재생 중: {selected_file_name}")
         
-        # 순정 오디오 플레이어 (재생 속도 0.5x~2.0x 조절 가능)
         st.audio(direct_audio_url)
         
-        # 🔄 새로고침 버튼
         if st.button("🔄 폴더 새로고침 (드라이브에 새 파일 추가 후 누르세요)", key="refresh_drive_btn"):
             st.rerun()
             
     else:
         st.warning("구글 드라이브 폴더에 MP3 파일이 없거나, 공유 접근 권한을 확인해 주세요.")
-        st.info("💡 Tip: 드라이브 폴더 공유 설정에 서비스 계정 이메일이 등록되어 있는지 재확인해 주세요.")
+        st.info("💡 Tip: ListeningMaster 폴더 공유 설정에 서비스 계정 이메일이 등록되어 있는지 재확인해 주세요.")
