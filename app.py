@@ -403,7 +403,7 @@ if app_mode == "🗣️ 스피킹 마스터":
         st.write("---")
 
 # ==============================================================================
-# 🔀 [모드 2] 🎧 리스닝 마스터 (10초 이동 + 3초 찍찍이 커스텀 플레이어)
+# 🔀 [모드 2] 🎧 리스닝 마스터 (메모 기능 추가)
 # ==============================================================================
 else:
     st.markdown("""
@@ -460,6 +460,7 @@ else:
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         return gspread.authorize(creds)
 
+    # 완독 및 메모 데이터 로드
     def load_listening_records():
         try:
             client = init_gspread_listening()
@@ -467,13 +468,18 @@ else:
             ws = doc.worksheet("ListeningRecord")
             records = ws.get_all_records()
             completed_dict = {}
+            notes_dict = {}
             for r in records:
+                fname = r.get('filename', '')
                 if str(r.get('is_completed', '')).upper() == "TRUE":
-                    completed_dict[r['filename']] = r.get('completed_at', '완료')
-            return completed_dict, ws
+                    completed_dict[fname] = r.get('completed_at', '완료')
+                if r.get('notes'):
+                    notes_dict[fname] = str(r.get('notes'))
+            return completed_dict, notes_dict, ws
         except Exception as e:
-            return {}, None
+            return {}, {}, None
 
+    # 완독 상태 토글
     def toggle_track_completed_in_sheet(ws, filename, mark_as_done):
         if not ws:
             return
@@ -493,7 +499,26 @@ else:
                 ws.update_cell(found_row, 3, now_str)
             else:
                 if mark_as_done:
-                    ws.append_row([filename, "TRUE", now_str])
+                    ws.append_row([filename, "TRUE", now_str, ""])
+        except Exception as e:
+            pass
+
+    # 📝 메모 저장 함수
+    def save_track_note_in_sheet(ws, filename, note_text):
+        if not ws:
+            return
+        try:
+            records = ws.get_all_records()
+            found_row = None
+            for idx, r in enumerate(records, start=2):
+                if r.get('filename') == filename:
+                    found_row = idx
+                    break
+            
+            if found_row:
+                ws.update_cell(found_row, 4, note_text)
+            else:
+                ws.append_row([filename, "FALSE", "", note_text])
         except Exception as e:
             pass
 
@@ -536,8 +561,8 @@ else:
         except Exception as e:
             return None
 
-    with st.spinner("⚡ 구글 드라이브 및 완독 기록 스캔 중..."):
-        completed_records, record_ws = load_listening_records()
+    with st.spinner("⚡ 구글 드라이브, 완독 기록 및 메모 스캔 중..."):
+        completed_records, saved_notes, record_ws = load_listening_records()
         audio_files, error_msg = get_drive_audio_files_safe(TARGET_FOLDER_ID)
 
     if error_msg:
@@ -558,6 +583,7 @@ else:
             fid = file_info['id']
             is_done = fname in completed_records
             done_time = completed_records.get(fname, "")
+            current_note = saved_notes.get(fname, "")
 
             play_state_key = f"play_active_{fid}"
             if play_state_key not in st.session_state:
@@ -581,11 +607,9 @@ else:
                     audio_bytes = download_audio_bytes(fid)
                 
                 if audio_bytes:
-                    # base64 변환
                     b64_audio = base64.b64encode(audio_bytes).decode('utf-8')
                     player_id = f"custom_audio_{fid}"
 
-                    # 🎛️ [HTML5 + JavaScript] 10초 이동 및 3초 찍찍이(구간 반복) 컨트롤러
                     custom_player_html = f"""
                     <div style="background-color: #f1f5f9; padding: 15px; border-radius: 12px; margin-bottom: 10px;">
                         <audio id="{player_id}" src="data:audio/mp3;base64,{b64_audio}" controls style="width: 100%; margin-bottom: 10px;"></audio>
@@ -636,7 +660,28 @@ else:
                     """
                     st.components.v1.html(custom_player_html, height=140)
                     
-                    # 완독 및 취소 액션
+                    # 📝 나만의 청취 메모장 영역
+                    user_note = st.text_area(
+                        "📝 나만의 청취 메모 (중요 표현, 구간 적기):",
+                        value=current_note,
+                        key=f"note_input_{fid}",
+                        height=80
+                    )
+                    
+                    col_note_btn, col_blank = st.columns([3, 7])
+                    with col_note_btn:
+                        if st.button("💾 메모 저장하기", key=f"save_note_btn_{fid}"):
+                            threading.Thread(
+                                target=save_track_note_in_sheet,
+                                args=(record_ws, fname, user_note),
+                                daemon=True
+                            ).start()
+                            saved_notes[fname] = user_note
+                            st.success("메모가 구글 시트에 저장되었습니다!")
+
+                    st.write("---")
+
+                    # 완독 및 취소 버튼
                     col_act1, col_act2 = st.columns([5, 5])
                     with col_act1:
                         if not is_done:
