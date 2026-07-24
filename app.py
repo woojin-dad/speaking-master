@@ -18,7 +18,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 💡 모바일 스크린 확대 허용 메타 태그 유지
+# 💡 모바일 스크린 확대 허용 메타 태그
 st.markdown("""
     <script>
         var meta = document.createElement('meta');
@@ -28,7 +28,7 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 🎛️ [최상단 메인 스위치] 서비스 모드 전환 (스피킹 마스터 ↔ 리스닝 마스터)
+# 🎛️ [최상단 메인 스위치] 서비스 모드 전환
 app_mode = st.radio(
     "📱 학습 서비스 선택",
     ["🗣️ 스피킹 마스터", "🎧 리스닝 마스터"],
@@ -38,11 +38,10 @@ app_mode = st.radio(
 st.write("---")
 
 # ==============================================================================
-# 🔀 [모드 1] 🗣️ 스피킹 마스터 (기존 순정 로직 100% 보존 + ListeningRecord 탭 숨김)
+# 🔀 [모드 1] 🗣️ 스피킹 마스터
 # ==============================================================================
 if app_mode == "🗣️ 스피킹 마스터":
 
-    # 구글 시트 연동 설정
     @st.cache_resource
     def init_gspread():
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -50,45 +49,37 @@ if app_mode == "🗣️ 스피킹 마스터":
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         return gspread.authorize(creds)
 
-    # ⚡ [ListeningRecord 탭 스피킹 메뉴에서 자동 제외 필터링]
     @st.cache_resource
     def get_sheet_titles():
         try:
             client = init_gspread()
             doc = client.open("SpeakingMaster")
             titles = [ws.title for ws in doc.worksheets()]
-            # ListeningRecord 탭은 스피킹 메뉴에서 숨김
             return [t for t in titles if t != "ListeningRecord"]
         except:
             return ["동탕"]
 
-    # 👥 메뉴 동적 자동 생성
     existing_sheets = get_sheet_titles()
     menu_options = []
     for title in existing_sheets:
         menu_options.append(title)
         menu_options.append(f"{title} (우선순위)")
 
-    # 🚨 [세션 증발 버그 차단 1단계]
     if "pure_main_menu_box" in st.session_state and st.session_state["pure_main_menu_box"] in menu_options:
         selected_menu = st.session_state["pure_main_menu_box"]
     else:
         selected_menu = menu_options[0]
 
-    # 🥇 1층 최상단 자리에 타이틀 간판 배치
     st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
     st.write("---")
 
-    # 🥈 2층: 학습 모드 선택 상자 안착
     st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="pure_main_menu_box")
 
     real_sheet_name = selected_menu.replace(" (우선순위)", "").strip()
     is_priority_mode = "우선순위" in selected_menu
 
-    # 🔤 실시간 문장 글자 크기 조절 슬라이더
     font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1, key="pure_font_slider")
 
-    # 🔥 [레이아웃 최적화 CSS - Fork 및 상단 툴바 완벽 숨김 포함]
     st.markdown(f"""
         <style>
         .block-container {{
@@ -121,7 +112,6 @@ if app_mode == "🗣️ 스피킹 마스터":
             margin-top: 10px !important;
         }}
 
-        /* 📻 1. 최상단 무한 반복 라디오 단일 버튼 디자인 */
         div.stButton > button[key^="total_relay_btn_"] {{
             background-color: #f0fdf4 !important;
             border: 2px solid #2ecc71 !important;
@@ -138,7 +128,6 @@ if app_mode == "🗣️ 스피킹 마스터":
             font-weight: bold !important;
         }}
 
-        /* 🎧 2. 중단 책장별 연속 듣기 단일 버튼 디자인 */
         div.stButton > button[key^="page_relay_btn_"] {{
             background-color: #f0f9ff !important;
             border: 2px solid #3b82f6 !important;
@@ -156,7 +145,6 @@ if app_mode == "🗣️ 스피킹 마스터":
             font-weight: bold !important;
         }}
        
-        /* 🔤 문장 버튼 크기 디자인 */
         div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {{
             width: 100% !important;
             text-align: left !important;
@@ -221,13 +209,11 @@ if app_mode == "🗣️ 스피킹 마스터":
         footer {{visibility: hidden !important; height: 0px !important; padding: 0px !important;}}
         header {{visibility: hidden !important; height: 0px !important;}}
         .stAppDeployButton {{display: none !important;}}
-        /* 🚨 Fork 버튼 및 상단 툴바 차단 */
         [data-testid="stToolbar"] {{display: none !important; visibility: hidden !important;}}
         button[title="Fork this app"] {{display: none !important; visibility: hidden !important;}}
         </style>
     """, unsafe_allow_html=True)
 
-    # 구글 시트 데이터 로드
     user_data_key = f"records_{real_sheet_name}"
     user_sheet_key = f"sheet_{real_sheet_name}"
 
@@ -256,7 +242,6 @@ if app_mode == "🗣️ 스피킹 마스터":
     records = st.session_state[user_data_key]
     sheet = st.session_state[user_sheet_key]
 
-    # 전체 데이터 가공
     all_display_records = []
     for idx, r in enumerate(records):
         try:
@@ -287,7 +272,6 @@ if app_mode == "🗣️ 스피킹 마스터":
     else:
         page_options = []
 
-    # 전체 재생 초록 버튼
     if total_sentences > 0:
         if st.button(f"📻 🔁 {selected_menu} 전체 문장 반복 재생 시작 (1번 ~ 끝까지)", key=f"total_relay_btn_{real_sheet_name}"):
             with st.spinner("⚡ 전체 문장 취합 중..."):
@@ -319,7 +303,6 @@ if app_mode == "🗣️ 스피킹 마스터":
                 except Exception as e:
                     st.error("라디오 플레이어 컴파일 실패")
 
-    # 책장 고르기
     if total_sentences > 0:
         selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options, key="pure_page_box")
         page_idx = page_options.index(selected_page_str)
@@ -332,7 +315,6 @@ if app_mode == "🗣️ 스피킹 마스터":
     if is_priority_mode:
         display_records = sorted(display_records, key=lambda x: x['energy'])
 
-    # 선택 책장 연속 듣기 파란 버튼
     if display_records:
         if st.button(f"🎧 {selected_page_str} 문장만 연속 듣기 반복 재생 시작", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
             with st.spinner("⚡ 현재 책장 100개 음성 결합 중..."):
@@ -368,7 +350,6 @@ if app_mode == "🗣️ 스피킹 마스터":
             except:
                 pass
 
-    # 문장 리스트 출력
     for item in display_records:
         orig_idx = item['original_index']
         row_idx = item['original_row']
@@ -422,24 +403,33 @@ if app_mode == "🗣️ 스피킹 마스터":
         st.write("---")
 
 # ==============================================================================
-# 🔀 [모드 2] 🎧 리스닝 마스터 2.0 (목록 카드형 UI + 동적 플레이어 + 완독 시트 연동)
+# 🔀 [모드 2] 🎧 리스닝 마스터 (10초 이동 + 3초 찍찍이 커스텀 플레이어)
 # ==============================================================================
 else:
     st.markdown("""
         <style>
+        .block-container {
+            max-width: 100% !important;
+            padding-top: 0.5rem !important;
+            padding-bottom: 1rem !important;
+            padding-left: 10px !important;
+            padding-right: 0px !important;
+        }
+        
+        .custom-title {
+            font-size: 26px !important;
+            font-weight: bold !important;
+            color: #2c3e50 !important;
+            text-align: center !important;
+            padding-top: 5px;
+            margin-top: 10px !important;
+        }
+
         [data-testid="stToolbar"] {display: none !important; visibility: hidden !important;}
         button[title="Fork this app"] {display: none !important; visibility: hidden !important;}
         header {visibility: hidden !important; height: 0px !important;}
         footer {visibility: hidden !important; height: 0px !important;}
         
-        /* 🎧 리스닝 트랙 카드 스타일 */
-        .track-card {
-            background-color: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 12px 15px;
-            margin-bottom: 5px;
-        }
         .track-title {
             font-size: 17px;
             font-weight: bold;
@@ -458,12 +448,11 @@ else:
         </style>
     """, unsafe_allow_html=True)
     
-    st.markdown("<div class='custom-title'>👑 리스닝 마스터 👑</div>", unsafe_allow_html=True)
+    st.markdown("<div class='custom-title'>👑 동탕의 리스닝 마스터 👑</div>", unsafe_allow_html=True)
     st.write("---")
 
     TARGET_FOLDER_ID = "10jn33dgDqiBD_ovj6BYnUD_1Y9BQruwF"
 
-    # gspread 구글 시트 연동
     @st.cache_resource
     def init_gspread_listening():
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -471,7 +460,6 @@ else:
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         return gspread.authorize(creds)
 
-    # 📊 ListeningRecord 시트에서 완독 기록 읽어오기
     def load_listening_records():
         try:
             client = init_gspread_listening()
@@ -486,11 +474,12 @@ else:
         except Exception as e:
             return {}, None
 
-    # 📝 구글 시트에 완독 기록 저장
-    def mark_track_completed_in_sheet(ws, filename):
+    def toggle_track_completed_in_sheet(ws, filename, mark_as_done):
         if not ws:
             return
-        now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M") if mark_as_done else ""
+        is_completed_str = "TRUE" if mark_as_done else "FALSE"
+        
         try:
             records = ws.get_all_records()
             found_row = None
@@ -500,14 +489,14 @@ else:
                     break
             
             if found_row:
-                ws.update_cell(found_row, 2, "TRUE")
+                ws.update_cell(found_row, 2, is_completed_str)
                 ws.update_cell(found_row, 3, now_str)
             else:
-                ws.append_row([filename, "TRUE", now_str])
+                if mark_as_done:
+                    ws.append_row([filename, "TRUE", now_str])
         except Exception as e:
             pass
 
-    # 구글 드라이브 API 서비스 생성
     def build_drive_service():
         creds_dict = json.loads(st.secrets["gcp_service_account"])
         creds = ServiceAccountCredentials.from_json_keyfile_dict(
@@ -516,7 +505,6 @@ else:
         )
         return build('drive', 'v3', credentials=creds)
 
-    # 폴더 내부 오디오 파일 스캔
     def get_drive_audio_files_safe(folder_id, max_retries=3):
         for attempt in range(max_retries):
             try:
@@ -533,7 +521,6 @@ else:
                 if attempt == max_retries - 1:
                     return [], str(e)
 
-    # 오디오 바이너리 직접 다운로드
     @st.cache_data(show_spinner=False)
     def download_audio_bytes(file_id):
         try:
@@ -549,7 +536,6 @@ else:
         except Exception as e:
             return None
 
-    # 데이터 로드
     with st.spinner("⚡ 구글 드라이브 및 완독 기록 스캔 중..."):
         completed_records, record_ws = load_listening_records()
         audio_files, error_msg = get_drive_audio_files_safe(TARGET_FOLDER_ID)
@@ -567,7 +553,6 @@ else:
                 st.rerun()
         st.write("---")
 
-        # 폴더 내 모든 파일 아래로 쭉 나열 (목록 카드형 배치)
         for idx, file_info in enumerate(audio_files, start=1):
             fname = file_info['name']
             fid = file_info['id']
@@ -578,7 +563,6 @@ else:
             if play_state_key not in st.session_state:
                 st.session_state[play_state_key] = False
 
-            # 레이아웃 배치 (트랙 정보 + 재생 열기 버튼)
             c1, c2 = st.columns([7.5, 2.5])
             
             with c1:
@@ -592,25 +576,91 @@ else:
                     st.session_state[play_state_key] = not st.session_state[play_state_key]
                     st.rerun()
 
-            # ▶ 버튼 누르면 아래로 플레이어 확장
             if st.session_state[play_state_key]:
                 with st.spinner(f"📥 [{fname}] 음성 로딩 중..."):
                     audio_bytes = download_audio_bytes(fid)
                 
                 if audio_bytes:
-                    st.audio(audio_bytes, format="audio/mp3")
+                    # base64 변환
+                    b64_audio = base64.b64encode(audio_bytes).decode('utf-8')
+                    player_id = f"custom_audio_{fid}"
+
+                    # 🎛️ [HTML5 + JavaScript] 10초 이동 및 3초 찍찍이(구간 반복) 컨트롤러
+                    custom_player_html = f"""
+                    <div style="background-color: #f1f5f9; padding: 15px; border-radius: 12px; margin-bottom: 10px;">
+                        <audio id="{player_id}" src="data:audio/mp3;base64,{b64_audio}" controls style="width: 100%; margin-bottom: 10px;"></audio>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                            <button onclick="skipTime('{player_id}', -10)" style="padding: 8px 12px; background-color: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">⏪ 10초 뒤로</button>
+                            <button onclick="skipTime('{player_id}', 10)" style="padding: 8px 12px; background-color: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">10초 앞으로 ⏩</button>
+                            <button onclick="startLoop3Sec('{player_id}')" style="padding: 8px 12px; background-color: #e11d48; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">🔂 방금 3초 찍찍이 (무한반복)</button>
+                            <button onclick="stopLoop3Sec('{player_id}')" style="padding: 8px 12px; background-color: #475569; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">▶ 표준 재생</button>
+                        </div>
+                    </div>
+
+                    <script>
+                    if (typeof window.loopIntervals === 'undefined') {{
+                        window.loopIntervals = {{}};
+                    }}
+
+                    function skipTime(id, sec) {{
+                        var audio = document.getElementById(id);
+                        if(audio) {{
+                            audio.currentTime = Math.max(0, audio.currentTime + sec);
+                        }}
+                    }}
+
+                    function startLoop3Sec(id) {{
+                        var audio = document.getElementById(id);
+                        if(audio) {{
+                            if (window.loopIntervals[id]) clearInterval(window.loopIntervals[id]);
+                            var start = Math.max(0, audio.currentTime - 3);
+                            var end = audio.currentTime;
+                            audio.currentTime = start;
+                            audio.play();
+
+                            window.loopIntervals[id] = setInterval(function() {{
+                                if (audio.currentTime >= end || audio.currentTime < start) {{
+                                    audio.currentTime = start;
+                                }}
+                            }}, 200);
+                        }}
+                    }}
+
+                    function stopLoop3Sec(id) {{
+                        if (window.loopIntervals[id]) {{
+                            clearInterval(window.loopIntervals[id]);
+                            delete window.loopIntervals[id];
+                        }}
+                    }}
+                    </script>
+                    """
+                    st.components.v1.html(custom_player_html, height=140)
                     
-                    # 완독 수동 도장 버튼
-                    if not is_done:
-                        if st.button(f"🎉 [{fname}] 완독 완료 도장 찍기", key=f"mark_done_{fid}"):
-                            threading.Thread(
-                                target=mark_track_completed_in_sheet,
-                                args=(record_ws, fname),
-                                daemon=True
-                            ).start()
-                            completed_records[fname] = datetime.now().strftime("%Y-%m-%d %H:%M")
-                            st.success("🎉 완독 완료 기록이 구글 시트에 저장되었습니다!")
-                            st.rerun()
+                    # 완독 및 취소 액션
+                    col_act1, col_act2 = st.columns([5, 5])
+                    with col_act1:
+                        if not is_done:
+                            if st.button(f"🎉 완독 완료 도장 찍기", key=f"mark_done_{fid}"):
+                                threading.Thread(
+                                    target=toggle_track_completed_in_sheet,
+                                    args=(record_ws, fname, True),
+                                    daemon=True
+                                ).start()
+                                completed_records[fname] = datetime.now().strftime("%Y-%m-%d %H:%M")
+                                st.success("완독 기록 저장 완료!")
+                                st.rerun()
+                    with col_act2:
+                        if is_done:
+                            if st.button(f"🗑️ 완독 기록 취소하기", key=f"cancel_done_{fid}"):
+                                threading.Thread(
+                                    target=toggle_track_completed_in_sheet,
+                                    args=(record_ws, fname, False),
+                                    daemon=True
+                                ).start()
+                                if fname in completed_records:
+                                    del completed_records[fname]
+                                st.info("완독 기록이 취소되었습니다.")
+                                st.rerun()
                 else:
                     st.error("오디오 로딩 실패")
             
