@@ -9,6 +9,7 @@ import io
 import threading
 import base64
 import time
+from datetime import datetime
 
 # 1. 웹페이지 기본 설정
 st.set_page_config(
@@ -37,7 +38,7 @@ app_mode = st.radio(
 st.write("---")
 
 # ==============================================================================
-# 🔀 [모드 1] 🗣️ 스피킹 마스터 (기존 순정 로직 100% 보존)
+# 🔀 [모드 1] 🗣️ 스피킹 마스터 (기존 순정 로직 100% 보존 + ListeningRecord 탭 숨김)
 # ==============================================================================
 if app_mode == "🗣️ 스피킹 마스터":
 
@@ -49,13 +50,15 @@ if app_mode == "🗣️ 스피킹 마스터":
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         return gspread.authorize(creds)
 
-    # ⚡ [초고속 속도 보장] 서버 로딩 시 딱 1번만 구글 시트 탭 목록을 조회하여 메모리에 상주시킵니다.
+    # ⚡ [ListeningRecord 탭 스피킹 메뉴에서 자동 제외 필터링]
     @st.cache_resource
     def get_sheet_titles():
         try:
             client = init_gspread()
             doc = client.open("SpeakingMaster")
-            return [ws.title for ws in doc.worksheets()]
+            titles = [ws.title for ws in doc.worksheets()]
+            # ListeningRecord 탭은 스피킹 메뉴에서 숨김
+            return [t for t in titles if t != "ListeningRecord"]
         except:
             return ["동탕"]
 
@@ -419,7 +422,7 @@ if app_mode == "🗣️ 스피킹 마스터":
         st.write("---")
 
 # ==============================================================================
-# 🔀 [모드 2] 🎧 리스닝 마스터 (구글 드라이브 음성 실시간 로딩 탑재)
+# 🔀 [모드 2] 🎧 리스닝 마스터 2.0 (목록 카드형 UI + 동적 플레이어 + 완독 시트 연동)
 # ==============================================================================
 else:
     st.markdown("""
@@ -428,6 +431,30 @@ else:
         button[title="Fork this app"] {display: none !important; visibility: hidden !important;}
         header {visibility: hidden !important; height: 0px !important;}
         footer {visibility: hidden !important; height: 0px !important;}
+        
+        /* 🎧 리스닝 트랙 카드 스타일 */
+        .track-card {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px 15px;
+            margin-bottom: 5px;
+        }
+        .track-title {
+            font-size: 17px;
+            font-weight: bold;
+            color: #1e293b;
+        }
+        .badge-completed {
+            background-color: #dcfce7;
+            color: #15803d;
+            font-size: 13px;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 6px;
+            display: inline-block;
+            margin-top: 4px;
+        }
         </style>
     """, unsafe_allow_html=True)
     
@@ -436,7 +463,51 @@ else:
 
     TARGET_FOLDER_ID = "10jn33dgDqiBD_ovj6BYnUD_1Y9BQruwF"
 
-    # 구글 드라이브 API 객체 생성
+    # gspread 구글 시트 연동
+    @st.cache_resource
+    def init_gspread_listening():
+        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        creds_dict = json.loads(st.secrets["gcp_service_account"])
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+        return gspread.authorize(creds)
+
+    # 📊 ListeningRecord 시트에서 완독 기록 읽어오기
+    def load_listening_records():
+        try:
+            client = init_gspread_listening()
+            doc = client.open("SpeakingMaster")
+            ws = doc.worksheet("ListeningRecord")
+            records = ws.get_all_records()
+            completed_dict = {}
+            for r in records:
+                if str(r.get('is_completed', '')).upper() == "TRUE":
+                    completed_dict[r['filename']] = r.get('completed_at', '완료')
+            return completed_dict, ws
+        except Exception as e:
+            return {}, None
+
+    # 📝 구글 시트에 완독 기록 저장
+    def mark_track_completed_in_sheet(ws, filename):
+        if not ws:
+            return
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+        try:
+            records = ws.get_all_records()
+            found_row = None
+            for idx, r in enumerate(records, start=2):
+                if r.get('filename') == filename:
+                    found_row = idx
+                    break
+            
+            if found_row:
+                ws.update_cell(found_row, 2, "TRUE")
+                ws.update_cell(found_row, 3, now_str)
+            else:
+                ws.append_row([filename, "TRUE", now_str])
+        except Exception as e:
+            pass
+
+    # 구글 드라이브 API 서비스 생성
     def build_drive_service():
         creds_dict = json.loads(st.secrets["gcp_service_account"])
         creds = ServiceAccountCredentials.from_json_keyfile_dict(
@@ -445,7 +516,7 @@ else:
         )
         return build('drive', 'v3', credentials=creds)
 
-    # 1. 폴더 목록 안전 조회
+    # 폴더 내부 오디오 파일 스캔
     def get_drive_audio_files_safe(folder_id, max_retries=3):
         for attempt in range(max_retries):
             try:
@@ -462,7 +533,7 @@ else:
                 if attempt == max_retries - 1:
                     return [], str(e)
 
-    # 2. ⚡ [핵심] 선택한 구글 드라이브 MP3 파일을 파이썬 바이너리로 직접 받아오는 로직
+    # 오디오 바이너리 직접 다운로드
     @st.cache_data(show_spinner=False)
     def download_audio_bytes(file_id):
         try:
@@ -478,40 +549,72 @@ else:
         except Exception as e:
             return None
 
-    # 화면 로딩 시 드라이브 스캔
-    with st.spinner("⚡ 구글 드라이브 오디오 목록을 불러오는 중..."):
+    # 데이터 로드
+    with st.spinner("⚡ 구글 드라이브 및 완독 기록 스캔 중..."):
+        completed_records, record_ws = load_listening_records()
         audio_files, error_msg = get_drive_audio_files_safe(TARGET_FOLDER_ID)
-    
+
     if error_msg:
-        st.warning("⚠️ 구글 서버와의 네트워크 연결 지연이 발생했습니다.")
+        st.warning("⚠️ 구글 서버와의 연결 지연이 발생했습니다.")
         if st.button("🔄 다시 시도하기", key="retry_ssl_btn"):
             st.rerun()
     elif audio_files:
-        st.success(f"🎶 총 {len(audio_files)}개의 오디오 트랙을 가져왔습니다!")
+        col_top1, col_top2 = st.columns([7, 3])
+        with col_top1:
+            st.success(f"🎶 총 {len(audio_files)}개의 오디오 트랙이 보관되어 있습니다.")
+        with col_top2:
+            if st.button("🔄 드라이브 새로고침", key="refresh_drive_btn"):
+                st.rerun()
         st.write("---")
-        
-        file_names = [f['name'] for f in audio_files]
-        selected_file_name = st.selectbox("🎵 들으실 음성 파일(트랙)을 선택하세요:", file_names, key="drive_track_select")
-        
-        selected_file = next(f for f in audio_files if f['name'] == selected_file_name)
-        file_id = selected_file['id']
-        
-        # 음성 파일 바이너리 다운로드
-        with st.spinner(f"📥 [{selected_file_name}] 음성 파일 준비 중..."):
-            audio_bytes = download_audio_bytes(file_id)
-        
-        st.write("---")
-        st.subheader(f"▶️ 현재 재생 중: {selected_file_name}")
-        
-        if audio_bytes:
-            # 바이너리 바이트 스트림으로 오디오 플레이어 로드 (차단 우회 성공)
-            st.audio(audio_bytes, format="audio/mp3")
-        else:
-            st.error("음성 데이터를 불러오는데 실패했습니다. 네트워크를 확인해 주세요.")
-        
-        st.write("---")
-        if st.button("🔄 폴더 새로고침 (드라이브에 새 파일 추가 후 누르세요)", key="refresh_drive_btn"):
-            st.rerun()
+
+        # 폴더 내 모든 파일 아래로 쭉 나열 (목록 카드형 배치)
+        for idx, file_info in enumerate(audio_files, start=1):
+            fname = file_info['name']
+            fid = file_info['id']
+            is_done = fname in completed_records
+            done_time = completed_records.get(fname, "")
+
+            play_state_key = f"play_active_{fid}"
+            if play_state_key not in st.session_state:
+                st.session_state[play_state_key] = False
+
+            # 레이아웃 배치 (트랙 정보 + 재생 열기 버튼)
+            c1, c2 = st.columns([7.5, 2.5])
+            
+            with c1:
+                st.markdown(f"<div class='track-title'>🎵 {idx}. {fname}</div>", unsafe_allow_html=True)
+                if is_done:
+                    st.markdown(f"<div class='badge-completed'>✅ 완독: {done_time}</div>", unsafe_allow_html=True)
+            
+            with c2:
+                btn_label = "❚❚ 닫기" if st.session_state[play_state_key] else "▶ 재생"
+                if st.button(btn_label, key=f"btn_toggle_{fid}"):
+                    st.session_state[play_state_key] = not st.session_state[play_state_key]
+                    st.rerun()
+
+            # ▶ 버튼 누르면 아래로 플레이어 확장
+            if st.session_state[play_state_key]:
+                with st.spinner(f"📥 [{fname}] 음성 로딩 중..."):
+                    audio_bytes = download_audio_bytes(fid)
+                
+                if audio_bytes:
+                    st.audio(audio_bytes, format="audio/mp3")
+                    
+                    # 완독 수동 도장 버튼
+                    if not is_done:
+                        if st.button(f"🎉 [{fname}] 완독 완료 도장 찍기", key=f"mark_done_{fid}"):
+                            threading.Thread(
+                                target=mark_track_completed_in_sheet,
+                                args=(record_ws, fname),
+                                daemon=True
+                            ).start()
+                            completed_records[fname] = datetime.now().strftime("%Y-%m-%d %H:%M")
+                            st.success("🎉 완독 완료 기록이 구글 시트에 저장되었습니다!")
+                            st.rerun()
+                else:
+                    st.error("오디오 로딩 실패")
+            
+            st.write("---")
             
     else:
-        st.warning("구글 드라이브 폴더에 MP3 파일이 없거나, 공유 접근 권한을 확인해 주세요.")
+        st.warning("구글 드라이브 폴더에 MP3 파일이 없습니다.")
