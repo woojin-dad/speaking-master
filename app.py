@@ -2,6 +2,7 @@ import streamlit as st
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseDownload
 import json
 from gtts import gTTS
 import io
@@ -418,7 +419,7 @@ if app_mode == "🗣️ 스피킹 마스터":
         st.write("---")
 
 # ==============================================================================
-# 🔀 [모드 2] 🎧 리스닝 마스터 (SSL 연동 안전장치 및 자동 재시도 탑재)
+# 🔀 [모드 2] 🎧 리스닝 마스터 (구글 드라이브 음성 실시간 로딩 탑재)
 # ==============================================================================
 else:
     st.markdown("""
@@ -435,7 +436,7 @@ else:
 
     TARGET_FOLDER_ID = "10jn33dgDqiBD_ovj6BYnUD_1Y9BQruwF"
 
-    # 🌐 구글 드라이브 API 서비스 생성
+    # 구글 드라이브 API 객체 생성
     def build_drive_service():
         creds_dict = json.loads(st.secrets["gcp_service_account"])
         creds = ServiceAccountCredentials.from_json_keyfile_dict(
@@ -444,7 +445,7 @@ else:
         )
         return build('drive', 'v3', credentials=creds)
 
-    # 🛡️ SSL 및 네트워크 일시 오류 발생 시 최대 3회 자동 재시도 함수
+    # 1. 폴더 목록 안전 조회
     def get_drive_audio_files_safe(folder_id, max_retries=3):
         for attempt in range(max_retries):
             try:
@@ -457,20 +458,36 @@ else:
                 ).execute()
                 return results.get('files', []), None
             except Exception as e:
-                time.sleep(1) # SSL 통신 대기시간 1초 부여 후 재시도
+                time.sleep(1)
                 if attempt == max_retries - 1:
                     return [], str(e)
 
-    # 화면 로딩 시 안전 스캔
+    # 2. ⚡ [핵심] 선택한 구글 드라이브 MP3 파일을 파이썬 바이너리로 직접 받아오는 로직
+    @st.cache_data(show_spinner=False)
+    def download_audio_bytes(file_id):
+        try:
+            service = build_drive_service()
+            request = service.files().get_media(fileId=file_id)
+            fh = io.BytesIO()
+            downloader = MediaIoBaseDownload(fh, request)
+            done = False
+            while not done:
+                status, done = downloader.next_chunk()
+            fh.seek(0)
+            return fh.read()
+        except Exception as e:
+            return None
+
+    # 화면 로딩 시 드라이브 스캔
     with st.spinner("⚡ 구글 드라이브 오디오 목록을 불러오는 중..."):
         audio_files, error_msg = get_drive_audio_files_safe(TARGET_FOLDER_ID)
     
     if error_msg:
-        st.warning("⚠️ 구글 서버와의 일시적인 네트워크(SSL) 연결 지연이 발생했습니다.")
+        st.warning("⚠️ 구글 서버와의 네트워크 연결 지연이 발생했습니다.")
         if st.button("🔄 다시 시도하기", key="retry_ssl_btn"):
             st.rerun()
     elif audio_files:
-        st.success(f"🎶 총 {len(audio_files)}개의 오디오 트랙을 성공적으로 가져왔습니다!")
+        st.success(f"🎶 총 {len(audio_files)}개의 오디오 트랙을 가져왔습니다!")
         st.write("---")
         
         file_names = [f['name'] for f in audio_files]
@@ -478,16 +495,23 @@ else:
         
         selected_file = next(f for f in audio_files if f['name'] == selected_file_name)
         file_id = selected_file['id']
-        direct_audio_url = f"https://docs.google.com/uc?export=download&id={file_id}"
+        
+        # 음성 파일 바이너리 다운로드
+        with st.spinner(f"📥 [{selected_file_name}] 음성 파일 준비 중..."):
+            audio_bytes = download_audio_bytes(file_id)
         
         st.write("---")
         st.subheader(f"▶️ 현재 재생 중: {selected_file_name}")
         
-        st.audio(direct_audio_url)
+        if audio_bytes:
+            # 바이너리 바이트 스트림으로 오디오 플레이어 로드 (차단 우회 성공)
+            st.audio(audio_bytes, format="audio/mp3")
+        else:
+            st.error("음성 데이터를 불러오는데 실패했습니다. 네트워크를 확인해 주세요.")
         
+        st.write("---")
         if st.button("🔄 폴더 새로고침 (드라이브에 새 파일 추가 후 누르세요)", key="refresh_drive_btn"):
             st.rerun()
             
     else:
         st.warning("구글 드라이브 폴더에 MP3 파일이 없거나, 공유 접근 권한을 확인해 주세요.")
-        st.info("💡 Tip: ListeningMaster 폴더 공유 설정에 서비스 계정 이메일이 등록되어 있는지 재확인해 주세요.")
