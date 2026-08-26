@@ -329,7 +329,7 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_level4 = len(level4_records)
 
     if total_level4 > 0:
-        if st.button(f"📻 🔁 🟥 4단계 미숙 문장만 연속 반복 재생 시작 ({total_level4}개)", key=f"level4_relay_btn_{real_sheet_name}"):
+        if st.button(f"📻 🔁 🟥 4단계 문장만 연속 반복 재생 시작 ({total_level4}개)", key=f"level4_relay_btn_{real_sheet_name}"):
             with st.spinner(f"⚡ 4단계 {total_level4}개 문장 음성 결합 중..."):
                 try:
                     relay_audio_l4 = io.BytesIO()
