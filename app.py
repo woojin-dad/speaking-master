@@ -78,7 +78,7 @@ if app_mode == "🗣️ 스피킹 마스터":
     real_sheet_name = selected_menu.replace(" (우선순위)", "").strip()
     is_priority_mode = "우선순위" in selected_menu
 
-    font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=18, max_value=36, value=26, step=1, key="pure_font_slider")
+    font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=26, max_value=45, value=26, step=1, key="pure_font_slider")
 
     st.markdown(f"""
         <style>
