@@ -38,7 +38,7 @@ app_mode = st.radio(
 st.write("---")
 
 # ==============================================================================
-# 🔀 [모드 1] 🗣️ 스피킹 마스터 (4단계 집중 반복 듣기 버튼 추가)
+# 🔀 [모드 1] 🗣️ 스피킹 마스터 (3단계 & 4단계 집중 반복 듣기 탑재)
 # ==============================================================================
 if app_mode == "🗣️ 스피킹 마스터":
 
@@ -129,7 +129,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             font-weight: bold !important;
         }}
 
-        /* 📻 2. 4단계(미숙) 전용 반복 재생 빨간 포인트 버튼 */
+        /* 📻 2. 4단계(미숙) 전용 반복 재생 빨간 버튼 */
         div.stButton > button[key^="level4_relay_btn_"] {{
             background-color: #fef2f2 !important;
             border: 2px solid #ef4444 !important;
@@ -137,7 +137,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             padding: 14px 15px !important;
             width: 100% !important;
             text-align: center !important;
-            margin-bottom: 15px !important;
+            margin-bottom: 8px !important;
         }}
         div.stButton > button[key^="level4_relay_btn_"] p,
         div.stButton > button[key^="level4_relay_btn_"] * {{
@@ -146,7 +146,24 @@ if app_mode == "🗣️ 스피킹 마스터":
             font-weight: bold !important;
         }}
 
-        /* 🎧 3. 책장별 연속 듣기 파란 버튼 */
+        /* 📻 3. 3단계(초급) 전용 반복 재생 주황 버튼 */
+        div.stButton > button[key^="level3_relay_btn_"] {{
+            background-color: #fff7ed !important;
+            border: 2px solid #f97316 !important;
+            border-radius: 12px !important;
+            padding: 14px 15px !important;
+            width: 100% !important;
+            text-align: center !important;
+            margin-bottom: 15px !important;
+        }}
+        div.stButton > button[key^="level3_relay_btn_"] p,
+        div.stButton > button[key^="level3_relay_btn_"] * {{
+            color: #c2410c !important;
+            font-size: 17px !important;
+            font-weight: bold !important;
+        }}
+
+        /* 🎧 4. 책장별 연속 듣기 파란 버튼 */
         div.stButton > button[key^="page_relay_btn_"] {{
             background-color: #f0f9ff !important;
             border: 2px solid #3b82f6 !important;
@@ -324,7 +341,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                 except Exception as e:
                     st.error("라디오 플레이어 컴파일 실패")
 
-    # 2. 🟥 [새 기능] 4단계(에너지 0) 미숙 문장 전용 반복 재생 빨간 버튼
+    # 2. 🟥 4단계(에너지 0) 전용 반복 재생 빨간 버튼
     level4_records = [item for item in all_display_records if item['energy'] == 0]
     total_level4 = len(level4_records)
 
@@ -347,7 +364,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                     audio_base64_l4 = base64.b64encode(relay_audio_l4.read()).decode('utf-8')
                     
                     audio_html_l4 = f"""
-                        <audio id="level4-radio-player" src="data:audio/mp3;base64,{audio_base64_l4}" controls loop style="width: 100%; margin-top: 10px;"></audio>
+                        <audio id="level4-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%; margin-top: 10px;"></audio>
                         <script>
                             var p4 = document.getElementById('level4-radio-player');
                             p4.play().catch(function(e) {{ console.log(e); }});
@@ -357,6 +374,40 @@ if app_mode == "🗣️ 스피킹 마스터":
                     st.success(f"🎶 4단계 미숙 문장 {total_level4}개 무한 반복 라디오가 시작되었습니다!")
                 except Exception as e:
                     st.error("4단계 라디오 생성 실패")
+
+    # 3. 🟧 [새 기능] 3단계(에너지 1) 전용 반복 재생 주황 버튼
+    level3_records = [item for item in all_display_records if item['energy'] == 1]
+    total_level3 = len(level3_records)
+
+    if total_level3 > 0:
+        if st.button(f"📻 🔁 🟧 3단계 문장만 연속 반복 재생 시작 ({total_level3}개)", key=f"level3_relay_btn_{real_sheet_name}"):
+            with st.spinner(f"⚡ 3단계 {total_level3}개 문장 음성 결합 중..."):
+                try:
+                    relay_audio_l3 = io.BytesIO()
+                    for item in level3_records:
+                        english_sentence = str(item['en']).strip()
+                        if english_sentence:
+                            tts_part = gTTS(text=english_sentence, lang='en')
+                            part_fp = io.BytesIO()
+                            tts_part.write_to_fp(part_fp)
+                            part_fp.seek(0)
+                            relay_audio_l3.write(part_fp.read())
+                            relay_audio_l3.write(b'\x00' * 2500)
+                    
+                    relay_audio_l3.seek(0)
+                    audio_base64_l3 = base64.b64encode(relay_audio_l3.read()).decode('utf-8')
+                    
+                    audio_html_l3 = f"""
+                        <audio id="level3-radio-player" src="data:audio/mp3;base64,{audio_base64_l3}" controls loop style="width: 100%; margin-top: 10px;"></audio>
+                        <script>
+                            var p3 = document.getElementById('level3-radio-player');
+                            p3.play().catch(function(e) {{ console.log(e); }});
+                        </script>
+                    """
+                    st.markdown(audio_html_l3, unsafe_allow_html=True)
+                    st.success(f"🎶 3단계 초급 문장 {total_level3}개 무한 반복 라디오가 시작되었습니다!")
+                except Exception as e:
+                    st.error("3단계 라디오 생성 실패")
 
     # 책장 고르기
     if total_sentences > 0:
