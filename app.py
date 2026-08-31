@@ -38,7 +38,7 @@ app_mode = st.radio(
 st.write("---")
 
 # ==============================================================================
-# 🔀 [모드 1] 🗣️ 스피킹 마스터 (속도 조절 슬라이더 및 난이도별 라디오 탑재)
+# 🔀 [모드 1] 🗣️ 스피킹 마스터
 # ==============================================================================
 if app_mode == "🗣️ 스피킹 마스터":
 
@@ -81,7 +81,7 @@ if app_mode == "🗣️ 스피킹 마스터":
     # 🔤 글자 크기 조절
     font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=26, max_value=45, value=26, step=1, key="pure_font_slider")
 
-    # ⚡ [새 기능] 라디오 발음 속도 조절 슬라이더 (기본값: 1.0)
+    # ⚡ 라디오 발음 속도 조절 슬라이더 (기본값: 1.0)
     speech_speed = st.slider(
         "⚡ 라디오 발음 속도 조절 (기본값: 1.0배속)",
         min_value=0.6,
@@ -340,15 +340,21 @@ if app_mode == "🗣️ 스피킹 마스터":
                     relay_audio.seek(0)
                     audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
                    
+                    # 💡 HTML components로 확실하게 속도 주입
                     audio_html = f"""
-                        <audio id="total-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%; margin-top: 10px;"></audio>
+                        <audio id="total-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%;"></audio>
                         <script>
-                            var player = document.getElementById('total-radio-player');
-                            player.playbackRate = {speech_speed};
-                            player.play().catch(function(e) {{ console.log(e); }});
+                            var p = document.getElementById('total-radio-player');
+                            function applyRate() {{
+                                p.playbackRate = {speech_speed};
+                            }}
+                            p.oncanplay = applyRate;
+                            p.onplay = applyRate;
+                            p.play().catch(function(e){{}});
+                            applyRate();
                         </script>
                     """
-                    st.markdown(audio_html, unsafe_allow_html=True)
+                    st.components.v1.html(audio_html, height=60)
                     st.success(f"🎶 [{speech_speed}x] 시트 마지막 번호까지 무한 반복하는 전체 라디오가 시작되었습니다!")
                 except Exception as e:
                     st.error("라디오 플레이어 컴파일 실패")
@@ -376,14 +382,19 @@ if app_mode == "🗣️ 스피킹 마스터":
                     audio_base64_l4 = base64.b64encode(relay_audio_l4.read()).decode('utf-8')
                     
                     audio_html_l4 = f"""
-                        <audio id="level4-radio-player" src="data:audio/mp3;base64,{audio_base64_l4}" controls loop style="width: 100%; margin-top: 10px;"></audio>
+                        <audio id="level4-radio-player" src="data:audio/mp3;base64,{audio_base64_l4}" controls loop style="width: 100%;"></audio>
                         <script>
-                            var p4 = document.getElementById('level4-radio-player');
-                            p4.playbackRate = {speech_speed};
-                            p4.play().catch(function(e) {{ console.log(e); }});
+                            var p = document.getElementById('level4-radio-player');
+                            function applyRate() {{
+                                p.playbackRate = {speech_speed};
+                            }}
+                            p.oncanplay = applyRate;
+                            p.onplay = applyRate;
+                            p.play().catch(function(e){{}});
+                            applyRate();
                         </script>
                     """
-                    st.markdown(audio_html_l4, unsafe_allow_html=True)
+                    st.components.v1.html(audio_html_l4, height=60)
                     st.success(f"🎶 [{speech_speed}x] 4단계 미숙 문장 {total_level4}개 무한 반복 라디오가 시작되었습니다!")
                 except Exception as e:
                     st.error("4단계 라디오 생성 실패")
@@ -411,14 +422,19 @@ if app_mode == "🗣️ 스피킹 마스터":
                     audio_base64_l3 = base64.b64encode(relay_audio_l3.read()).decode('utf-8')
                     
                     audio_html_l3 = f"""
-                        <audio id="level3-radio-player" src="data:audio/mp3;base64,{audio_base64_l3}" controls loop style="width: 100%; margin-top: 10px;"></audio>
+                        <audio id="level3-radio-player" src="data:audio/mp3;base64,{audio_base64_l3}" controls loop style="width: 100%;"></audio>
                         <script>
-                            var p3 = document.getElementById('level3-radio-player');
-                            p3.playbackRate = {speech_speed};
-                            p3.play().catch(function(e) {{ console.log(e); }});
+                            var p = document.getElementById('level3-radio-player');
+                            function applyRate() {{
+                                p.playbackRate = {speech_speed};
+                            }}
+                            p.oncanplay = applyRate;
+                            p.onplay = applyRate;
+                            p.play().catch(function(e){{}});
+                            applyRate();
                         </script>
                     """
-                    st.markdown(audio_html_l3, unsafe_allow_html=True)
+                    st.components.v1.html(audio_html_l3, height=60)
                     st.success(f"🎶 [{speech_speed}x] 3단계 초급 문장 {total_level3}개 무한 반복 라디오가 시작되었습니다!")
                 except Exception as e:
                     st.error("3단계 라디오 생성 실패")
@@ -454,14 +470,19 @@ if app_mode == "🗣️ 스피킹 마스터":
                     page_audio.seek(0)
                     page_base64 = base64.b64encode(page_audio.read()).decode('utf-8')
                     page_audio_html = f"""
-                        <audio id="page-radio-player" src="data:audio/mp3;base64,{page_base64}" controls loop style="width: 100%; margin-top: 10px;"></audio>
+                        <audio id="page-radio-player" src="data:audio/mp3;base64,{page_base64}" controls loop style="width: 100%;"></audio>
                         <script>
-                            var p_page = document.getElementById('page-radio-player');
-                            p_page.playbackRate = {speech_speed};
-                            p_page.play();
+                            var p = document.getElementById('page-radio-player');
+                            function applyRate() {{
+                                p.playbackRate = {speech_speed};
+                            }}
+                            p.oncanplay = applyRate;
+                            p.onplay = applyRate;
+                            p.play().catch(function(e){{}});
+                            applyRate();
                         </script>
                     """
-                    st.markdown(page_audio_html, unsafe_allow_html=True)
+                    st.components.v1.html(page_audio_html, height=60)
                     st.success(f"🎶 [{speech_speed}x] {selected_page_str} 범위 무한 반복 재생이 시작되었습니다!")
                 except:
                     st.error("오디오 생성 오류")
