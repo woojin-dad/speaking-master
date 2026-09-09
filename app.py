@@ -83,7 +83,7 @@ if app_mode == "🗣️ 스피킹 마스터":
 
     # ⚡ 라디오 발음 속도 조절 슬라이더 (기본값: 1.0)
     speech_speed = st.slider(
-        "⚡ 문장 발음 속도 조절 (기본값: 1.0배속)",
+        "⚡ 라디오 발음 속도 조절 (기본값: 1.0배속)",
         min_value=0.6,
         max_value=1.2,
         value=1.0,
@@ -123,7 +123,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             margin-top: 10px !important;
         }}
 
-        /* 📻 전체 재생 초록 버튼 */
+        /* 📻 1. 최상단 전체 반복 재생 초록 버튼 */
         div.stButton > button[key^="total_relay_btn_"] {{
             background-color: #f0fdf4 !important;
             border: 2px solid #2ecc71 !important;
@@ -140,7 +140,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             font-weight: bold !important;
         }}
 
-        /* 📻 4단계(미숙) 전용 빨간 버튼 */
+        /* 📻 2. 4단계(미숙) 전용 반복 재생 빨간 버튼 */
         div.stButton > button[key^="level4_relay_btn_"] {{
             background-color: #fef2f2 !important;
             border: 2px solid #ef4444 !important;
@@ -157,7 +157,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             font-weight: bold !important;
         }}
 
-        /* 📻 3단계(초급) 전용 주황 버튼 */
+        /* 📻 3. 3단계(초급) 전용 반복 재생 주황 버튼 */
         div.stButton > button[key^="level3_relay_btn_"] {{
             background-color: #fff7ed !important;
             border: 2px solid #f97316 !important;
@@ -165,7 +165,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             padding: 14px 15px !important;
             width: 100% !important;
             text-align: center !important;
-            margin-bottom: 8px !important;
+            margin-bottom: 15px !important;
         }}
         div.stButton > button[key^="level3_relay_btn_"] p,
         div.stButton > button[key^="level3_relay_btn_"] * {{
@@ -174,24 +174,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             font-weight: bold !important;
         }}
 
-        /* 📻 2단계(중급) 전용 노란 버튼 */
-        div.stButton > button[key^="level2_relay_btn_"] {{
-            background-color: #fefce8 !important;
-            border: 2px solid #eab308 !important;
-            border-radius: 12px !important;
-            padding: 14px 15px !important;
-            width: 100% !important;
-            text-align: center !important;
-            margin-bottom: 15px !important;
-        }}
-        div.stButton > button[key^="level2_relay_btn_"] p,
-        div.stButton > button[key^="level2_relay_btn_"] * {{
-            color: #a16207 !important;
-            font-size: 17px !important;
-            font-weight: bold !important;
-        }}
-
-        /* 🎧 책장별 연속 듣기 파란 버튼 */
+        /* 🎧 4. 책장별 연속 듣기 파란 버튼 */
         div.stButton > button[key^="page_relay_btn_"] {{
             background-color: #f0f9ff !important;
             border: 2px solid #3b82f6 !important;
@@ -209,16 +192,14 @@ if app_mode == "🗣️ 스피킹 마스터":
             font-weight: bold !important;
         }}
        
-        /* 🔤 문장 버튼 (모바일 자동 줄바꿈 보정) */
+        /* 🔤 문장 버튼 */
         div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {{
             width: 100% !important;
-            height: auto !important;
             text-align: left !important;
             background-color: #2c3e50 !important;
             border: none !important;
             border-radius: 8px !important;
-            padding: 10px 12px !important;
-            white-space: pre-line !important;
+            padding: 8px 10px !important;
         }}
        
         div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button p,
@@ -228,11 +209,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             font-size: {font_size}px !important;
             font-weight: 900 !important;
             color: #ffffff !important;
-            line-height: 1.35 !important;
-            white-space: pre-line !important;
-            word-break: keep-all !important;
-            overflow: visible !important;
-            text-overflow: clip !important;
+            line-height: 1.2 !important;
         }}
        
         div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button:hover * {{
@@ -269,7 +246,7 @@ if app_mode == "🗣️ 스피킹 마스터":
         }}
        
         div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[help="audio-btn"] * {{
-            font-size: 18px !important;
+            font-size: 16px !important;
             color: #2c3e50 !important;
             font-weight: bold !important;
             line-height: 1.2 !important;
@@ -363,6 +340,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                     relay_audio.seek(0)
                     audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
                    
+                    # 💡 HTML components로 확실하게 속도 주입
                     audio_html = f"""
                         <audio id="total-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%;"></audio>
                         <script>
@@ -399,10 +377,10 @@ if app_mode == "🗣️ 스피킹 마스터":
                             part_fp.seek(0)
                             relay_audio_l4.write(part_fp.read())
                             relay_audio_l4.write(b'\x00' * 2500)
-                    
+                   
                     relay_audio_l4.seek(0)
                     audio_base64_l4 = base64.b64encode(relay_audio_l4.read()).decode('utf-8')
-                    
+                   
                     audio_html_l4 = f"""
                         <audio id="level4-radio-player" src="data:audio/mp3;base64,{audio_base64_l4}" controls loop style="width: 100%;"></audio>
                         <script>
@@ -439,10 +417,10 @@ if app_mode == "🗣️ 스피킹 마스터":
                             part_fp.seek(0)
                             relay_audio_l3.write(part_fp.read())
                             relay_audio_l3.write(b'\x00' * 2500)
-                    
+                   
                     relay_audio_l3.seek(0)
                     audio_base64_l3 = base64.b64encode(relay_audio_l3.read()).decode('utf-8')
-                    
+                   
                     audio_html_l3 = f"""
                         <audio id="level3-radio-player" src="data:audio/mp3;base64,{audio_base64_l3}" controls loop style="width: 100%;"></audio>
                         <script>
@@ -461,46 +439,6 @@ if app_mode == "🗣️ 스피킹 마스터":
                 except Exception as e:
                     st.error("3단계 라디오 생성 실패")
 
-    # 4. 🟨 2단계(에너지 2) 전용 반복 재생 노란 버튼
-    level2_records = [item for item in all_display_records if item['energy'] == 2]
-    total_level2 = len(level2_records)
-
-    if total_level2 > 0:
-        if st.button(f"📻 🔁 🟨 2단계 문장 연속 반복 재생 시작 ({total_level2}개)", key=f"level2_relay_btn_{real_sheet_name}"):
-            with st.spinner(f"⚡ 2단계 {total_level2}개 문장 음성 결합 중..."):
-                try:
-                    relay_audio_l2 = io.BytesIO()
-                    for item in level2_records:
-                        english_sentence = str(item['en']).strip()
-                        if english_sentence:
-                            tts_part = gTTS(text=english_sentence, lang='en')
-                            part_fp = io.BytesIO()
-                            tts_part.write_to_fp(part_fp)
-                            part_fp.seek(0)
-                            relay_audio_l2.write(part_fp.read())
-                            relay_audio_l2.write(b'\x00' * 2500)
-                    
-                    relay_audio_l2.seek(0)
-                    audio_base64_l2 = base64.b64encode(relay_audio_l2.read()).decode('utf-8')
-                    
-                    audio_html_l2 = f"""
-                        <audio id="level2-radio-player" src="data:audio/mp3;base64,{audio_base64_l2}" controls loop style="width: 100%;"></audio>
-                        <script>
-                            var p = document.getElementById('level2-radio-player');
-                            function applyRate() {{
-                                p.playbackRate = {speech_speed};
-                            }}
-                            p.oncanplay = applyRate;
-                            p.onplay = applyRate;
-                            p.play().catch(function(e){{}});
-                            applyRate();
-                        </script>
-                    """
-                    st.components.v1.html(audio_html_l2, height=60)
-                    st.success(f"🎶 [{speech_speed}x] 2단계 중급 문장 {total_level2}개 무한 반복 라디오가 시작되었습니다!")
-                except Exception as e:
-                    st.error("2단계 라디오 생성 실패")
-
     # 책장 고르기
     if total_sentences > 0:
         selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options, key="pure_page_box")
@@ -514,7 +452,7 @@ if app_mode == "🗣️ 스피킹 마스터":
     if is_priority_mode:
         display_records = sorted(display_records, key=lambda x: x['energy'])
 
-    # 5. 🎧 선택 책장 연속 듣기 파란 버튼
+    # 4. 🎧 선택 책장 연속 듣기 파란 버튼
     if display_records:
         if st.button(f"🎧 {selected_page_str} 문장만 연속 듣기 반복 재생 시작", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
             with st.spinner("⚡ 현재 책장 100개 음성 결합 중..."):
@@ -571,52 +509,21 @@ if app_mode == "🗣️ 스피킹 마스터":
                
             is_english = st.session_state[state_key]
             text_content = item['en'] if is_english else item['kr']
-            btn_label = f"{item['id']}.\n{text_content}"
+            btn_label = f"{item['id']}. {text_content}"
            
             if st.button(btn_label, key=f"sentence_{real_sheet_name}_{orig_idx}"):
                 st.session_state[state_key] = not st.session_state[state_key]
                 st.rerun()
                
         with col2:
-            single_play_key = f"single_audio_active_{real_sheet_name}_{orig_idx}"
-            if single_play_key not in st.session_state:
-                st.session_state[single_play_key] = False
-
             if is_english:
-                btn_icon = "⏹️" if st.session_state[single_play_key] else "🔊"
-                if st.button(btn_icon, key=f"audio_{real_sheet_name}_{orig_idx}", help="audio-btn"):
-                    st.session_state[single_play_key] = not st.session_state[single_play_key]
-                    st.rerun()
-
-                # 💡 레이아웃을 해치지 않고 백그라운드에서 바로 무한 반복 실행
-                if st.session_state[single_play_key]:
-                    try:
-                        single_tts = gTTS(text=item['en'], lang='en')
-                        single_fp = io.BytesIO()
-                        single_tts.write_to_fp(single_fp)
-                        single_fp.seek(0)
-                        single_b64 = base64.b64encode(single_fp.read()).decode('utf-8')
-                        player_id = f"hidden_loop_{real_sheet_name}_{orig_idx}"
-
-                        hidden_audio_html = f"""
-                            <audio id="{player_id}" src="data:audio/mp3;base64,{single_b64}" loop></audio>
-                            <script>
-                                var h_audio = document.getElementById('{player_id}');
-                                function startLoop() {{
-                                    h_audio.playbackRate = {speech_speed};
-                                    h_audio.play().catch(function(e){{}});
-                                }}
-                                h_audio.oncanplay = function() {{
-                                    h_audio.playbackRate = {speech_speed};
-                                }};
-                                startLoop();
-                            </script>
-                        """
-                        st.components.v1.html(hidden_audio_html, height=0)
-                    except:
-                        pass
+                if st.button("🔊", key=f"audio_{real_sheet_name}_{orig_idx}", help="audio-btn"):
+                    tts = gTTS(text=item['en'], lang='en')
+                    fp = io.BytesIO()
+                    tts.write_to_fp(fp)
+                    fp.seek(0)
+                    st.audio(fp, format='audio/mp3', autoplay=True)
             else:
-                st.session_state[single_play_key] = False
                 if energy_val == 0:
                     color_block_text = "🟥\n🟥\n🟥\n🟥"
                 elif energy_val == 1:
@@ -653,7 +560,7 @@ else:
             padding-left: 10px !important;
             padding-right: 0px !important;
         }
-        
+       
         .custom-title {
             font-size: 26px !important;
             font-weight: bold !important;
@@ -667,7 +574,7 @@ else:
         button[title="Fork this app"] {display: none !important; visibility: hidden !important;}
         header {visibility: hidden !important; height: 0px !important;}
         footer {visibility: hidden !important; height: 0px !important;}
-        
+       
         .track-title {
             font-size: 17px;
             font-weight: bold;
@@ -685,7 +592,7 @@ else:
         }
         </style>
     """, unsafe_allow_html=True)
-    
+   
     st.markdown("<div class='custom-title'>👑 리스닝 마스터 👑</div>", unsafe_allow_html=True)
     st.write("---")
 
@@ -721,7 +628,7 @@ else:
             return
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M") if mark_as_done else ""
         is_completed_str = "TRUE" if mark_as_done else "FALSE"
-        
+       
         try:
             records = ws.get_all_records()
             found_row = None
@@ -729,7 +636,7 @@ else:
                 if r.get('filename') == filename:
                     found_row = idx
                     break
-            
+           
             if found_row:
                 ws.update_cell(found_row, 2, is_completed_str)
                 ws.update_cell(found_row, 3, now_str)
@@ -749,7 +656,7 @@ else:
                 if r.get('filename') == filename:
                     found_row = idx
                     break
-            
+           
             if found_row:
                 ws.update_cell(found_row, 4, note_text)
             else:
@@ -760,7 +667,7 @@ else:
     def build_drive_service():
         creds_dict = json.loads(st.secrets["gcp_service_account"])
         creds = ServiceAccountCredentials.from_json_keyfile_dict(
-            creds_dict, 
+            creds_dict,
             scopes=["https://www.googleapis.com/auth/drive.readonly"]
         )
         return build('drive', 'v3', credentials=creds)
@@ -825,12 +732,12 @@ else:
                 st.session_state[play_state_key] = False
 
             c1, c2 = st.columns([7.5, 2.5])
-            
+           
             with c1:
                 st.markdown(f"<div class='track-title'>🎵 {idx}. {fname}</div>", unsafe_allow_html=True)
                 if is_done:
                     st.markdown(f"<div class='badge-completed'>✅ 완독: {done_time}</div>", unsafe_allow_html=True)
-            
+           
             with c2:
                 btn_label = "❚❚ 닫기" if st.session_state[play_state_key] else "▶ 재생"
                 if st.button(btn_label, key=f"btn_toggle_{fid}"):
@@ -840,7 +747,7 @@ else:
             if st.session_state[play_state_key]:
                 with st.spinner(f"📥 [{fname}] 음성 로딩 중..."):
                     audio_bytes = download_audio_bytes(fid)
-                
+               
                 if audio_bytes:
                     b64_audio = base64.b64encode(audio_bytes).decode('utf-8')
                     player_id = f"custom_audio_{fid}"
@@ -894,14 +801,14 @@ else:
                     </script>
                     """
                     st.components.v1.html(custom_player_html, height=140)
-                    
+                   
                     user_note = st.text_area(
                         "📝 나만의 청취 메모 (중요 표현, 구간 적기):",
                         value=current_note,
                         key=f"note_input_{fid}",
                         height=80
                     )
-                    
+                   
                     col_note_btn, col_blank = st.columns([3, 7])
                     with col_note_btn:
                         if st.button("💾 메모 저장하기", key=f"save_note_btn_{fid}"):
@@ -941,8 +848,8 @@ else:
                                 st.rerun()
                 else:
                     st.error("오디오 로딩 실패")
-            
+           
             st.write("---")
-            
+           
     else:
         st.warning("구글 드라이브 폴더에 MP3 파일이 없습니다.")
