@@ -578,14 +578,44 @@ if app_mode == "🗣️ 스피킹 마스터":
                 st.rerun()
                
         with col2:
+            loop_key = f"single_loop_{real_sheet_name}_{orig_idx}"
+            if loop_key not in st.session_state:
+                st.session_state[loop_key] = False
+
             if is_english:
-                if st.button("🎧", key=f"audio_{real_sheet_name}_{orig_idx}", help="audio-btn"):
-                    tts = gTTS(text=item['en'], lang='en')
-                    fp = io.BytesIO()
-                    tts.write_to_fp(fp)
-                    fp.seek(0)
-                    st.audio(fp, format='audio/mp3', autoplay=True)
+                btn_icon = "⏹️" if st.session_state[loop_key] else "🎧"
+                if st.button(btn_icon, key=f"audio_{real_sheet_name}_{orig_idx}", help="audio-btn"):
+                    st.session_state[loop_key] = not st.session_state[loop_key]
+                    st.rerun()
+
+                if st.session_state[loop_key]:
+                    try:
+                        tts = gTTS(text=item['en'], lang='en')
+                        fp = io.BytesIO()
+                        tts.write_to_fp(fp)
+                        fp.seek(0)
+                        b64_audio = base64.b64encode(fp.read()).decode('utf-8')
+                        player_id = f"loop_audio_{real_sheet_name}_{orig_idx}"
+
+                        audio_html = f"""
+                            <audio id="{player_id}" src="data:audio/mp3;base64,{b64_audio}" loop></audio>
+                            <script>
+                                var a = document.getElementById('{player_id}');
+                                function startAudio() {{
+                                    a.playbackRate = {speech_speed};
+                                    a.play().catch(function(e){{}});
+                                }}
+                                a.oncanplay = function() {{
+                                    a.playbackRate = {speech_speed};
+                                }};
+                                startAudio();
+                            </script>
+                        """
+                        st.components.v1.html(audio_html, height=0)
+                    except:
+                        pass
             else:
+                st.session_state[loop_key] = False
                 if energy_val == 0:
                     color_block_text = "🟥\n🟥\n🟥\n🟥"
                 elif energy_val == 1:
