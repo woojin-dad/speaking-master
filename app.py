@@ -83,7 +83,7 @@ if app_mode == "🗣️ 스피킹 마스터":
 
     # ⚡ 라디오 발음 속도 조절 슬라이더 (기본값: 1.0)
     speech_speed = st.slider(
-        "⚡ 라디오 발음 속도 조절 (기본값: 1.0배속)",
+        "⚡ 문장 발음 속도 조절 (기본값: 1.0배속)",
         min_value=0.6,
         max_value=1.2,
         value=1.0,
@@ -269,7 +269,7 @@ if app_mode == "🗣️ 스피킹 마스터":
         }}
        
         div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[help="audio-btn"] * {{
-            font-size: 16px !important;
+            font-size: 18px !important;
             color: #2c3e50 !important;
             font-weight: bold !important;
             line-height: 1.2 !important;
@@ -579,14 +579,18 @@ if app_mode == "🗣️ 스피킹 마스터":
                 st.rerun()
                
         with col2:
+            single_play_key = f"single_audio_active_{real_sheet_name}_{orig_idx}"
+            if single_play_key not in st.session_state:
+                st.session_state[single_play_key] = False
+
             if is_english:
-                if st.button("🔊", key=f"audio_{real_sheet_name}_{orig_idx}", help="audio-btn"):
-                    tts = gTTS(text=item['en'], lang='en')
-                    fp = io.BytesIO()
-                    tts.write_to_fp(fp)
-                    fp.seek(0)
-                    st.audio(fp, format='audio/mp3', autoplay=True)
+                # 🔁 🔊 누르면 무한 반복 재생 시작, 재생 중에는 ⏹️ 정지 버튼
+                btn_icon = "⏹️" if st.session_state[single_play_key] else "🔊"
+                if st.button(btn_icon, key=f"audio_{real_sheet_name}_{orig_idx}", help="audio-btn"):
+                    st.session_state[single_play_key] = not st.session_state[single_play_key]
+                    st.rerun()
             else:
+                st.session_state[single_play_key] = False
                 if energy_val == 0:
                     color_block_text = "🟥\n🟥\n🟥\n🟥"
                 elif energy_val == 1:
@@ -607,6 +611,33 @@ if app_mode == "🗣️ 스피킹 마스터":
                     ).start()
                    
                     st.rerun()
+
+        # 🔁 개별 문장 무한 반복 플레이어 렌더링 (설정 배속 자동 적용)
+        if is_english and st.session_state.get(single_play_key, False):
+            try:
+                single_tts = gTTS(text=item['en'], lang='en')
+                single_fp = io.BytesIO()
+                single_tts.write_to_fp(single_fp)
+                single_fp.seek(0)
+                single_b64 = base64.b64encode(single_fp.read()).decode('utf-8')
+                player_id = f"single_loop_{real_sheet_name}_{orig_idx}"
+
+                single_player_html = f"""
+                    <audio id="{player_id}" src="data:audio/mp3;base64,{single_b64}" controls loop style="width: 100%; margin-top: 4px;"></audio>
+                    <script>
+                        var sp = document.getElementById('{player_id}');
+                        function applyRate() {{
+                            sp.playbackRate = {speech_speed};
+                        }}
+                        sp.oncanplay = applyRate;
+                        sp.onplay = applyRate;
+                        sp.play().catch(function(e){{}});
+                        applyRate();
+                    </script>
+                """
+                st.components.v1.html(single_player_html, height=55)
+            except:
+                st.caption("⚠️ 음성 로딩 실패")
                    
         st.write("---")
 
@@ -616,34 +647,34 @@ if app_mode == "🗣️ 스피킹 마스터":
 else:
     st.markdown("""
         <style>
-        .block-container {
+        .block-container {{
             max-width: 100% !important;
             padding-top: 0.5rem !important;
             padding-bottom: 1rem !important;
             padding-left: 10px !important;
             padding-right: 0px !important;
-        }
+        }}
         
-        .custom-title {
+        .custom-title {{
             font-size: 26px !important;
             font-weight: bold !important;
             color: #2c3e50 !important;
             text-align: center !important;
             padding-top: 5px;
             margin-top: 10px !important;
-        }
+        }}
 
-        [data-testid="stToolbar"] {display: none !important; visibility: hidden !important;}
-        button[title="Fork this app"] {display: none !important; visibility: hidden !important;}
-        header {visibility: hidden !important; height: 0px !important;}
-        footer {visibility: hidden !important; height: 0px !important;}
+        [data-testid="stToolbar"] {{display: none !important; visibility: hidden !important;}}
+        button[title="Fork this app"] {{display: none !important; visibility: hidden !important;}}
+        header {{visibility: hidden !important; height: 0px !important;}}
+        footer {{visibility: hidden !important; height: 0px !important;}}
         
-        .track-title {
+        .track-title {{
             font-size: 17px;
             font-weight: bold;
             color: #1e293b;
-        }
-        .badge-completed {
+        }}
+        .badge-completed {{
             background-color: #dcfce7;
             color: #15803d;
             font-size: 13px;
@@ -652,7 +683,7 @@ else:
             border-radius: 6px;
             display: inline-block;
             margin-top: 4px;
-        }
+        }}
         </style>
     """, unsafe_allow_html=True)
     
