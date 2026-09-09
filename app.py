@@ -340,16 +340,6 @@ if app_mode == "🗣️ 스피킹 마스터":
         })
 
     total_sentences = len(all_display_records)
-    page_size = 100  
-
-    if total_sentences > 0:
-        page_options = []
-        for i in range(0, total_sentences, page_size):
-            start_num = i + 1
-            end_num = min(i + page_size, total_sentences)
-            page_options.append(f"📖 책장: {start_num} ~ {end_num}번")
-    else:
-        page_options = []
 
     # 1. 📻 전체 재생 초록 버튼
     if total_sentences > 0:
@@ -509,13 +499,52 @@ if app_mode == "🗣️ 스피킹 마스터":
                 except Exception as e:
                     st.error("2단계 라디오 생성 실패")
 
+    # 🎯 단계별 필터링 (전체 시트 기준)
+    count_l4 = len(level4_records)
+    count_l3 = len(level3_records)
+    count_l2 = len(level2_records)
+    count_l1 = len([item for item in all_display_records if item['energy'] == 3])
+
+    stage_filter_options = [
+        f"🌟 전체 보기 (모든 문장 · {total_sentences}개)",
+        f"🟥 4단계만 보기 (미숙 · {count_l4}개)",
+        f"🟧 3단계만 보기 (초급 · {count_l3}개)",
+        f"🟨 2단계만 보기 (중급 · {count_l2}개)",
+        f"🟩 1단계만 보기 (마스터 · {count_l1}개)"
+    ]
+
+    selected_stage_filter = st.selectbox("🎯 학습할 단계를 선택하세요", stage_filter_options, key="pure_stage_filter_box")
+
+    if "4단계" in selected_stage_filter:
+        filtered_records = [item for item in all_display_records if item['energy'] == 0]
+    elif "3단계" in selected_stage_filter:
+        filtered_records = [item for item in all_display_records if item['energy'] == 1]
+    elif "2단계" in selected_stage_filter:
+        filtered_records = [item for item in all_display_records if item['energy'] == 2]
+    elif "1단계" in selected_stage_filter:
+        filtered_records = [item for item in all_display_records if item['energy'] == 3]
+    else:
+        filtered_records = all_display_records
+
+    total_filtered = len(filtered_records)
+    page_size = 100
+
+    if total_filtered > 0:
+        page_options = []
+        for i in range(0, total_filtered, page_size):
+            start_num = i + 1
+            end_num = min(i + page_size, total_filtered)
+            page_options.append(f"📖 책장: {start_num} ~ {end_num}번")
+    else:
+        page_options = []
+
     # 책장 고르기
-    if total_sentences > 0:
+    if total_filtered > 0:
         selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options, key="pure_page_box")
         page_idx = page_options.index(selected_page_str)
         start_idx = page_idx * page_size
         end_idx = start_idx + page_size
-        display_records = all_display_records[start_idx:end_idx]
+        display_records = filtered_records[start_idx:end_idx]
     else:
         display_records = []
 
@@ -525,7 +554,7 @@ if app_mode == "🗣️ 스피킹 마스터":
     # 5. 🎧 선택 책장 연속 듣기 파란 버튼
     if display_records:
         if st.button(f"🎧 {selected_page_str} 문장만 연속 듣기 반복 재생 시작", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
-            with st.spinner("⚡ 현재 책장 100개 음성 결합 중..."):
+            with st.spinner("⚡ 현재 책장 음성 결합 중..."):
                 try:
                     page_audio = io.BytesIO()
                     for item in display_records:
@@ -587,7 +616,6 @@ if app_mode == "🗣️ 스피킹 마스터":
                
         with col2:
             if is_english:
-                # 💡 영어 문장일 때: 헤드폰 버튼을 거치지 않고 바로 플레이어 바 표시!
                 try:
                     tts = gTTS(text=item['en'], lang='en')
                     fp = io.BytesIO()
@@ -614,7 +642,6 @@ if app_mode == "🗣️ 스피킹 마스터":
                 except:
                     pass
             else:
-                # 한글 문장일 때: 에너지 블록 표시
                 if energy_val == 0:
                     color_block_text = "🟥\n🟥\n🟥\n🟥"
                 elif energy_val == 1:
