@@ -192,14 +192,16 @@ if app_mode == "🗣️ 스피킹 마스터":
             font-weight: bold !important;
         }}
        
-        /* 🔤 문장 버튼 */
+        /* 🔤 문장 버튼 (말줄임표 ... 방지 및 줄바꿈 허용) */
         div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {{
             width: 100% !important;
+            height: auto !important;
             text-align: left !important;
             background-color: #2c3e50 !important;
             border: none !important;
             border-radius: 8px !important;
-            padding: 8px 10px !important;
+            padding: 10px 12px !important;
+            white-space: pre-line !important;
         }}
        
         div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button p,
@@ -209,7 +211,11 @@ if app_mode == "🗣️ 스피킹 마스터":
             font-size: {font_size}px !important;
             font-weight: 900 !important;
             color: #ffffff !important;
-            line-height: 1.2 !important;
+            line-height: 1.35 !important;
+            white-space: pre-line !important;
+            word-break: keep-all !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
         }}
        
         div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button:hover * {{
@@ -340,7 +346,6 @@ if app_mode == "🗣️ 스피킹 마스터":
                     relay_audio.seek(0)
                     audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
                    
-                    # 💡 HTML components로 확실하게 속도 주입
                     audio_html = f"""
                         <audio id="total-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%;"></audio>
                         <script>
@@ -377,12 +382,12 @@ if app_mode == "🗣️ 스피킹 마스터":
                             part_fp.seek(0)
                             relay_audio_l4.write(part_fp.read())
                             relay_audio_l4.write(b'\x00' * 2500)
-                   
+                    
                     relay_audio_l4.seek(0)
                     audio_base64_l4 = base64.b64encode(relay_audio_l4.read()).decode('utf-8')
-                   
+                    
                     audio_html_l4 = f"""
-                        <audio id="level4-radio-player" src="data:audio/mp3;base64,{audio_base64_l4}" controls loop style="width: 100%;"></audio>
+                        <audio id="level4-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%;"></audio>
                         <script>
                             var p = document.getElementById('level4-radio-player');
                             function applyRate() {{
@@ -417,12 +422,12 @@ if app_mode == "🗣️ 스피킹 마스터":
                             part_fp.seek(0)
                             relay_audio_l3.write(part_fp.read())
                             relay_audio_l3.write(b'\x00' * 2500)
-                   
+                    
                     relay_audio_l3.seek(0)
                     audio_base64_l3 = base64.b64encode(relay_audio_l3.read()).decode('utf-8')
-                   
+                    
                     audio_html_l3 = f"""
-                        <audio id="level3-radio-player" src="data:audio/mp3;base64,{audio_base64_l3}" controls loop style="width: 100%;"></audio>
+                        <audio id="level3-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%;"></audio>
                         <script>
                             var p = document.getElementById('level3-radio-player');
                             function applyRate() {{
@@ -509,7 +514,8 @@ if app_mode == "🗣️ 스피킹 마스터":
                
             is_english = st.session_state[state_key]
             text_content = item['en'] if is_english else item['kr']
-            btn_label = f"{item['id']}. {text_content}"
+            # 💡 [반영 1] 번호/라벨 뒤 줄바꿈(\n) 적용
+            btn_label = f"{item['id']}.\n{text_content}"
            
             if st.button(btn_label, key=f"sentence_{real_sheet_name}_{orig_idx}"):
                 st.session_state[state_key] = not st.session_state[state_key]
@@ -560,7 +566,7 @@ else:
             padding-left: 10px !important;
             padding-right: 0px !important;
         }
-       
+        
         .custom-title {
             font-size: 26px !important;
             font-weight: bold !important;
@@ -574,7 +580,7 @@ else:
         button[title="Fork this app"] {display: none !important; visibility: hidden !important;}
         header {visibility: hidden !important; height: 0px !important;}
         footer {visibility: hidden !important; height: 0px !important;}
-       
+        
         .track-title {
             font-size: 17px;
             font-weight: bold;
@@ -592,7 +598,7 @@ else:
         }
         </style>
     """, unsafe_allow_html=True)
-   
+    
     st.markdown("<div class='custom-title'>👑 리스닝 마스터 👑</div>", unsafe_allow_html=True)
     st.write("---")
 
@@ -628,7 +634,7 @@ else:
             return
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M") if mark_as_done else ""
         is_completed_str = "TRUE" if mark_as_done else "FALSE"
-       
+        
         try:
             records = ws.get_all_records()
             found_row = None
@@ -636,7 +642,7 @@ else:
                 if r.get('filename') == filename:
                     found_row = idx
                     break
-           
+            
             if found_row:
                 ws.update_cell(found_row, 2, is_completed_str)
                 ws.update_cell(found_row, 3, now_str)
@@ -656,7 +662,7 @@ else:
                 if r.get('filename') == filename:
                     found_row = idx
                     break
-           
+            
             if found_row:
                 ws.update_cell(found_row, 4, note_text)
             else:
@@ -667,7 +673,7 @@ else:
     def build_drive_service():
         creds_dict = json.loads(st.secrets["gcp_service_account"])
         creds = ServiceAccountCredentials.from_json_keyfile_dict(
-            creds_dict,
+            creds_dict, 
             scopes=["https://www.googleapis.com/auth/drive.readonly"]
         )
         return build('drive', 'v3', credentials=creds)
@@ -732,12 +738,12 @@ else:
                 st.session_state[play_state_key] = False
 
             c1, c2 = st.columns([7.5, 2.5])
-           
+            
             with c1:
                 st.markdown(f"<div class='track-title'>🎵 {idx}. {fname}</div>", unsafe_allow_html=True)
                 if is_done:
                     st.markdown(f"<div class='badge-completed'>✅ 완독: {done_time}</div>", unsafe_allow_html=True)
-           
+            
             with c2:
                 btn_label = "❚❚ 닫기" if st.session_state[play_state_key] else "▶ 재생"
                 if st.button(btn_label, key=f"btn_toggle_{fid}"):
@@ -747,7 +753,7 @@ else:
             if st.session_state[play_state_key]:
                 with st.spinner(f"📥 [{fname}] 음성 로딩 중..."):
                     audio_bytes = download_audio_bytes(fid)
-               
+                
                 if audio_bytes:
                     b64_audio = base64.b64encode(audio_bytes).decode('utf-8')
                     player_id = f"custom_audio_{fid}"
@@ -801,14 +807,14 @@ else:
                     </script>
                     """
                     st.components.v1.html(custom_player_html, height=140)
-                   
+                    
                     user_note = st.text_area(
                         "📝 나만의 청취 메모 (중요 표현, 구간 적기):",
                         value=current_note,
                         key=f"note_input_{fid}",
                         height=80
                     )
-                   
+                    
                     col_note_btn, col_blank = st.columns([3, 7])
                     with col_note_btn:
                         if st.button("💾 메모 저장하기", key=f"save_note_btn_{fid}"):
@@ -848,8 +854,8 @@ else:
                                 st.rerun()
                 else:
                     st.error("오디오 로딩 실패")
-           
+            
             st.write("---")
-           
+            
     else:
         st.warning("구글 드라이브 폴더에 MP3 파일이 없습니다.")
