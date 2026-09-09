@@ -341,9 +341,9 @@ if app_mode == "🗣️ 스피킹 마스터":
 
     total_sentences = len(all_display_records)
 
-    # 1. 📻 전체 재생 초록 버튼
+    # 1. 📻 전체 재생 초록 버튼 (개수 표기로 수정)
     if total_sentences > 0:
-        if st.button(f"📻 🔁 {selected_menu} 전체 문장 반복 재생 시작 (1번 ~ 끝까지)", key=f"total_relay_btn_{real_sheet_name}"):
+        if st.button(f"📻 🔁 {selected_menu} 전체 문장 반복 재생 시작 ({total_sentences}개)", key=f"total_relay_btn_{real_sheet_name}"):
             with st.spinner("⚡ 전체 문장 취합 중..."):
                 try:
                     relay_audio = io.BytesIO()
@@ -375,7 +375,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                         </script>
                     """
                     st.components.v1.html(audio_html, height=60)
-                    st.success(f"🎶 [{speech_speed}x] 시트 마지막 번호까지 무한 반복하는 전체 라디오가 시작되었습니다!")
+                    st.success(f"🎶 [{speech_speed}x] 전체 {total_sentences}개 문장 무한 반복 라디오가 시작되었습니다!")
                 except Exception as e:
                     st.error("라디오 플레이어 컴파일 실패")
 
