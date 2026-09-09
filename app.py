@@ -174,7 +174,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             font-weight: bold !important;
         }}
 
-        /* 📻 4. 2단계(중급) 전용 반복 재생 노란 버튼 (새로 추가) */
+        /* 📻 4. 2단계(중급) 전용 반복 재생 노란 버튼 */
         div.stButton > button[key^="level2_relay_btn_"] {{
             background-color: #fefce8 !important;
             border: 2px solid #eab308 !important;
@@ -404,7 +404,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                     audio_base64_l4 = base64.b64encode(relay_audio_l4.read()).decode('utf-8')
                     
                     audio_html_l4 = f"""
-                        <audio id="level4-radio-player" src="data:audio/mp3;base64,{audio_base64_l4}" controls loop style="width: 100%;"></audio>
+                        <audio id="level4-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%;"></audio>
                         <script>
                             var p = document.getElementById('level4-radio-player');
                             function applyRate() {{
@@ -444,7 +444,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                     audio_base64_l3 = base64.b64encode(relay_audio_l3.read()).decode('utf-8')
                     
                     audio_html_l3 = f"""
-                        <audio id="level3-radio-player" src="data:audio/mp3;base64,{audio_base64_l3}" controls loop style="width: 100%;"></audio>
+                        <audio id="level3-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%;"></audio>
                         <script>
                             var p = document.getElementById('level3-radio-player');
                             function applyRate() {{
@@ -461,7 +461,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                 except Exception as e:
                     st.error("3단계 라디오 생성 실패")
 
-    # 4. 🟨 2단계(에너지 2) 전용 반복 재생 노란 버튼 (새로 추가)
+    # 4. 🟨 2단계(에너지 2) 전용 반복 재생 노란 버튼
     level2_records = [item for item in all_display_records if item['energy'] == 2]
     total_level2 = len(level2_records)
 
@@ -484,7 +484,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                     audio_base64_l2 = base64.b64encode(relay_audio_l2.read()).decode('utf-8')
                     
                     audio_html_l2 = f"""
-                        <audio id="level2-radio-player" src="data:audio/mp3;base64,{audio_base64_l2}" controls loop style="width: 100%;"></audio>
+                        <audio id="level2-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%;"></audio>
                         <script>
                             var p = document.getElementById('level2-radio-player');
                             function applyRate() {{
@@ -583,35 +583,34 @@ if app_mode == "🗣️ 스피킹 마스터":
                 st.session_state[loop_key] = False
 
             if is_english:
+                # 🎧 ⇄ ⏹️ 토글 버튼
                 btn_icon = "⏹️" if st.session_state[loop_key] else "🎧"
                 if st.button(btn_icon, key=f"audio_{real_sheet_name}_{orig_idx}", help="audio-btn"):
                     st.session_state[loop_key] = not st.session_state[loop_key]
                     st.rerun()
 
+                # 💡 Streamlit의 신뢰할 수 있는 내장 오디오 컴포넌트를 이용해 브라우저 자동 재생 차단 해결
                 if st.session_state[loop_key]:
                     try:
                         tts = gTTS(text=item['en'], lang='en')
                         fp = io.BytesIO()
                         tts.write_to_fp(fp)
                         fp.seek(0)
-                        b64_audio = base64.b64encode(fp.read()).decode('utf-8')
-                        player_id = f"loop_audio_{real_sheet_name}_{orig_idx}"
-
-                        audio_html = f"""
-                            <audio id="{player_id}" src="data:audio/mp3;base64,{b64_audio}" loop></audio>
+                        
+                        # 1. Streamlit 공식 컴포넌트로 소리 출력 (모바일 정책 통과)
+                        st.audio(fp, format='audio/mp3', autoplay=True)
+                        
+                        # 2. 해당 오디오를 무한 반복(loop) 및 설정 배속으로 즉시 연결하는 주입 스크립트
+                        st.markdown(f"""
                             <script>
-                                var a = document.getElementById('{player_id}');
-                                function startAudio() {{
-                                    a.playbackRate = {speech_speed};
-                                    a.play().catch(function(e){{}});
+                                var audios = window.parent.document.querySelectorAll('audio');
+                                if (audios.length > 0) {{
+                                    var lastAudio = audios[audios.length - 1];
+                                    lastAudio.loop = true;
+                                    lastAudio.playbackRate = {speech_speed};
                                 }}
-                                a.oncanplay = function() {{
-                                    a.playbackRate = {speech_speed};
-                                }};
-                                startAudio();
                             </script>
-                        """
-                        st.components.v1.html(audio_html, height=0)
+                        """, unsafe_allow_html=True)
                     except:
                         pass
             else:
