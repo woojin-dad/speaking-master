@@ -579,7 +579,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                
         with col2:
             if is_english:
-                if st.button("🔊", key=f"audio_{real_sheet_name}_{orig_idx}", help="audio-btn"):
+                if st.button("🎧", key=f"audio_{real_sheet_name}_{orig_idx}", help="audio-btn"):
                     tts = gTTS(text=item['en'], lang='en')
                     fp = io.BytesIO()
                     tts.write_to_fp(fp)
