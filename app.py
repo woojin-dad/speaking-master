@@ -341,9 +341,9 @@ if app_mode == "🗣️ 스피킹 마스터":
 
     total_sentences = len(all_display_records)
 
-    # 1. 📻 전체 재생 초록 버튼 (개수 표기로 수정)
+    # 1. 📻 전체 재생 초록 버튼 (🟥🟧🟨🟩 추가)
     if total_sentences > 0:
-        if st.button(f"📻 🔁 {selected_menu} 전체 문장 반복 재생 시작 ({total_sentences}개)", key=f"total_relay_btn_{real_sheet_name}"):
+        if st.button(f"📻 🔁 🟥🟧🟨🟩 {selected_menu} 전체 문장 반복 재생 시작 ({total_sentences}개)", key=f"total_relay_btn_{real_sheet_name}"):
             with st.spinner("⚡ 전체 문장 취합 중..."):
                 try:
                     relay_audio = io.BytesIO()
