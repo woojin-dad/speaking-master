@@ -107,16 +107,15 @@ if app_mode == "🗣️ 스피킹 마스터":
             flex-wrap: nowrap !important;
             align-items: center !important;
             justify-content: space-between !important;
-            gap: 20px !important;
+            gap: 15px !important;
             width: 100% !important;
         }}
        
-        div[data-testid="stHorizontalBlock"] > div:nth-child(1) {{ flex: 8.5 1 0% !important; min-width: 0 !important; }}
+        div[data-testid="stHorizontalBlock"] > div:nth-child(1) {{ flex: 8.2 1 0% !important; min-width: 0 !important; }}
         div[data-testid="stHorizontalBlock"] > div:nth-child(2) {{
-            flex: 1.5 1 0% !important;
+            flex: 1.8 1 0% !important;
             min-width: 0 !important;
             display: flex !important;
-            flex-direction: column !important;
             align-items: center !important;
             justify-content: center !important;
         }}
@@ -277,15 +276,17 @@ if app_mode == "🗣️ 스피킹 마스터":
         }}
        
         div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[help="audio-btn"] * {{
-            font-size: 20px !important;
+            font-size: 22px !important;
             color: #2c3e50 !important;
             font-weight: bold !important;
             line-height: 1.2 !important;
         }}
 
         div[data-testid="stHorizontalBlock"] > div:nth-child(2) iframe {{
-            display: block !important;
-            margin: 2px auto 0px auto !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin: 0px auto !important;
             width: 100% !important;
         }}
        
@@ -418,7 +419,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                     audio_base64_l4 = base64.b64encode(relay_audio_l4.read()).decode('utf-8')
                     
                     audio_html_l4 = f"""
-                        <audio id="level4-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%;"></audio>
+                        <audio id="level4-radio-player" src="data:audio/mp3;base64,{audio_base64_l4}" controls loop style="width: 100%;"></audio>
                         <script>
                             var p = document.getElementById('level4-radio-player');
                             function applyRate() {{
@@ -458,7 +459,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                     audio_base64_l3 = base64.b64encode(relay_audio_l3.read()).decode('utf-8')
                     
                     audio_html_l3 = f"""
-                        <audio id="level3-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%;"></audio>
+                        <audio id="level3-radio-player" src="data:audio/mp3;base64,{audio_base64_l3}" controls loop style="width: 100%;"></audio>
                         <script>
                             var p = document.getElementById('level3-radio-player');
                             function applyRate() {{
@@ -498,7 +499,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                     audio_base64_l2 = base64.b64encode(relay_audio_l2.read()).decode('utf-8')
                     
                     audio_html_l2 = f"""
-                        <audio id="level2-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%;"></audio>
+                        <audio id="level2-radio-player" src="data:audio/mp3;base64,{audio_base64_l2}" controls loop style="width: 100%;"></audio>
                         <script>
                             var p = document.getElementById('level2-radio-player');
                             function applyRate() {{
@@ -576,7 +577,7 @@ if app_mode == "🗣️ 스피킹 마스터":
         row_idx = item['original_row']
         energy_val = item['energy']
        
-        col1, col2 = st.columns([8.5, 1.5])
+        col1, col2 = st.columns([8.2, 1.8])
        
         with col1:
             state_key = f"show_{real_sheet_name}_{orig_idx}"
@@ -597,17 +598,17 @@ if app_mode == "🗣️ 스피킹 마스터":
                 st.session_state[loop_key] = False
 
             if is_english:
-                # 💡 아이콘을 항상 🎧 로 고정 (터치 시 재생/정지 토글)
-                if st.button("🎧", key=f"audio_{real_sheet_name}_{orig_idx}", help="audio-btn"):
-                    current_status = st.session_state[loop_key]
-                    for k in list(st.session_state.keys()):
-                        if k.startswith(f"single_loop_{real_sheet_name}_"):
-                            st.session_state[k] = False
-                    st.session_state[loop_key] = not current_status
-                    st.rerun()
-
-                # 💡 중앙 정렬 맞춤 오디오 플레이어 렌더링
-                if st.session_state[loop_key]:
+                # 💡 헤드폰을 누르기 전: 🎧 버튼만 표시
+                if not st.session_state[loop_key]:
+                    if st.button("🎧", key=f"audio_{real_sheet_name}_{orig_idx}", help="audio-btn"):
+                        # 다른 재생 중이던 문장은 끄고, 현재 문장만 켜기
+                        for k in list(st.session_state.keys()):
+                            if k.startswith(f"single_loop_{real_sheet_name}_"):
+                                st.session_state[k] = False
+                        st.session_state[loop_key] = True
+                        st.rerun()
+                # 💡 헤드폰을 누른 후: 헤드폰 대신 플레이 버튼만 딱 나타나며 즉시 자동 재생!
+                else:
                     try:
                         tts = gTTS(text=item['en'], lang='en')
                         fp = io.BytesIO()
@@ -617,21 +618,21 @@ if app_mode == "🗣️ 스피킹 마스터":
                         player_id = f"single_loop_player_{real_sheet_name}_{orig_idx}"
 
                         audio_html = f"""
-                            <div style="display: flex; justify-content: center; align-items: center; width: 100%; padding: 0; margin: 0;">
-                                <audio id="{player_id}" src="data:audio/mp3;base64,{b64_audio}" controls loop style="width: 100%; max-width: 110px; height: 32px;"></audio>
+                            <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;">
+                                <audio id="{player_id}" src="data:audio/mp3;base64,{b64_audio}" controls loop autoplay style="width: 100%; max-width: 110px; height: 32px;"></audio>
                             </div>
                             <script>
                                 var p = document.getElementById('{player_id}');
-                                function applyRate() {{
+                                function setupAudio() {{
                                     p.playbackRate = {speech_speed};
+                                    p.play().catch(function(e){{}});
                                 }}
-                                p.oncanplay = applyRate;
-                                p.onplay = applyRate;
-                                p.play().catch(function(e){{}});
-                                applyRate();
+                                p.oncanplay = setupAudio;
+                                p.onplay = function() {{ p.playbackRate = {speech_speed}; }};
+                                setupAudio();
                             </script>
                         """
-                        st.components.v1.html(audio_html, height=36)
+                        st.components.v1.html(audio_html, height=45)
                     except:
                         pass
             else:
