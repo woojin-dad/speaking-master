@@ -274,13 +274,6 @@ if app_mode == "🗣️ 스피킹 마스터":
             padding: 0px !important;
             margin: 0px !important;
         }}
-       
-        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[help="audio-btn"] * {{
-            font-size: 22px !important;
-            color: #2c3e50 !important;
-            font-weight: bold !important;
-            line-height: 1.2 !important;
-        }}
 
         div[data-testid="stHorizontalBlock"] > div:nth-child(2) iframe {{
             display: flex !important;
@@ -593,50 +586,35 @@ if app_mode == "🗣️ 스피킹 마스터":
                 st.rerun()
                
         with col2:
-            loop_key = f"single_loop_{real_sheet_name}_{orig_idx}"
-            if loop_key not in st.session_state:
-                st.session_state[loop_key] = False
-
             if is_english:
-                # 💡 헤드폰을 누르기 전: 🎧 버튼만 표시
-                if not st.session_state[loop_key]:
-                    if st.button("🎧", key=f"audio_{real_sheet_name}_{orig_idx}", help="audio-btn"):
-                        # 다른 재생 중이던 문장은 끄고, 현재 문장만 켜기
-                        for k in list(st.session_state.keys()):
-                            if k.startswith(f"single_loop_{real_sheet_name}_"):
-                                st.session_state[k] = False
-                        st.session_state[loop_key] = True
-                        st.rerun()
-                # 💡 헤드폰을 누른 후: 헤드폰 대신 플레이 버튼만 딱 나타나며 즉시 자동 재생!
-                else:
-                    try:
-                        tts = gTTS(text=item['en'], lang='en')
-                        fp = io.BytesIO()
-                        tts.write_to_fp(fp)
-                        fp.seek(0)
-                        b64_audio = base64.b64encode(fp.read()).decode('utf-8')
-                        player_id = f"single_loop_player_{real_sheet_name}_{orig_idx}"
+                # 💡 영어 문장일 때: 헤드폰 버튼을 거치지 않고 바로 플레이어 바 표시!
+                try:
+                    tts = gTTS(text=item['en'], lang='en')
+                    fp = io.BytesIO()
+                    tts.write_to_fp(fp)
+                    fp.seek(0)
+                    b64_audio = base64.b64encode(fp.read()).decode('utf-8')
+                    player_id = f"direct_player_{real_sheet_name}_{orig_idx}"
 
-                        audio_html = f"""
-                            <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;">
-                                <audio id="{player_id}" src="data:audio/mp3;base64,{b64_audio}" controls loop autoplay style="width: 100%; max-width: 110px; height: 32px;"></audio>
-                            </div>
-                            <script>
-                                var p = document.getElementById('{player_id}');
-                                function setupAudio() {{
-                                    p.playbackRate = {speech_speed};
-                                    p.play().catch(function(e){{}});
-                                }}
-                                p.oncanplay = setupAudio;
-                                p.onplay = function() {{ p.playbackRate = {speech_speed}; }};
-                                setupAudio();
-                            </script>
-                        """
-                        st.components.v1.html(audio_html, height=45)
-                    except:
-                        pass
+                    audio_html = f"""
+                        <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;">
+                            <audio id="{player_id}" src="data:audio/mp3;base64,{b64_audio}" controls loop style="width: 100%; max-width: 110px; height: 32px;"></audio>
+                        </div>
+                        <script>
+                            var p = document.getElementById('{player_id}');
+                            function applyRate() {{
+                                p.playbackRate = {speech_speed};
+                            }}
+                            p.oncanplay = applyRate;
+                            p.onplay = applyRate;
+                            applyRate();
+                        </script>
+                    """
+                    st.components.v1.html(audio_html, height=45)
+                except:
+                    pass
             else:
-                st.session_state[loop_key] = False
+                # 한글 문장일 때: 에너지 블록 표시
                 if energy_val == 0:
                     color_block_text = "🟥\n🟥\n🟥\n🟥"
                 elif energy_val == 1:
