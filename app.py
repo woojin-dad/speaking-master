@@ -38,7 +38,7 @@ app_mode = st.radio(
 st.write("---")
 
 # ==============================================================================
-# 🔀 [모드 1] 🗣️ 스피킹 마스터
+# 🔀 [모드 1] 🗣️ 스피킹 마스터 (1~4단계 전체 난이도별 반복 듣기 탑재)
 # ==============================================================================
 if app_mode == "🗣️ 스피킹 마스터":
 
@@ -123,7 +123,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             margin-top: 10px !important;
         }}
 
-        /* 📻 1. 최상단 전체 반복 재생 초록 버튼 */
+        /* 📻 전체 재생 초록 버튼 */
         div.stButton > button[key^="total_relay_btn_"] {{
             background-color: #f0fdf4 !important;
             border: 2px solid #2ecc71 !important;
@@ -140,7 +140,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             font-weight: bold !important;
         }}
 
-        /* 📻 2. 4단계(미숙) 전용 반복 재생 빨간 버튼 */
+        /* 📻 4단계(미숙) 전용 빨간 버튼 */
         div.stButton > button[key^="level4_relay_btn_"] {{
             background-color: #fef2f2 !important;
             border: 2px solid #ef4444 !important;
@@ -157,7 +157,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             font-weight: bold !important;
         }}
 
-        /* 📻 3. 3단계(초급) 전용 반복 재생 주황 버튼 */
+        /* 📻 3단계(초급) 전용 주황 버튼 */
         div.stButton > button[key^="level3_relay_btn_"] {{
             background-color: #fff7ed !important;
             border: 2px solid #f97316 !important;
@@ -165,7 +165,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             padding: 14px 15px !important;
             width: 100% !important;
             text-align: center !important;
-            margin-bottom: 15px !important;
+            margin-bottom: 8px !important;
         }}
         div.stButton > button[key^="level3_relay_btn_"] p,
         div.stButton > button[key^="level3_relay_btn_"] * {{
@@ -174,7 +174,41 @@ if app_mode == "🗣️ 스피킹 마스터":
             font-weight: bold !important;
         }}
 
-        /* 🎧 4. 책장별 연속 듣기 파란 버튼 */
+        /* 📻 2단계(중급) 전용 노란 버튼 */
+        div.stButton > button[key^="level2_relay_btn_"] {{
+            background-color: #fefce8 !important;
+            border: 2px solid #eab308 !important;
+            border-radius: 12px !important;
+            padding: 14px 15px !important;
+            width: 100% !important;
+            text-align: center !important;
+            margin-bottom: 8px !important;
+        }}
+        div.stButton > button[key^="level2_relay_btn_"] p,
+        div.stButton > button[key^="level2_relay_btn_"] * {{
+            color: #a16207 !important;
+            font-size: 17px !important;
+            font-weight: bold !important;
+        }}
+
+        /* 📻 1단계(완성) 전용 초록 버튼 */
+        div.stButton > button[key^="level1_relay_btn_"] {{
+            background-color: #ecfdf5 !important;
+            border: 2px solid #10b981 !important;
+            border-radius: 12px !important;
+            padding: 14px 15px !important;
+            width: 100% !important;
+            text-align: center !important;
+            margin-bottom: 15px !important;
+        }}
+        div.stButton > button[key^="level1_relay_btn_"] p,
+        div.stButton > button[key^="level1_relay_btn_"] * {{
+            color: #047857 !important;
+            font-size: 17px !important;
+            font-weight: bold !important;
+        }}
+
+        /* 🎧 책장별 연속 듣기 파란 버튼 */
         div.stButton > button[key^="page_relay_btn_"] {{
             background-color: #f0f9ff !important;
             border: 2px solid #3b82f6 !important;
@@ -340,7 +374,6 @@ if app_mode == "🗣️ 스피킹 마스터":
                     relay_audio.seek(0)
                     audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
                    
-                    # 💡 HTML components로 확실하게 속도 주입
                     audio_html = f"""
                         <audio id="total-radio-player" src="data:audio/mp3;base64,{audio_base64}" controls loop style="width: 100%;"></audio>
                         <script>
@@ -439,6 +472,86 @@ if app_mode == "🗣️ 스피킹 마스터":
                 except Exception as e:
                     st.error("3단계 라디오 생성 실패")
 
+    # 4. 🟨 [새 기능] 2단계(에너지 2) 전용 반복 재생 노란 버튼
+    level2_records = [item for item in all_display_records if item['energy'] == 2]
+    total_level2 = len(level2_records)
+
+    if total_level2 > 0:
+        if st.button(f"📻 🔁 🟨 2단계 문장 연속 반복 재생 시작 ({total_level2}개)", key=f"level2_relay_btn_{real_sheet_name}"):
+            with st.spinner(f"⚡ 2단계 {total_level2}개 문장 음성 결합 중..."):
+                try:
+                    relay_audio_l2 = io.BytesIO()
+                    for item in level2_records:
+                        english_sentence = str(item['en']).strip()
+                        if english_sentence:
+                            tts_part = gTTS(text=english_sentence, lang='en')
+                            part_fp = io.BytesIO()
+                            tts_part.write_to_fp(part_fp)
+                            part_fp.seek(0)
+                            relay_audio_l2.write(part_fp.read())
+                            relay_audio_l2.write(b'\x00' * 2500)
+                    
+                    relay_audio_l2.seek(0)
+                    audio_base64_l2 = base64.b64encode(relay_audio_l2.read()).decode('utf-8')
+                    
+                    audio_html_l2 = f"""
+                        <audio id="level2-radio-player" src="data:audio/mp3;base64,{audio_base64_l2}" controls loop style="width: 100%;"></audio>
+                        <script>
+                            var p = document.getElementById('level2-radio-player');
+                            function applyRate() {{
+                                p.playbackRate = {speech_speed};
+                            }}
+                            p.oncanplay = applyRate;
+                            p.onplay = applyRate;
+                            p.play().catch(function(e){{}});
+                            applyRate();
+                        </script>
+                    """
+                    st.components.v1.html(audio_html_l2, height=60)
+                    st.success(f"🎶 [{speech_speed}x] 2단계 중급 문장 {total_level2}개 무한 반복 라디오가 시작되었습니다!")
+                except Exception as e:
+                    st.error("2단계 라디오 생성 실패")
+
+    # 5. 🟩 [새 기능] 1단계(에너지 3) 전용 반복 재생 초록 버튼
+    level1_records = [item for item in all_display_records if item['energy'] == 3]
+    total_level1 = len(level1_records)
+
+    if total_level1 > 0:
+        if st.button(f"📻 🔁 🟩 1단계 문장 연속 반복 재생 시작 ({total_level1}개)", key=f"level1_relay_btn_{real_sheet_name}"):
+            with st.spinner(f"⚡ 1단계 {total_level1}개 문장 음성 결합 중..."):
+                try:
+                    relay_audio_l1 = io.BytesIO()
+                    for item in level1_records:
+                        english_sentence = str(item['en']).strip()
+                        if english_sentence:
+                            tts_part = gTTS(text=english_sentence, lang='en')
+                            part_fp = io.BytesIO()
+                            tts_part.write_to_fp(part_fp)
+                            part_fp.seek(0)
+                            relay_audio_l1.write(part_fp.read())
+                            relay_audio_l1.write(b'\x00' * 2500)
+                    
+                    relay_audio_l1.seek(0)
+                    audio_base64_l1 = base64.b64encode(relay_audio_l1.read()).decode('utf-8')
+                    
+                    audio_html_l1 = f"""
+                        <audio id="level1-radio-player" src="data:audio/mp3;base64,{audio_base64_l1}" controls loop style="width: 100%;"></audio>
+                        <script>
+                            var p = document.getElementById('level1-radio-player');
+                            function applyRate() {{
+                                p.playbackRate = {speech_speed};
+                            }}
+                            p.oncanplay = applyRate;
+                            p.onplay = applyRate;
+                            p.play().catch(function(e){{}});
+                            applyRate();
+                        </script>
+                    """
+                    st.components.v1.html(audio_html_l1, height=60)
+                    st.success(f"🎶 [{speech_speed}x] 1단계 완성 문장 {total_level1}개 무한 반복 라디오가 시작되었습니다!")
+                except Exception as e:
+                    st.error("1단계 라디오 생성 실패")
+
     # 책장 고르기
     if total_sentences > 0:
         selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options, key="pure_page_box")
@@ -452,7 +565,7 @@ if app_mode == "🗣️ 스피킹 마스터":
     if is_priority_mode:
         display_records = sorted(display_records, key=lambda x: x['energy'])
 
-    # 4. 🎧 선택 책장 연속 듣기 파란 버튼
+    # 6. 🎧 선택 책장 연속 듣기 파란 버튼
     if display_records:
         if st.button(f"🎧 {selected_page_str} 문장만 연속 듣기 반복 재생 시작", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
             with st.spinner("⚡ 현재 책장 100개 음성 결합 중..."):
