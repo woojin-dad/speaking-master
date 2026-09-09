@@ -218,7 +218,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             border: none !important;
             border-radius: 8px !important;
             padding: 10px 12px !important;
-            white-space: normal !important;
+            white-space: pre-line !important;
         }}
        
         div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button p,
@@ -229,7 +229,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             font-weight: 900 !important;
             color: #ffffff !important;
             line-height: 1.35 !important;
-            white-space: normal !important;
+            white-space: pre-line !important;
             word-break: keep-all !important;
             overflow: visible !important;
             text-overflow: clip !important;
@@ -571,7 +571,8 @@ if app_mode == "🗣️ 스피킹 마스터":
                
             is_english = st.session_state[state_key]
             text_content = item['en'] if is_english else item['kr']
-            btn_label = f"{item['id']}. {text_content}"
+            # 💡 번호/제목 뒤 줄바꿈(\n) 적용
+            btn_label = f"{item['id']}.\n{text_content}"
            
             if st.button(btn_label, key=f"sentence_{real_sheet_name}_{orig_idx}"):
                 st.session_state[state_key] = not st.session_state[state_key]
