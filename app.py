@@ -565,7 +565,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                     st.error("1단계 라디오 생성 실패")
             st.rerun()
 
-    # 🎯 단계별 필터링 선택 상자 (버튼 바로 아래에 위치)
+    # 🎯 단계별 필터링 선택 상자
     stage_filter_options = [
         f"🌟 전체 보기 (모든 문장 · {total_sentences}개)",
         f"🟥 4단계만 보기 (미숙 · {total_level4}개)",
@@ -575,6 +575,11 @@ if app_mode == "🗣️ 스피킹 마스터":
     ]
 
     selected_stage_filter = st.selectbox("🎯 학습할 단계를 선택하세요", stage_filter_options, key="pure_stage_filter_box")
+
+    # 📻 [고정 영역] 상단 버튼을 누르면 바로 이 자리에(셀렉박스 아래, 책장 위) 재생기가 출력됩니다!
+    if f"active_player_{real_sheet_name}" in st.session_state and st.session_state[f"active_player_{real_sheet_name}"]:
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=60)
+        st.write("---")
 
     if "4단계" in selected_stage_filter:
         filtered_records = level4_records
@@ -611,11 +616,6 @@ if app_mode == "🗣️ 스피킹 마스터":
 
     if is_priority_mode:
         display_records = sorted(display_records, key=lambda x: x['energy'])
-
-    # 📻 [핵심 배치] 상단 버튼을 눌렀을 때 생성된 라디오 플레이어를 바로 이 위치(책장 셀렉박스 바로 아래)에 출력!
-    if f"active_player_{real_sheet_name}" in st.session_state and st.session_state[f"active_player_{real_sheet_name}"]:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=60)
-        st.write("---")
 
     # 6. 🎧 선택 책장 연속 듣기 파란 버튼
     if display_records:
