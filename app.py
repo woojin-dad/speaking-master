@@ -369,6 +369,63 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_level2 = len(level2_records)
     total_level1 = len(level1_records)
 
+    # 🎯 단계별 필터링 선택 상자 (먼저 정의하여 필터 상태를 안정적으로 확보)
+    stage_filter_options = [
+        f"🌟 전체 보기 (모든 문장 · {total_sentences}개)",
+        f"🟥 4단계만 보기 (미숙 · {total_level4}개)",
+        f"🟧 3단계만 보기 (초급 · {total_level3}개)",
+        f"🟨 2단계만 보기 (중급 · {total_level2}개)",
+        f"🟩 1단계만 보기 (마스터 · {total_level1}개)"
+    ]
+
+    current_selected = st.session_state.get("pure_stage_filter_box", stage_filter_options[0])
+    matched_default = stage_filter_options[0]
+    for opt in stage_filter_options:
+        if current_selected.split(" (")[0] in opt:
+            matched_default = opt
+            break
+
+    selected_stage_filter = st.selectbox("🎯 학습할 단계를 선택하세요", stage_filter_options, index=stage_filter_options.index(matched_default), key="pure_stage_filter_box")
+
+    if "4단계" in selected_stage_filter:
+        filtered_records = level4_records
+    elif "3단계" in selected_stage_filter:
+        filtered_records = level3_records
+    elif "2단계" in selected_stage_filter:
+        filtered_records = level2_records
+    elif "1단계" in selected_stage_filter:
+        filtered_records = level1_records
+    else:
+        filtered_records = all_display_records
+
+    total_filtered = len(filtered_records)
+    page_size = 100
+
+    if total_filtered > 0:
+        page_options = []
+        for i in range(0, total_filtered, page_size):
+            start_num = i + 1
+            end_num = min(i + page_size, total_filtered)
+            page_options.append(f"📖 책장: {start_num} ~ {end_num}번")
+    else:
+        page_options = []
+
+    # 책장 고르기 (범위 초과 시 자동 보정하여 튕김 방지)
+    if total_filtered > 0:
+        if "pure_page_box" not in st.session_state or st.session_state["pure_page_box"] not in page_options:
+            st.session_state["pure_page_box"] = page_options[0]
+
+        selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options, key="pure_page_box")
+        page_idx = page_options.index(selected_page_str)
+        start_idx = page_idx * page_size
+        end_idx = start_idx + page_size
+        display_records = filtered_records[start_idx:end_idx]
+    else:
+        display_records = []
+
+    if is_priority_mode:
+        display_records = sorted(display_records, key=lambda x: x['energy'])
+
     # 1. 📻 전체 재생 초록 버튼
     if total_sentences > 0:
         if st.button(f"📻 🔁 🟥🟧🟨🟩 {selected_menu} 전체 문장 반복 재생 시작 ({total_sentences}개)", key=f"total_relay_btn_{real_sheet_name}"):
@@ -562,64 +619,6 @@ if app_mode == "🗣️ 스피킹 마스터":
                 except Exception as e:
                     st.error("1단계 라디오 생성 실패")
             st.rerun()
-
-    # 🎯 단계별 필터링 선택 상자 (동적 개수 반영 레이블)
-    stage_filter_options = [
-        f"🌟 전체 보기 (모든 문장 · {total_sentences}개)",
-        f"🟥 4단계만 보기 (미숙 · {total_level4}개)",
-        f"🟧 3단계만 보기 (초급 · {total_level3}개)",
-        f"🟨 2단계만 보기 (중급 · {total_level2}개)",
-        f"🟩 1단계만 보기 (마스터 · {total_level1}개)"
-    ]
-
-    # 세션 상태 안전 방어: 만약 이전 라벨(개수 포함)이 엇갈려도 튕기지 않게 매칭
-    current_selected = st.session_state.get("pure_stage_filter_box", stage_filter_options[0])
-    matched_default = stage_filter_options[0]
-    for opt in stage_filter_options:
-        if current_selected.split(" (")[0] in opt:
-            matched_default = opt
-            break
-
-    selected_stage_filter = st.selectbox("🎯 학습할 단계를 선택하세요", stage_filter_options, index=stage_filter_options.index(matched_default), key="pure_stage_filter_box")
-
-    if "4단계" in selected_stage_filter:
-        filtered_records = level4_records
-    elif "3단계" in selected_stage_filter:
-        filtered_records = level3_records
-    elif "2단계" in selected_stage_filter:
-        filtered_records = level2_records
-    elif "1단계" in selected_stage_filter:
-        filtered_records = level1_records
-    else:
-        filtered_records = all_display_records
-
-    total_filtered = len(filtered_records)
-    page_size = 100
-
-    if total_filtered > 0:
-        page_options = []
-        for i in range(0, total_filtered, page_size):
-            start_num = i + 1
-            end_num = min(i + page_size, total_filtered)
-            page_options.append(f"📖 책장: {start_num} ~ {end_num}번")
-    else:
-        page_options = []
-
-    # 책장 고르기 (범위 초과 시 자동 보정하여 튕김 방지)
-    if total_filtered > 0:
-        if "pure_page_box" not in st.session_state or st.session_state["pure_page_box"] not in page_options:
-            st.session_state["pure_page_box"] = page_options[0]
-
-        selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options, key="pure_page_box")
-        page_idx = page_options.index(selected_page_str)
-        start_idx = page_idx * page_size
-        end_idx = start_idx + page_size
-        display_records = filtered_records[start_idx:end_idx]
-    else:
-        display_records = []
-
-    if is_priority_mode:
-        display_records = sorted(display_records, key=lambda x: x['energy'])
 
     # 6. 🎧 선택 책장 연속 듣기 파란 버튼
     if display_records:
