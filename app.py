@@ -213,24 +213,6 @@ if app_mode == "🗣️ 스피킹 마스터":
             font-size: 17px !important;
             font-weight: bold !important;
         }}
-
-        /* 🎧 6. 책장별 연속 듣기 파란 버튼 */
-        div.stButton > button[key^="page_relay_btn_"] {{
-            background-color: #f0f9ff !important;
-            border: 2px solid #3b82f6 !important;
-            border-radius: 12px !important;
-            padding: 14px 15px !important;
-            width: 100% !important;
-            text-align: center !important;
-            margin-top: 8px !important;
-            margin-bottom: 5px !important;
-        }}
-        div.stButton > button[key^="page_relay_btn_"] p,
-        div.stButton > button[key^="page_relay_btn_"] * {{
-            color: #1d4ed8 !important;
-            font-size: 16px !important;
-            font-weight: bold !important;
-        }}
        
         /* 🔤 문장 버튼 (말줄임표 ... 방지 및 줄바꿈 허용) */
         div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {{
@@ -565,7 +547,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                     st.error("1단계 라디오 생성 실패")
             st.rerun()
 
-    # 🎯 단계별 필터링 선택 상자 (세션 상태 값 안전 방어 적용)
+    # 🎯 단계별 필터링 선택 상자 (세션 상태 안전 방어 적용)
     stage_filter_options = [
         f"🌟 전체 보기 (모든 문장 · {total_sentences}개)",
         f"🟥 4단계만 보기 (미숙 · {total_level4}개)",
@@ -574,7 +556,6 @@ if app_mode == "🗣️ 스피킹 마스터":
         f"🟩 1단계만 보기 (마스터 · {total_level1}개)"
     ]
 
-    # 만약 세션에 저장된 필터 문자열이 개수 변화 등으로 어긋나도 핵심 키워드(전체, 4단계, 3단계 등)로 매칭하여 유지
     current_selected = st.session_state.get("pure_stage_filter_box", stage_filter_options[0])
     matched_default = stage_filter_options[0]
     for opt in stage_filter_options:
@@ -603,67 +584,13 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_filtered = len(filtered_records)
     page_size = 100
 
-    if total_filtered > 0:
-        page_options = []
-        for i in range(0, total_filtered, page_size):
-            start_num = i + 1
-            end_num = min(i + page_size, total_filtered)
-            page_options.append(f"📖 책장: {start_num} ~ {end_num}번")
-    else:
-        page_options = []
-
-    # 책장 고르기 (범위 초과 시 자동 보정)
-    if total_filtered > 0:
-        if "pure_page_box" not in st.session_state or st.session_state["pure_page_box"] not in page_options:
-            st.session_state["pure_page_box"] = page_options[0]
-
-        selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options, key="pure_page_box")
-        page_idx = page_options.index(selected_page_str)
-        start_idx = page_idx * page_size
-        end_idx = start_idx + page_size
-        display_records = filtered_records[start_idx:end_idx]
-    else:
-        display_records = []
+    # 📚 책장(페이지네이션) 선택 기능 제거 완료 (전체 목록 한 번에 또는 단계별로 전체 표시)
+    display_records = filtered_records
 
     if is_priority_mode:
         display_records = sorted(display_records, key=lambda x: x['energy'])
 
-    # 6. 🎧 선택 책장 연속 듣기 파란 버튼
-    if display_records:
-        if st.button(f"🎧 {selected_page_str} 문장만 연속 듣기 반복 재생 시작", key=f"page_relay_btn_{real_sheet_name}_{page_idx}"):
-            with st.spinner("⚡ 현재 책장 음성 결합 중..."):
-                try:
-                    page_audio = io.BytesIO()
-                    for item in display_records:
-                        if item['en'].strip():
-                            tts_part = gTTS(text=item['en'], lang='en')
-                            part_fp = io.BytesIO()
-                            tts_part.write_to_fp(part_fp)
-                            part_fp.seek(0)
-                            page_audio.write(part_fp.read())
-                            page_audio.write(b'\x00' * 2000)
-                   
-                    page_audio.seek(0)
-                    page_base64 = base64.b64encode(page_audio.read()).decode('utf-8')
-                    page_audio_html = f"""
-                        <audio id="page-radio-player" src="data:audio/mp3;base64,{page_base64}" controls loop style="width: 100%;"></audio>
-                        <script>
-                            var p = document.getElementById('page-radio-player');
-                            function applyRate() {{
-                                p.playbackRate = {speech_speed};
-                            }}
-                            p.oncanplay = applyRate;
-                            p.onplay = applyRate;
-                            p.play().catch(function(e){{}});
-                            applyRate();
-                        </script>
-                    """
-                    st.session_state[f"active_player_{real_sheet_name}"] = page_audio_html
-                    st.success(f"🎶 [{speech_speed}x] {selected_page_str} 범위 무한 반복 재생이 시작되었습니다!")
-                    st.rerun()
-                except:
-                    st.error("오디오 생성 오류")
-        st.write("---")
+    st.write("---")
 
     def save_to_google_sheet(sheet_obj, row, col, val):
         if sheet_obj:
