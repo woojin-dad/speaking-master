@@ -565,7 +565,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                     st.error("1단계 라디오 생성 실패")
             st.rerun()
 
-    # 🎯 단계별 필터링 선택 상자
+    # 🎯 단계별 필터링 선택 상자 (세션 상태 값 안전 방어 적용)
     stage_filter_options = [
         f"🌟 전체 보기 (모든 문장 · {total_sentences}개)",
         f"🟥 4단계만 보기 (미숙 · {total_level4}개)",
@@ -574,9 +574,17 @@ if app_mode == "🗣️ 스피킹 마스터":
         f"🟩 1단계만 보기 (마스터 · {total_level1}개)"
     ]
 
-    selected_stage_filter = st.selectbox("🎯 학습할 단계를 선택하세요", stage_filter_options, key="pure_stage_filter_box")
+    # 만약 세션에 저장된 필터 문자열이 개수 변화 등으로 어긋나도 핵심 키워드(전체, 4단계, 3단계 등)로 매칭하여 유지
+    current_selected = st.session_state.get("pure_stage_filter_box", stage_filter_options[0])
+    matched_default = stage_filter_options[0]
+    for opt in stage_filter_options:
+        if current_selected.split(" (")[0] in opt:
+            matched_default = opt
+            break
 
-    # 📻 [고정 영역] 상단 버튼을 누르면 바로 이 자리에(셀렉박스 아래, 책장 위) 재생기가 출력됩니다!
+    selected_stage_filter = st.selectbox("🎯 학습할 단계를 선택하세요", stage_filter_options, index=stage_filter_options.index(matched_default), key="pure_stage_filter_box")
+
+    # 📻 [고정 영역] 상단 버튼을 누르면 바로 이 자리에 재생기가 출력됩니다!
     if f"active_player_{real_sheet_name}" in st.session_state and st.session_state[f"active_player_{real_sheet_name}"]:
         st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=60)
         st.write("---")
@@ -604,8 +612,11 @@ if app_mode == "🗣️ 스피킹 마스터":
     else:
         page_options = []
 
-    # 책장 고르기
+    # 책장 고르기 (범위 초과 시 자동 보정)
     if total_filtered > 0:
+        if "pure_page_box" not in st.session_state or st.session_state["pure_page_box"] not in page_options:
+            st.session_state["pure_page_box"] = page_options[0]
+
         selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options, key="pure_page_box")
         page_idx = page_options.index(selected_page_str)
         start_idx = page_idx * page_size
