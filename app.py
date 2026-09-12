@@ -403,7 +403,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                             applyRate();
                         </script>
                     """
-                    st.components.v1.html(audio_html, height=60)
+                    st.session_state[f"active_player_{real_sheet_name}"] = audio_html
                     st.success(f"🎶 [{speech_speed}x] 전체 {total_sentences}개 문장 무한 반복 라디오가 시작되었습니다!")
                 except Exception as e:
                     st.error("라디오 플레이어 컴파일 실패")
@@ -442,7 +442,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                             applyRate();
                         </script>
                     """
-                    st.components.v1.html(audio_html_l4, height=60)
+                    st.session_state[f"active_player_{real_sheet_name}"] = audio_html_l4
                     st.success(f"🎶 [{speech_speed}x] 4단계 미숙 문장 {total_level4}개 무한 반복 라디오가 시작되었습니다!")
                 except Exception as e:
                     st.error("4단계 라디오 생성 실패")
@@ -481,7 +481,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                             applyRate();
                         </script>
                     """
-                    st.components.v1.html(audio_html_l3, height=60)
+                    st.session_state[f"active_player_{real_sheet_name}"] = audio_html_l3
                     st.success(f"🎶 [{speech_speed}x] 3단계 초급 문장 {total_level3}개 무한 반복 라디오가 시작되었습니다!")
                 except Exception as e:
                     st.error("3단계 라디오 생성 실패")
@@ -520,7 +520,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                             applyRate();
                         </script>
                     """
-                    st.components.v1.html(audio_html_l2, height=60)
+                    st.session_state[f"active_player_{real_sheet_name}"] = audio_html_l2
                     st.success(f"🎶 [{speech_speed}x] 2단계 중급 문장 {total_level2}개 무한 반복 라디오가 시작되었습니다!")
                 except Exception as e:
                     st.error("2단계 라디오 생성 실패")
@@ -559,13 +559,13 @@ if app_mode == "🗣️ 스피킹 마스터":
                             applyRate();
                         </script>
                     """
-                    st.components.v1.html(audio_html_l1, height=60)
+                    st.session_state[f"active_player_{real_sheet_name}"] = audio_html_l1
                     st.success(f"🎶 [{speech_speed}x] 1단계 마스터 문장 {total_level1}개 무한 반복 라디오가 시작되었습니다!")
                 except Exception as e:
                     st.error("1단계 라디오 생성 실패")
             st.rerun()
 
-    # 🎯 단계별 필터링 선택 상자 (원래 위치 및 형태 복구)
+    # 🎯 단계별 필터링 선택 상자 (버튼과 목록 동기화)
     stage_filter_options = [
         f"🌟 전체 보기 (모든 문장 · {total_sentences}개)",
         f"🟥 4단계만 보기 (미숙 · {total_level4}개)",
@@ -599,7 +599,7 @@ if app_mode == "🗣️ 스피킹 마스터":
     else:
         page_options = []
 
-    # 책장 고르기 (원래 위치 및 형태 복구)
+    # 책장 고르기
     if total_filtered > 0:
         selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options, key="pure_page_box")
         page_idx = page_options.index(selected_page_str)
@@ -611,6 +611,11 @@ if app_mode == "🗣️ 스피킹 마스터":
 
     if is_priority_mode:
         display_records = sorted(display_records, key=lambda x: x['energy'])
+
+    # 📻 현재 활성화된 반복 재생 플레이어가 있다면 필터 아래에 상시 출력!
+    if f"active_player_{real_sheet_name}" in st.session_state and st.session_state[f"active_player_{real_sheet_name}"]:
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=60)
+        st.write("---")
 
     # 6. 🎧 선택 책장 연속 듣기 파란 버튼
     if display_records:
@@ -642,8 +647,9 @@ if app_mode == "🗣️ 스피킹 마스터":
                             applyRate();
                         </script>
                     """
-                    st.components.v1.html(page_audio_html, height=60)
+                    st.session_state[f"active_player_{real_sheet_name}"] = page_audio_html
                     st.success(f"🎶 [{speech_speed}x] {selected_page_str} 범위 무한 반복 재생이 시작되었습니다!")
+                    st.rerun()
                 except:
                     st.error("오디오 생성 오류")
         st.write("---")
