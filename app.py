@@ -565,7 +565,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                     st.error("1단계 라디오 생성 실패")
             st.rerun()
 
-    # 🎯 단계별 필터링 선택 상자 (버튼과 목록 동기화)
+    # 🎯 단계별 필터링 선택 상자 (버튼 바로 아래에 위치)
     stage_filter_options = [
         f"🌟 전체 보기 (모든 문장 · {total_sentences}개)",
         f"🟥 4단계만 보기 (미숙 · {total_level4}개)",
@@ -612,7 +612,7 @@ if app_mode == "🗣️ 스피킹 마스터":
     if is_priority_mode:
         display_records = sorted(display_records, key=lambda x: x['energy'])
 
-    # 📻 현재 활성화된 반복 재생 플레이어가 있다면 필터 아래에 상시 출력!
+    # 📻 [핵심 배치] 상단 버튼을 눌렀을 때 생성된 라디오 플레이어를 바로 이 위치(책장 셀렉박스 바로 아래)에 출력!
     if f"active_player_{real_sheet_name}" in st.session_state and st.session_state[f"active_player_{real_sheet_name}"]:
         st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=60)
         st.write("---")
