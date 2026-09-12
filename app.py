@@ -555,7 +555,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                 except Exception as e:
                     st.error("1단계 라디오 생성 실패")
 
-    # 🎯 단계별 필터링 선택 상자 (기존 위치 및 원래 형태 복구)
+    # 🎯 단계별 필터링 선택 상자 (원래 위치 및 원래 형태)
     stage_filter_options = [
         f"🌟 전체 보기 (모든 문장 · {total_sentences}개)",
         f"🟥 4단계만 보기 (미숙 · {total_level4}개)",
@@ -589,7 +589,7 @@ if app_mode == "🗣️ 스피킹 마스터":
     else:
         page_options = []
 
-    # 책장 고르기 (기존 위치 및 원래 형태 복구)
+    # 책장 고르기 (원래 위치 및 원래 형태)
     if total_filtered > 0:
         selected_page_str = st.selectbox("📚 이동할 책장을 고르세요", page_options, key="pure_page_box")
         page_idx = page_options.index(selected_page_str)
