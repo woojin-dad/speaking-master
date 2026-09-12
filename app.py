@@ -197,7 +197,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             font-weight: bold !important;
         }}
 
-        /* 📻 5. 1단계(마스터) 전용 반복 재생 초록 버튼 (새로 추가) */
+        /* 📻 5. 1단계(마스터) 전용 반복 재생 초록 버튼 */
         div.stButton > button[key^="level1_relay_btn_"] {{
             background-color: #f0fdf4 !important;
             border: 2px solid #22c55e !important;
@@ -358,7 +358,18 @@ if app_mode == "🗣️ 스피킹 마스터":
 
     total_sentences = len(all_display_records)
 
-    # 1. 📻 전체 재생 초록 버튼 (🟥🟧🟨🟩 표시)
+    # 미리 각 단계별 레코드 분류
+    level4_records = [item for item in all_display_records if item['energy'] == 0]
+    level3_records = [item for item in all_display_records if item['energy'] == 1]
+    level2_records = [item for item in all_display_records if item['energy'] == 2]
+    level1_records = [item for item in all_display_records if item['energy'] == 3]
+
+    total_level4 = len(level4_records)
+    total_level3 = len(level3_records)
+    total_level2 = len(level2_records)
+    total_level1 = len(level1_records)
+
+    # 1. 📻 전체 재생 초록 버튼
     if total_sentences > 0:
         if st.button(f"📻 🔁 🟥🟧🟨🟩 {selected_menu} 전체 문장 반복 재생 시작 ({total_sentences}개)", key=f"total_relay_btn_{real_sheet_name}"):
             with st.spinner("⚡ 전체 문장 취합 중..."):
@@ -396,12 +407,10 @@ if app_mode == "🗣️ 스피킹 마스터":
                 except Exception as e:
                     st.error("라디오 플레이어 컴파일 실패")
 
-    # 2. 🟥 4단계(에너지 0) 전용 반복 재생 빨간 버튼
-    level4_records = [item for item in all_display_records if item['energy'] == 0]
-    total_level4 = len(level4_records)
-
+    # 2. 🟥 4단계 전용 반복 재생 버튼
     if total_level4 > 0:
         if st.button(f"📻 🔁 🟥 4단계 문장 연속 반복 재생 시작 ({total_level4}개)", key=f"level4_relay_btn_{real_sheet_name}"):
+            st.session_state["pure_stage_filter_box"] = f"🟥 4단계만 보기 (미숙 · {total_level4}개)"
             with st.spinner(f"⚡ 4단계 {total_level4}개 문장 음성 결합 중..."):
                 try:
                     relay_audio_l4 = io.BytesIO()
@@ -435,13 +444,12 @@ if app_mode == "🗣️ 스피킹 마스터":
                     st.success(f"🎶 [{speech_speed}x] 4단계 미숙 문장 {total_level4}개 무한 반복 라디오가 시작되었습니다!")
                 except Exception as e:
                     st.error("4단계 라디오 생성 실패")
+            st.rerun()
 
-    # 3. 🟧 3단계(에너지 1) 전용 반복 재생 주황 버튼
-    level3_records = [item for item in all_display_records if item['energy'] == 1]
-    total_level3 = len(level3_records)
-
+    # 3. 🟧 3단계 전용 반복 재생 버튼
     if total_level3 > 0:
         if st.button(f"📻 🔁 🟧 3단계 문장 연속 반복 재생 시작 ({total_level3}개)", key=f"level3_relay_btn_{real_sheet_name}"):
+            st.session_state["pure_stage_filter_box"] = f"🟧 3단계만 보기 (초급 · {total_level3}개)"
             with st.spinner(f"⚡ 3단계 {total_level3}개 문장 음성 결합 중..."):
                 try:
                     relay_audio_l3 = io.BytesIO()
@@ -475,13 +483,12 @@ if app_mode == "🗣️ 스피킹 마스터":
                     st.success(f"🎶 [{speech_speed}x] 3단계 초급 문장 {total_level3}개 무한 반복 라디오가 시작되었습니다!")
                 except Exception as e:
                     st.error("3단계 라디오 생성 실패")
+            st.rerun()
 
-    # 4. 🟨 2단계(에너지 2) 전용 반복 재생 노란 버튼
-    level2_records = [item for item in all_display_records if item['energy'] == 2]
-    total_level2 = len(level2_records)
-
+    # 4. 🟨 2단계 전용 반복 재생 버튼
     if total_level2 > 0:
         if st.button(f"📻 🔁 🟨 2단계 문장 연속 반복 재생 시작 ({total_level2}개)", key=f"level2_relay_btn_{real_sheet_name}"):
+            st.session_state["pure_stage_filter_box"] = f"🟨 2단계만 보기 (중급 · {total_level2}개)"
             with st.spinner(f"⚡ 2단계 {total_level2}개 문장 음성 결합 중..."):
                 try:
                     relay_audio_l2 = io.BytesIO()
@@ -515,13 +522,12 @@ if app_mode == "🗣️ 스피킹 마스터":
                     st.success(f"🎶 [{speech_speed}x] 2단계 중급 문장 {total_level2}개 무한 반복 라디오가 시작되었습니다!")
                 except Exception as e:
                     st.error("2단계 라디오 생성 실패")
+            st.rerun()
 
-    # 5. 🟩 1단계(에너지 3) 전용 반복 재생 초록 버튼 (새로 추가)
-    level1_records = [item for item in all_display_records if item['energy'] == 3]
-    total_level1 = len(level1_records)
-
+    # 5. 🟩 1단계 전용 반복 재생 버튼
     if total_level1 > 0:
         if st.button(f"📻 🔁 🟩 1단계 문장 연속 반복 재생 시작 ({total_level1}개)", key=f"level1_relay_btn_{real_sheet_name}"):
+            st.session_state["pure_stage_filter_box"] = f"🟩 1단계만 보기 (마스터 · {total_level1}개)"
             with st.spinner(f"⚡ 1단계 {total_level1}개 문장 음성 결합 중..."):
                 try:
                     relay_audio_l1 = io.BytesIO()
@@ -555,19 +561,15 @@ if app_mode == "🗣️ 스피킹 마스터":
                     st.success(f"🎶 [{speech_speed}x] 1단계 마스터 문장 {total_level1}개 무한 반복 라디오가 시작되었습니다!")
                 except Exception as e:
                     st.error("1단계 라디오 생성 실패")
+            st.rerun()
 
-    # 🎯 단계별 필터링 (전체 시트 기준)
-    count_l4 = len(level4_records)
-    count_l3 = len(level3_records)
-    count_l2 = len(level2_records)
-    count_l1 = total_level1
-
+    # 🎯 단계별 필터링 선택 상자
     stage_filter_options = [
         f"🌟 전체 보기 (모든 문장 · {total_sentences}개)",
-        f"🟥 4단계만 보기 (미숙 · {count_l4}개)",
-        f"🟧 3단계만 보기 (초급 · {count_l3}개)",
-        f"🟨 2단계만 보기 (중급 · {count_l2}개)",
-        f"🟩 1단계만 보기 (마스터 · {count_l1}개)"
+        f"🟥 4단계만 보기 (미숙 · {total_level4}개)",
+        f"🟧 3단계만 보기 (초급 · {total_level3}개)",
+        f"🟨 2단계만 보기 (중급 · {total_level2}개)",
+        f"🟩 1단계만 보기 (마스터 · {total_level1}개)"
     ]
 
     selected_stage_filter = st.selectbox("🎯 학습할 단계를 선택하세요", stage_filter_options, key="pure_stage_filter_box")
