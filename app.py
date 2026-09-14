@@ -351,7 +351,7 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_level2 = len(level2_records)
     total_level1 = len(level1_records)
 
-    # 공통 플레이어 템플릿 함수 ("방금 3초" / "찍찍이" 줄바꿈 적용 및 넉넉한 높이)
+    # 공통 플레이어 템플릿 함수
     def create_player_html(player_id, audio_base64_str, rate):
         return f"""
         <div style="background-color: #f8fafc; padding: 12px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #cbd5e1;">
@@ -409,10 +409,16 @@ if app_mode == "🗣️ 스피킹 마스터":
         </script>
         """
 
+    # 어떤 버튼이 눌렸는지 식별하기 위한 상태 키
+    active_btn_key = f"active_relay_type_{real_sheet_name}"
+    if active_btn_key not in st.session_state:
+        st.session_state[active_btn_key] = None
+
     # 1. 📻 전체 재생 초록 버튼
     if total_sentences > 0:
         if st.button(f"📻 🔁 🟥🟧🟨🟩 {selected_menu} 전체 문장 반복 재생 시작 ({total_sentences}개)", key=f"total_relay_btn_{real_sheet_name}"):
             st.session_state["pure_stage_filter_box"] = f"🌟 전체 보기 (모든 문장 · {total_sentences}개)"
+            st.session_state[active_btn_key] = "total"
             with st.spinner("⚡ 전체 문장 취합 중..."):
                 try:
                     relay_audio = io.BytesIO()
@@ -429,15 +435,20 @@ if app_mode == "🗣️ 스피킹 마스터":
                     relay_audio.seek(0)
                     audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
                     st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("total-radio-player", audio_base64, speech_speed)
-                    st.success(f"🎶 [{speech_speed}x] 전체 {total_sentences}개 문장 무한 반복 라디오가 시작되었습니다!")
                 except Exception as e:
-                    st.error("라디오 플레이어 컴파일 실패")
+                    pass
             st.rerun()
+
+    # 전체 버튼 바로 아래에 재생기 출력
+    if st.session_state.get(active_btn_key) == "total" and f"active_player_{real_sheet_name}" in st.session_state:
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=145)
+        st.write("---")
 
     # 2. 🟥 4단계 전용 반복 재생 버튼
     if total_level4 > 0:
         if st.button(f"📻 🔁 🟥 4단계 문장 연속 반복 재생 시작 ({total_level4}개)", key=f"level4_relay_btn_{real_sheet_name}"):
             st.session_state["pure_stage_filter_box"] = f"🟥 4단계만 보기 (미숙 · {total_level4}개)"
+            st.session_state[active_btn_key] = "level4"
             with st.spinner(f"⚡ 4단계 {total_level4}개 문장 음성 결합 중..."):
                 try:
                     relay_audio_l4 = io.BytesIO()
@@ -454,15 +465,20 @@ if app_mode == "🗣️ 스피킹 마스터":
                     relay_audio_l4.seek(0)
                     audio_base64_l4 = base64.b64encode(relay_audio_l4.read()).decode('utf-8')
                     st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level4-radio-player", audio_base64_l4, speech_speed)
-                    st.success(f"🎶 [{speech_speed}x] 4단계 미숙 문장 {total_level4}개 무한 반복 라디오가 시작되었습니다!")
                 except Exception as e:
-                    st.error("4단계 라디오 생성 실패")
+                    pass
             st.rerun()
+
+    # 4단계 버튼 바로 아래에 재생기 출력
+    if st.session_state.get(active_btn_key) == "level4" and f"active_player_{real_sheet_name}" in st.session_state:
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=145)
+        st.write("---")
 
     # 3. 🟧 3단계 전용 반복 재생 버튼
     if total_level3 > 0:
         if st.button(f"📻 🔁 🟧 3단계 문장 연속 반복 재생 시작 ({total_level3}개)", key=f"level3_relay_btn_{real_sheet_name}"):
             st.session_state["pure_stage_filter_box"] = f"🟧 3단계만 보기 (초급 · {total_level3}개)"
+            st.session_state[active_btn_key] = "level3"
             with st.spinner(f"⚡ 3단계 {total_level3}개 문장 음성 결합 중..."):
                 try:
                     relay_audio_l3 = io.BytesIO()
@@ -479,15 +495,20 @@ if app_mode == "🗣️ 스피킹 마스터":
                     relay_audio_l3.seek(0)
                     audio_base64_l3 = base64.b64encode(relay_audio_l3.read()).decode('utf-8')
                     st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level3-radio-player", audio_base64_l3, speech_speed)
-                    st.success(f"🎶 [{speech_speed}x] 3단계 초급 문장 {total_level3}개 무한 반복 라디오가 시작되었습니다!")
                 except Exception as e:
-                    st.error("3단계 라디오 생성 실패")
+                    pass
             st.rerun()
+
+    # 3단계 버튼 바로 아래에 재생기 출력
+    if st.session_state.get(active_btn_key) == "level3" and f"active_player_{real_sheet_name}" in st.session_state:
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=145)
+        st.write("---")
 
     # 4. 🟨 2단계 전용 반복 재생 버튼
     if total_level2 > 0:
         if st.button(f"📻 🔁 🟨 2단계 문장 연속 반복 재생 시작 ({total_level2}개)", key=f"level2_relay_btn_{real_sheet_name}"):
             st.session_state["pure_stage_filter_box"] = f"🟨 2단계만 보기 (중급 · {total_level2}개)"
+            st.session_state[active_btn_key] = "level2"
             with st.spinner(f"⚡ 2단계 {total_level2}개 문장 음성 결합 중..."):
                 try:
                     relay_audio_l2 = io.BytesIO()
@@ -504,15 +525,20 @@ if app_mode == "🗣️ 스피킹 마스터":
                     relay_audio_l2.seek(0)
                     audio_base64_l2 = base64.b64encode(relay_audio_l2.read()).decode('utf-8')
                     st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level2-radio-player", audio_base64_l2, speech_speed)
-                    st.success(f"🎶 [{speech_speed}x] 2단계 중급 문장 {total_level2}개 무한 반복 라디오가 시작되었습니다!")
                 except Exception as e:
-                    st.error("2단계 라디오 생성 실패")
+                    pass
             st.rerun()
+
+    # 2단계 버튼 바로 아래에 재생기 출력
+    if st.session_state.get(active_btn_key) == "level2" and f"active_player_{real_sheet_name}" in st.session_state:
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=145)
+        st.write("---")
 
     # 5. 🟩 1단계 전용 반복 재생 버튼
     if total_level1 > 0:
         if st.button(f"📻 🔁 🟩 1단계 문장 연속 반복 재생 시작 ({total_level1}개)", key=f"level1_relay_btn_{real_sheet_name}"):
             st.session_state["pure_stage_filter_box"] = f"🟩 1단계만 보기 (마스터 · {total_level1}개)"
+            st.session_state[active_btn_key] = "level1"
             with st.spinner(f"⚡ 1단계 {total_level1}개 문장 음성 결합 중..."):
                 try:
                     relay_audio_l1 = io.BytesIO()
@@ -529,10 +555,14 @@ if app_mode == "🗣️ 스피킹 마스터":
                     relay_audio_l1.seek(0)
                     audio_base64_l1 = base64.b64encode(relay_audio_l1.read()).decode('utf-8')
                     st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level1-radio-player", audio_base64_l1, speech_speed)
-                    st.success(f"🎶 [{speech_speed}x] 1단계 마스터 문장 {total_level1}개 무한 반복 라디오가 시작되었습니다!")
                 except Exception as e:
-                    st.error("1단계 라디오 생성 실패")
+                    pass
             st.rerun()
+
+    # 1단계 버튼 바로 아래에 재생기 출력
+    if st.session_state.get(active_btn_key) == "level1" and f"active_player_{real_sheet_name}" in st.session_state:
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=145)
+        st.write("---")
 
     # 🎯 단계별 필터링 선택 상자 (세션 상태 안전 방어 적용)
     stage_filter_options = [
@@ -551,11 +581,6 @@ if app_mode == "🗣️ 스피킹 마스터":
             break
 
     selected_stage_filter = st.selectbox("🎯 학습할 단계를 선택하세요", stage_filter_options, index=stage_filter_options.index(matched_default), key="pure_stage_filter_box")
-
-    # 📻 [고정 영역] 상단 버튼을 누르면 바로 이 자리에 재생기가 출력됩니다! (높이 145px로 여유 있게 설정)
-    if f"active_player_{real_sheet_name}" in st.session_state and st.session_state[f"active_player_{real_sheet_name}"]:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=145)
-        st.write("---")
 
     if "4단계" in selected_stage_filter:
         filtered_records = level4_records
