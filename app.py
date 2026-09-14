@@ -351,15 +351,15 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_level2 = len(level2_records)
     total_level1 = len(level1_records)
 
-    # 공통 플레이어 템플릿 함수 (버튼 두툼하게 키우고 균등 가로 정렬)
+    # 공통 플레이어 템플릿 함수 ("방금 3초" / "찍찍이" 줄바꿈 적용 및 넉넉한 높이)
     def create_player_html(player_id, audio_base64_str, rate):
         return f"""
-        <div style="background-color: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #cbd5e1;">
-            <audio id="{player_id}" src="data:audio/mp3;base64,{audio_base64_str}" controls style="width: 100%; margin-bottom: 12px;"></audio>
-            <div style="display: flex; gap: 10px; width: 100%;">
-                <button onclick="skipTime('{player_id}', -5)" style="flex: 1; padding: 12px 0px; background-color: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer;">⏪ 5초 뒤로</button>
-                <button onclick="startLoop3Sec('{player_id}')" style="flex: 1; padding: 12px 0px; background-color: #e11d48; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer;">🔂 방금 3초 찍찍이</button>
-                <button onclick="stopLoop3Sec('{player_id}')" style="flex: 1; padding: 12px 0px; background-color: #475569; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer;">▶ 표준 재생</button>
+        <div style="background-color: #f8fafc; padding: 12px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #cbd5e1;">
+            <audio id="{player_id}" src="data:audio/mp3;base64,{audio_base64_str}" controls style="width: 100%; margin-bottom: 10px;"></audio>
+            <div style="display: flex; gap: 8px; width: 100%;">
+                <button onclick="skipTime('{player_id}', -5)" style="flex: 1; padding: 10px 0px; background-color: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer;">⏪ 5초 뒤로</button>
+                <button onclick="startLoop3Sec('{player_id}')" style="flex: 1; padding: 6px 0px; background-color: #e11d48; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; line-height: 1.2; cursor: pointer;">🔂 방금 3초<br>찍찍이</button>
+                <button onclick="stopLoop3Sec('{player_id}')" style="flex: 1; padding: 10px 0px; background-color: #475569; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer;">▶ 표준 재생</button>
             </div>
         </div>
         <script>
@@ -552,9 +552,9 @@ if app_mode == "🗣️ 스피킹 마스터":
 
     selected_stage_filter = st.selectbox("🎯 학습할 단계를 선택하세요", stage_filter_options, index=stage_filter_options.index(matched_default), key="pure_stage_filter_box")
 
-    # 📻 [고정 영역] 상단 버튼을 누르면 바로 이 자리에 재생기가 출력됩니다!
+    # 📻 [고정 영역] 상단 버튼을 누르면 바로 이 자리에 재생기가 출력됩니다! (높이 145px로 여유 있게 설정)
     if f"active_player_{real_sheet_name}" in st.session_state and st.session_state[f"active_player_{real_sheet_name}"]:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=125)
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=145)
         st.write("---")
 
     if "4단계" in selected_stage_filter:
