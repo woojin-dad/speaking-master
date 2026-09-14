@@ -351,25 +351,12 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_level2 = len(level2_records)
     total_level1 = len(level1_records)
 
-    # 🎨 완벽하게 통일된 디자인의 커스텀 미니 플레이어 템플릿 함수
+    # 🎨 오디오 재생 안정성을 극대화한 신뢰성 높은 플레이어 템플릿
     def create_player_html(player_id, audio_base64_str, rate):
         return f"""
         <div style="background-color: #f8fafc; padding: 12px 14px; border-radius: 12px; margin-top: 4px; margin-bottom: 4px; border: 1px solid #cbd5e1; font-family: sans-serif;">
-            <!-- 숨겨진 표준 오디오 태그 -->
-            <audio id="{player_id}" src="data:audio/mp3;base64,{audio_base64_str}" loop></audio>
+            <audio id="{player_id}" src="data:audio/mp3;base64,{audio_base64_str}" controls loop style="width: 100%; margin-bottom: 10px;"></audio>
             
-            <!-- 상단: 커스텀 재생바 및 시간 표시 영역 -->
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                <button onclick="togglePlay('{player_id}')" id="play-btn-{player_id}" style="width: 42px; height: 42px; border-radius: 50%; background-color: #2563eb; color: white; border: none; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">▶</button>
-                
-                <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
-                    <input type="range" id="seek-bar-{player_id}" value="0" max="100" step="0.1" style="width: 100%; cursor: pointer; accent-color: #2563eb; height: 6px;" oninput="seekAudio('{player_id}', this.value)">
-                </div>
-                
-                <span id="time-{player_id}" style="font-size: 13px; font-weight: bold; color: #475569; min-width: 85px; text-align: right;">00:00 / 00:00</span>
-            </div>
-
-            <!-- 하단: 조작 버튼 그룹 -->
             <div style="display: flex; gap: 8px; width: 100%;">
                 <button onclick="skipTime('{player_id}', -5)" style="flex: 1; padding: 9px 0px; background-color: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer;">⏪ 5초 뒤로</button>
                 <button onclick="startLoop3Sec('{player_id}')" style="flex: 1; padding: 5px 0px; background-color: #e11d48; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; line-height: 1.15; cursor: pointer;">🔂 방금 3초<br>찍찍이</button>
@@ -382,57 +369,17 @@ if app_mode == "🗣️ 스피킹 마스터":
             window.loopIntervals = {{}};
         }}
 
-        var audio_{player_id} = document.getElementById('{player_id}');
-        var playBtn_{player_id} = document.getElementById('play-btn-{player_id}');
-        var seekBar_{player_id} = document.getElementById('seek-bar-{player_id}');
-        var timeDisplay_{player_id} = document.getElementById('time-{player_id}');
+        var audio = document.getElementById('{player_id}');
 
-        function applyRate_{player_id}() {{
-            if(audio_{player_id}) audio_{player_id}.playbackRate = {rate};
+        function applyRate() {{
+            if(audio) audio.playbackRate = {rate};
         }}
 
-        if(audio_{player_id}) {{
-            audio_{player_id}.oncanplay = applyRate_{player_id};
-            applyRate_{player_id}();
-        }}
-
-        function formatTime(seconds) {{
-            var m = Math.floor(seconds / 60);
-            var s = Math.floor(seconds % 60);
-            return (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
-        }}
-
-        audio_{player_id}.ontimeupdate = function() {{
-            if (!isNaN(audio_{player_id}.duration)) {{
-                var percent = (audio_{player_id}.currentTime / audio_{player_id}.duration) * 100;
-                seekBar_{player_id}.value = percent;
-                timeDisplay_{player_id}.innerText = formatTime(audio_{player_id}.currentTime) + " / " + formatTime(audio_{player_id}.duration);
-            }}
-        }};
-
-        audio_{player_id}.onloadedmetadata = function() {{
-            timeDisplay_{player_id}.innerText = "00:00 / " + formatTime(audio_{player_id}.duration);
-        }};
-
-        function togglePlay(id) {{
-            var aud = document.getElementById(id);
-            var btn = document.getElementById('play-btn-' + id);
-            if (aud.paused) {{
-                aud.play();
-                btn.innerText = "❚❚";
-                btn.style.backgroundColor = "#dc2626";
-            }} else {{
-                aud.pause();
-                btn.innerText = "▶";
-                btn.style.backgroundColor = "#2563eb";
-            }}
-        }}
-
-        function seekAudio(id, val) {{
-            var aud = document.getElementById(id);
-            if (!isNaN(aud.duration)) {{
-                aud.currentTime = (val / 100) * aud.duration;
-            }}
+        if(audio) {{
+            audio.oncanplay = applyRate;
+            audio.onplay = applyRate;
+            applyRate();
+            audio.play().catch(function(e){{}});
         }}
 
         function skipTime(id, sec) {{
@@ -444,15 +391,12 @@ if app_mode == "🗣️ 스피킹 마스터":
 
         function startLoop3Sec(id) {{
             var aud = document.getElementById(id);
-            var btn = document.getElementById('play-btn-' + id);
             if(aud) {{
                 if (window.loopIntervals[id]) clearInterval(window.loopIntervals[id]);
                 var start = Math.max(0, aud.currentTime - 3);
                 var end = aud.currentTime;
                 aud.currentTime = start;
                 aud.play();
-                btn.innerText = "❚❚";
-                btn.style.backgroundColor = "#dc2626";
 
                 window.loopIntervals[id] = setInterval(function() {{
                     if (aud.currentTime >= end || aud.currentTime < start) {{
@@ -463,7 +407,6 @@ if app_mode == "🗣️ 스피킹 마스터":
         }}
 
         function stopLoop3Sec(id) {{
-            var aud = document.getElementById(id);
             if (window.loopIntervals[id]) {{
                 clearInterval(window.loopIntervals[id]);
                 delete window.loopIntervals[id];
@@ -1015,7 +958,7 @@ else:
                     col_act1, col_act2 = st.columns([5, 5])
                     with col_act1:
                         if not is_done:
-                            if st.button(f"🎉 완독 완료 도장 찍기", key=f"mark_test_{fid}"):
+                            if st.button(f"🎉 완독 완료 도장 찍기", key=f"mark_test2_{fid}"):
                                 threading.Thread(
                                     target=toggle_track_completed_in_sheet,
                                     args=(record_ws, fname, True),
@@ -1026,7 +969,7 @@ else:
                                 st.rerun()
                     with col_act2:
                         if is_done:
-                            if st.button(f"🗑️ 완독 기록 취소하기", key=f"cancel_test_{fid}"):
+                            if st.button(f"🗑️ 완독 기록 취소하기", key=f"cancel_test2_{fid}"):
                                 threading.Thread(
                                     target=toggle_track_completed_in_sheet,
                                     args=(record_ws, fname, False),
