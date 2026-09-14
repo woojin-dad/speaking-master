@@ -351,14 +351,14 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_level2 = len(level2_records)
     total_level1 = len(level1_records)
 
-    # 공통 플레이어 템플릿 함수 (문구 수정: "무한반복" 제거)
+    # 공통 플레이어 템플릿 함수 (5초 뒤로 & 3초 찍찍이 포함)
     def create_player_html(player_id, audio_base64_str, rate):
         return f"""
         <div style="background-color: #f8fafc; padding: 12px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #cbd5e1;">
             <audio id="{player_id}" src="data:audio/mp3;base64,{audio_base64_str}" controls style="width: 100%; margin-bottom: 8px;"></audio>
             <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
                 <button onclick="skipTime('{player_id}', -5)" style="padding: 6px 12px; background-color: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">⏪ 5초 뒤로</button>
-                <button onclick="startLoop3Sec('{player_id}')" style="padding: 6px 12px; background-color: #e11d48; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">🔂 방금 3초 찍찍이</button>
+                <button onclick="startLoop3Sec('{player_id}')" style="padding: 6px 12px; background-color: #e11d48; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">🔂 방금 3초 찍찍이 (무한반복)</button>
                 <button onclick="stopLoop3Sec('{player_id}')" style="padding: 6px 12px; background-color: #475569; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">▶ 표준 재생</button>
             </div>
         </div>
