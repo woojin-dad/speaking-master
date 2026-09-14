@@ -351,15 +351,15 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_level2 = len(level2_records)
     total_level1 = len(level1_records)
 
-    # 공통 플레이어 템플릿 함수
+    # 공통 플레이어 템플릿 함수 (아래쪽 여백도 상단처럼 좁게 맞춤)
     def create_player_html(player_id, audio_base64_str, rate):
         return f"""
-        <div style="background-color: #f8fafc; padding: 12px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #cbd5e1;">
-            <audio id="{player_id}" src="data:audio/mp3;base64,{audio_base64_str}" controls style="width: 100%; margin-bottom: 10px;"></audio>
+        <div style="background-color: #f8fafc; padding: 10px 12px; border-radius: 10px; margin-top: 4px; margin-bottom: 4px; border: 1px solid #cbd5e1;">
+            <audio id="{player_id}" src="data:audio/mp3;base64,{audio_base64_str}" controls style="width: 100%; margin-bottom: 8px;"></audio>
             <div style="display: flex; gap: 8px; width: 100%;">
-                <button onclick="skipTime('{player_id}', -5)" style="flex: 1; padding: 10px 0px; background-color: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer;">⏪ 5초 뒤로</button>
-                <button onclick="startLoop3Sec('{player_id}')" style="flex: 1; padding: 6px 0px; background-color: #e11d48; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; line-height: 1.2; cursor: pointer;">🔂 방금 3초<br>찍찍이</button>
-                <button onclick="stopLoop3Sec('{player_id}')" style="flex: 1; padding: 10px 0px; background-color: #475569; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer;">▶ 표준 재생</button>
+                <button onclick="skipTime('{player_id}', -5)" style="flex: 1; padding: 9px 0px; background-color: #3b82f6; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer;">⏪ 5초 뒤로</button>
+                <button onclick="startLoop3Sec('{player_id}')" style="flex: 1; padding: 5px 0px; background-color: #e11d48; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; line-height: 1.15; cursor: pointer;">🔂 방금 3초<br>찍찍이</button>
+                <button onclick="stopLoop3Sec('{player_id}')" style="flex: 1; padding: 9px 0px; background-color: #475569; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer;">▶ 표준 재생</button>
             </div>
         </div>
         <script>
@@ -441,8 +441,7 @@ if app_mode == "🗣️ 스피킹 마스터":
 
     # 전체 버튼 바로 아래에 재생기 출력
     if st.session_state.get(active_btn_key) == "total" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=145)
-        st.write("---")
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=135)
 
     # 2. 🟥 4단계 전용 반복 재생 버튼
     if total_level4 > 0:
@@ -471,8 +470,7 @@ if app_mode == "🗣️ 스피킹 마스터":
 
     # 4단계 버튼 바로 아래에 재생기 출력
     if st.session_state.get(active_btn_key) == "level4" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=145)
-        st.write("---")
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=135)
 
     # 3. 🟧 3단계 전용 반복 재생 버튼
     if total_level3 > 0:
@@ -501,8 +499,7 @@ if app_mode == "🗣️ 스피킹 마스터":
 
     # 3단계 버튼 바로 아래에 재생기 출력
     if st.session_state.get(active_btn_key) == "level3" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=145)
-        st.write("---")
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=135)
 
     # 4. 🟨 2단계 전용 반복 재생 버튼
     if total_level2 > 0:
@@ -531,8 +528,7 @@ if app_mode == "🗣️ 스피킹 마스터":
 
     # 2단계 버튼 바로 아래에 재생기 출력
     if st.session_state.get(active_btn_key) == "level2" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=145)
-        st.write("---")
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=135)
 
     # 5. 🟩 1단계 전용 반복 재생 버튼
     if total_level1 > 0:
@@ -561,8 +557,7 @@ if app_mode == "🗣️ 스피킹 마스터":
 
     # 1단계 버튼 바로 아래에 재생기 출력
     if st.session_state.get(active_btn_key) == "level1" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=145)
-        st.write("---")
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=135)
 
     # 🎯 단계별 필터링 선택 상자 (세션 상태 안전 방어 적용)
     stage_filter_options = [
