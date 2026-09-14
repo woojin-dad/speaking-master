@@ -351,7 +351,7 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_level2 = len(level2_records)
     total_level1 = len(level1_records)
 
-    # 🎨 오디오 재생 안정성을 극대화한 신뢰성 높은 플레이어 템플릿
+    # 📻 안정적인 기본 오디오 바 결합 템플릿
     def create_player_html(player_id, audio_base64_str, rate):
         return f"""
         <div style="background-color: #f8fafc; padding: 12px 14px; border-radius: 12px; margin-top: 4px; margin-bottom: 4px; border: 1px solid #cbd5e1; font-family: sans-serif;">
@@ -407,6 +407,7 @@ if app_mode == "🗣️ 스피킹 마스터":
         }}
 
         function stopLoop3Sec(id) {{
+            var aud = document.getElementById(id);
             if (window.loopIntervals[id]) {{
                 clearInterval(window.loopIntervals[id]);
                 delete window.loopIntervals[id];
@@ -958,7 +959,7 @@ else:
                     col_act1, col_act2 = st.columns([5, 5])
                     with col_act1:
                         if not is_done:
-                            if st.button(f"🎉 완독 완료 도장 찍기", key=f"mark_test2_{fid}"):
+                            if st.button(f"🎉 완독 완료 도장 찍기", key=f"mark_test3_{fid}"):
                                 threading.Thread(
                                     target=toggle_track_completed_in_sheet,
                                     args=(record_ws, fname, True),
@@ -969,7 +970,7 @@ else:
                                 st.rerun()
                     with col_act2:
                         if is_done:
-                            if st.button(f"🗑️ 완독 기록 취소하기", key=f"cancel_test2_{fid}"):
+                            if st.button(f"🗑️ 완독 기록 취소하기", key=f"cancel_test3_{fid}"):
                                 threading.Thread(
                                     target=toggle_track_completed_in_sheet,
                                     args=(record_ws, fname, False),
