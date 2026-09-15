@@ -351,13 +351,13 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_level2 = len(level2_records)
     total_level1 = len(level1_records)
 
-    # 📻 [속도 실시간 반영 및 재생 위치 복원 기능 완성] 플레이어 템플릿
+    # 📻 [속도 조절 시 초기화 반영] 신규 속도가 적용된 새로운 플레이어 생성 템플릿
     def create_player_html(player_id, audio_base64_str, rate):
         return f"""
         <div style="background-color: #f8fafc; padding: 10px 12px; border-radius: 10px; margin-top: 4px; margin-bottom: 4px; border: 1px solid #cbd5e1;">
             <audio id="{player_id}" src="data:audio/mp3;base64,{audio_base64_str}" controls style="width: 100%; margin-bottom: 8px;"></audio>
             <div style="display: flex; gap: 8px; width: 100%;">
-                <button id="toggle-btn-{player_id}" onclick="togglePlayPause('{player_id}')" style="flex: 1; padding: 9px 0px; background-color: #475569; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer;">❚❚ 일시정지</button>
+                <button id="toggle-btn-{player_id}" onclick="togglePlayPause('{player_id}')" style="flex: 1; padding: 9px 0px; background-color: #475569; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer;">▶ 표준 재생</button>
                 <button onclick="startLoop3Sec('{player_id}')" style="flex: 1; padding: 5px 0px; background-color: #e11d48; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; line-height: 1.15; cursor: pointer;">🔂 방금 3초<br>찍찍이</button>
                 <button onclick="skipTime('{player_id}', -5)" style="flex: 1; padding: 9px 0px; background-color: #3b82f6; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer;">⏪ 5초 뒤로</button>
             </div>
@@ -368,55 +368,19 @@ if app_mode == "🗣️ 스피킹 마스터":
         }}
         var p = document.getElementById('{player_id}');
         var toggleBtn = document.getElementById('toggle-btn-{player_id}');
-        var timeKey = 'audio_time_' + '{player_id}';
-        var stateKey = 'audio_state_' + '{player_id}';
         
         function applyRate() {{
-            if(p) {{
-                p.playbackRate = {rate};
-            }}
+            if(p) p.playbackRate = {rate};
         }}
 
         if(p) {{
-            // 💡 로드되자마자 최신 슬라이더 속도 강제 적용
-            applyRate();
             p.oncanplay = applyRate;
             p.onplay = applyRate;
+            applyRate();
             
-            // 💡 이전 재생 위치 및 상태 복원
-            var savedTime = localStorage.getItem(timeKey);
-            var savedState = localStorage.getItem(stateKey);
-            
-            if (savedTime !== null) {{
-                p.currentTime = parseFloat(savedTime);
-            }}
-
-            if (savedState === 'playing') {{
-                p.play().catch(function(e){{}});
-            }}
-
-            // 💡 실시간 위치 및 상태 저장
-            p.addEventListener('timeupdate', function() {{
-                localStorage.setItem(timeKey, p.currentTime);
-            }});
-
-            p.addEventListener('play', function() {{
-                localStorage.setItem(stateKey, 'playing');
-                if(toggleBtn) {{
-                    toggleBtn.innerText = "❚❚ 일시정지";
-                    toggleBtn.style.backgroundColor = "#475569";
-                }}
-            }});
-
-            p.addEventListener('pause', function() {{
-                if (!window.loopIntervals['{player_id}_3sec']) {{
-                    localStorage.setItem(stateKey, 'paused');
-                    if(toggleBtn) {{
-                        toggleBtn.innerText = "▶ 표준 재생";
-                        toggleBtn.style.backgroundColor = "#0f172a";
-                    }}
-                }}
-            }});
+            // 💡 속도 조절 등으로 리프레시되면 처음(0초)에서 대기 상태로 시작
+            p.currentTime = 0;
+            p.pause();
 
             function updateButtonState() {{
                 if(toggleBtn) {{
@@ -433,19 +397,16 @@ if app_mode == "🗣️ 스피킹 마스터":
                 }}
             }}
 
+            p.addEventListener('play', updateButtonState);
+            p.addEventListener('pause', updateButtonState);
             updateButtonState();
 
             p.addEventListener('ended', function() {{
                 if (!window.loopIntervals['{player_id}_3sec']) {{
                     p.currentTime = 0;
-                    localStorage.setItem(timeKey, 0);
                     p.play().catch(function(e){{}});
                 }}
             }});
-
-            if (savedState !== 'paused' && savedTime === null) {{
-                p.play().catch(function(e){{}});
-            }}
         }}
 
         // 하단 토글 버튼 클릭 시 오디오 멈춤/재생 토글
@@ -454,10 +415,8 @@ if app_mode == "🗣️ 스피킹 마스터":
             if(audio) {{
                 if (audio.paused) {{
                     audio.play();
-                    localStorage.setItem(stateKey, 'playing');
                 }} else {{
                     audio.pause();
-                    localStorage.setItem(stateKey, 'paused');
                     stopLoop3Sec(id);
                 }}
             }}
@@ -467,7 +426,6 @@ if app_mode == "🗣️ 스피킹 마스터":
             var audio = document.getElementById(id);
             if(audio) {{
                 audio.currentTime = Math.max(0, audio.currentTime + sec);
-                localStorage.setItem(timeKey, audio.currentTime);
             }}
         }}
 
@@ -486,7 +444,6 @@ if app_mode == "🗣️ 스피킹 마스터":
                 var end = audio.currentTime;
                 audio.currentTime = start;
                 audio.play();
-                localStorage.setItem(stateKey, 'playing');
 
                 window.loopIntervals[id] = setInterval(function() {{
                     if (audio.currentTime >= end || audio.currentTime < start) {{
@@ -506,11 +463,9 @@ if app_mode == "🗣️ 스피킹 마스터":
             if(audio && !audio.paused && toggleBtn) {{
                 toggleBtn.innerText = "❚❚ 일시정지";
                 toggleBtn.style.backgroundColor = "#475569";
-                localStorage.setItem(stateKey, 'playing');
             }} else if(audio && toggleBtn) {{
                 toggleBtn.innerText = "▶ 표준 재생";
                 toggleBtn.style.backgroundColor = "#0f172a";
-                localStorage.setItem(stateKey, 'paused');
             }}
         }}
         </script>
