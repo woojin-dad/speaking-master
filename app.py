@@ -351,11 +351,11 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_level2 = len(level2_records)
     total_level1 = len(level1_records)
 
-    # 📻 [상태 동기화 완성] 표준 재생/일시정지 토글이 오디오 플레이어와 실시간 연동되는 템플릿
+    # 📻 [즉시 자동 재생 적용] 렌더링되자마자 강제 재생되는 플레이어 템플릿
     def create_player_html(player_id, audio_base64_str, rate):
         return f"""
         <div style="background-color: #f8fafc; padding: 10px 12px; border-radius: 10px; margin-top: 4px; margin-bottom: 4px; border: 1px solid #cbd5e1;">
-            <audio id="{player_id}" src="data:audio/mp3;base64,{audio_base64_str}" controls style="width: 100%; margin-bottom: 8px;"></audio>
+            <audio id="{player_id}" src="data:audio/mp3;base64,{audio_base64_str}" controls autoplay style="width: 100%; margin-bottom: 8px;"></audio>
             <div style="display: flex; gap: 8px; width: 100%;">
                 <button id="toggle-btn-{player_id}" onclick="togglePlayPause('{player_id}')" style="flex: 1; padding: 9px 0px; background-color: #475569; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer;">❚❚ 일시정지</button>
                 <button onclick="startLoop3Sec('{player_id}')" style="flex: 1; padding: 5px 0px; background-color: #e11d48; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; line-height: 1.15; cursor: pointer;">🔂 방금 3초<br>찍찍이</button>
@@ -378,7 +378,6 @@ if app_mode == "🗣️ 스피킹 마스터":
             p.onplay = applyRate;
             applyRate();
             
-            // 오디오 상태에 따라 하단 버튼 글자 및 색상 실시간 동기화
             p.addEventListener('play', function() {{
                 if(toggleBtn) {{
                     toggleBtn.innerText = "❚❚ 일시정지";
@@ -400,10 +399,14 @@ if app_mode == "🗣️ 스피킹 마스터":
                 }}
             }});
 
-            p.play().catch(function(e){{}});
+            // 💡 즉시 자동 재생 트리거
+            setTimeout(function() {{
+                p.play().catch(function(e) {{
+                    console.log("Autoplay blocked or waiting:", e);
+                }});
+            }, 100);
         }}
 
-        // 하단 토글 버튼 클릭 시 오디오 멈춤/재생 토글
         function togglePlayPause(id) {{
             var audio = document.getElementById(id);
             if(audio) {{
