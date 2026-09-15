@@ -351,7 +351,7 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_level2 = len(level2_records)
     total_level1 = len(level1_records)
 
-    # 📻 [초기 버튼 상태 오디오 연동 수정] 플레이어 생성 시 실제 오디오 상태에 맞춰 버튼 표시
+    # 📻 [속도 실시간 반영 및 재생 위치 유지 기능 추가] 플레이어 템플릿
     def create_player_html(player_id, audio_base64_str, rate):
         return f"""
         <div style="background-color: #f8fafc; padding: 10px 12px; border-radius: 10px; margin-top: 4px; margin-bottom: 4px; border: 1px solid #cbd5e1;">
@@ -368,6 +368,8 @@ if app_mode == "🗣️ 스피킹 마스터":
         }}
         var p = document.getElementById('{player_id}');
         var toggleBtn = document.getElementById('toggle-btn-{player_id}');
+        var timeKey = 'audio_time_' + '{player_id}';
+        var stateKey = 'audio_state_' + '{player_id}';
         
         function applyRate() {{
             if(p) p.playbackRate = {rate};
@@ -378,7 +380,41 @@ if app_mode == "🗣️ 스피킹 마스터":
             p.onplay = applyRate;
             applyRate();
             
-            // 💡 오디오 실제 상태에 맞춰 초기 버튼 텍스트와 색상 동기화
+            // 💡 속도 조절 등으로 화면이 리프레시될 때 직전 재생 위치와 상태 복원
+            var savedTime = localStorage.getItem(timeKey);
+            var savedState = localStorage.getItem(stateKey);
+            
+            if (savedTime !== null) {{
+                p.currentTime = parseFloat(savedTime);
+            }}
+
+            if (savedState === 'playing') {{
+                p.play().catch(function(e){{}});
+            }}
+
+            // 💡 재생 중 위치 및 상태를 실시간으로 브라우저에 저장
+            p.addEventListener('timeupdate', function() {{
+                localStorage.setItem(timeKey, p.currentTime);
+            }});
+
+            p.addEventListener('play', function() {{
+                localStorage.setItem(stateKey, 'playing');
+                if(toggleBtn) {{
+                    toggleBtn.innerText = "❚❚ 일시정지";
+                    toggleBtn.style.backgroundColor = "#475569";
+                }}
+            }});
+
+            p.addEventListener('pause', function() {{
+                if (!window.loopIntervals['{player_id}_3sec']) {{
+                    localStorage.setItem(stateKey, 'paused');
+                    if(toggleBtn) {{
+                        toggleBtn.innerText = "▶ 표준 재생";
+                        toggleBtn.style.backgroundColor = "#0f172a";
+                    }}
+                }}
+            }});
+
             function updateButtonState() {{
                 if(toggleBtn) {{
                     if(window.loopIntervals['{player_id}_3sec']) {{
@@ -394,18 +430,19 @@ if app_mode == "🗣️ 스피킹 마스터":
                 }}
             }}
 
-            p.addEventListener('play', updateButtonState);
-            p.addEventListener('pause', updateButtonState);
             updateButtonState();
 
             p.addEventListener('ended', function() {{
                 if (!window.loopIntervals['{player_id}_3sec']) {{
                     p.currentTime = 0;
+                    localStorage.setItem(timeKey, 0);
                     p.play().catch(function(e){{}});
                 }}
             }});
 
-            p.play().catch(function(e){{}});
+            if (savedState !== 'paused' && savedTime === null) {{
+                p.play().catch(function(e){{}});
+            }}
         }}
 
         // 하단 토글 버튼 클릭 시 오디오 멈춤/재생 토글
@@ -414,8 +451,10 @@ if app_mode == "🗣️ 스피킹 마스터":
             if(audio) {{
                 if (audio.paused) {{
                     audio.play();
+                    localStorage.setItem(stateKey, 'playing');
                 }} else {{
                     audio.pause();
+                    localStorage.setItem(stateKey, 'paused');
                     stopLoop3Sec(id);
                 }}
             }}
@@ -425,6 +464,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             var audio = document.getElementById(id);
             if(audio) {{
                 audio.currentTime = Math.max(0, audio.currentTime + sec);
+                localStorage.setItem(timeKey, audio.currentTime);
             }}
         }}
 
@@ -443,6 +483,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                 var end = audio.currentTime;
                 audio.currentTime = start;
                 audio.play();
+                localStorage.setItem(stateKey, 'playing');
 
                 window.loopIntervals[id] = setInterval(function() {{
                     if (audio.currentTime >= end || audio.currentTime < start) {{
@@ -462,9 +503,11 @@ if app_mode == "🗣️ 스피킹 마스터":
             if(audio && !audio.paused && toggleBtn) {{
                 toggleBtn.innerText = "❚❚ 일시정지";
                 toggleBtn.style.backgroundColor = "#475569";
+                localStorage.setItem(stateKey, 'playing');
             }} else if(audio && toggleBtn) {{
                 toggleBtn.innerText = "▶ 표준 재생";
                 toggleBtn.style.backgroundColor = "#0f172a";
+                localStorage.setItem(stateKey, 'paused');
             }}
         }}
         </script>
