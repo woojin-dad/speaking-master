@@ -351,11 +351,12 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_level2 = len(level2_records)
     total_level1 = len(level1_records)
 
-    # 📻 강력한 무한 반복 스크립트가 탑재된 플레이어 템플릿
+    # 📻 [최종 수정] loop 속성과 무한 자동 재생이 강제 적용된 플레이어 템플릿
     def create_player_html(player_id, audio_base64_str, rate):
         return f"""
         <div style="background-color: #f8fafc; padding: 10px 12px; border-radius: 10px; margin-top: 4px; margin-bottom: 4px; border: 1px solid #cbd5e1;">
-            <audio id="{player_id}" src="data:audio/mp3;base64,{audio_base64_str}" controls style="width: 100%; margin-bottom: 8px;"></audio>
+            <!-- loop 속성을 명시적으로 부여 -->
+            <audio id="{player_id}" src="data:audio/mp3;base64,{audio_base64_str}" controls loop style="width: 100%; margin-bottom: 8px;"></audio>
             <div style="display: flex; gap: 8px; width: 100%;">
                 <button onclick="skipTime('{player_id}', -5)" style="flex: 1; padding: 9px 0px; background-color: #3b82f6; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer;">⏪ 5초 뒤로</button>
                 <button onclick="startLoop3Sec('{player_id}')" style="flex: 1; padding: 5px 0px; background-color: #e11d48; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; line-height: 1.15; cursor: pointer;">🔂 방금 3초<br>찍찍이</button>
@@ -369,7 +370,9 @@ if app_mode == "🗣️ 스피킹 마스터":
         var p = document.getElementById('{player_id}');
         
         function applyRate() {{
-            if(p) p.playbackRate = {rate};
+            if(p) {{
+                p.playbackRate = {rate};
+            }}
         }}
 
         if(p) {{
@@ -377,14 +380,15 @@ if app_mode == "🗣️ 스피킹 마스터":
             p.onplay = applyRate;
             applyRate();
             
-            # 오디오가 끝나면 무조건 처음으로 돌려서 다시 재생 (강력한 전체 반복)
-            p.onended = function() {{
+            // 💡 무한 루프 안정성 보장: 끝날 때마다 강제로 다시 재생 트리거
+            p.addEventListener('ended', function() {{
                 if (!window.loopIntervals['{player_id}_3sec']) {{
                     p.currentTime = 0;
                     p.play().catch(function(e){{}});
                 }}
-            }};
+            }});
 
+            // 자동 재생 시도
             p.play().catch(function(e){{}});
         }}
 
