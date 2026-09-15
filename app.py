@@ -351,7 +351,7 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_level2 = len(level2_records)
     total_level1 = len(level1_records)
 
-    # 📻 [속도 실시간 반영 및 재생 위치 유지 기능 추가] 플레이어 템플릿
+    # 📻 [속도 실시간 반영 및 재생 위치 복원 기능 완성] 플레이어 템플릿
     def create_player_html(player_id, audio_base64_str, rate):
         return f"""
         <div style="background-color: #f8fafc; padding: 10px 12px; border-radius: 10px; margin-top: 4px; margin-bottom: 4px; border: 1px solid #cbd5e1;">
@@ -372,15 +372,18 @@ if app_mode == "🗣️ 스피킹 마스터":
         var stateKey = 'audio_state_' + '{player_id}';
         
         function applyRate() {{
-            if(p) p.playbackRate = {rate};
+            if(p) {{
+                p.playbackRate = {rate};
+            }}
         }}
 
         if(p) {{
+            // 💡 로드되자마자 최신 슬라이더 속도 강제 적용
+            applyRate();
             p.oncanplay = applyRate;
             p.onplay = applyRate;
-            applyRate();
             
-            // 💡 속도 조절 등으로 화면이 리프레시될 때 직전 재생 위치와 상태 복원
+            // 💡 이전 재생 위치 및 상태 복원
             var savedTime = localStorage.getItem(timeKey);
             var savedState = localStorage.getItem(stateKey);
             
@@ -392,7 +395,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                 p.play().catch(function(e){{}});
             }}
 
-            // 💡 재생 중 위치 및 상태를 실시간으로 브라우저에 저장
+            // 💡 실시간 위치 및 상태 저장
             p.addEventListener('timeupdate', function() {{
                 localStorage.setItem(timeKey, p.currentTime);
             }});
