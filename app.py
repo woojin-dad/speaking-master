@@ -351,7 +351,7 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_level2 = len(level2_records)
     total_level1 = len(level1_records)
 
-    # 📻 [즉시 자동 재생 적용] 렌더링되자마자 강제 재생되는 플레이어 템플릿
+    # 📻 [즉시 자동 재생 적용] f-string 중괄호 문법 오류 수정 완료 템플릿
     def create_player_html(player_id, audio_base64_str, rate):
         return f"""
         <div style="background-color: #f8fafc; padding: 10px 12px; border-radius: 10px; margin-top: 4px; margin-bottom: 4px; border: 1px solid #cbd5e1;">
@@ -399,12 +399,12 @@ if app_mode == "🗣️ 스피킹 마스터":
                 }}
             }});
 
-            // 💡 즉시 자동 재생 트리거
+            # 즉시 자동 재생 트리거 (문법 오류 수정 완료)
             setTimeout(function() {{
                 p.play().catch(function(e) {{
                     console.log("Autoplay blocked or waiting:", e);
                 }});
-            }, 100);
+            }}, 100);
         }}
 
         function togglePlayPause(id) {{
