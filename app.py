@@ -351,7 +351,7 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_level2 = len(level2_records)
     total_level1 = len(level1_records)
 
-    # 📻 무한 반복(`ended` 이벤트 보완)이 적용된 플레이어 템플릿
+    # 📻 강력한 무한 반복 스크립트가 탑재된 플레이어 템플릿
     def create_player_html(player_id, audio_base64_str, rate):
         return f"""
         <div style="background-color: #f8fafc; padding: 10px 12px; border-radius: 10px; margin-top: 4px; margin-bottom: 4px; border: 1px solid #cbd5e1;">
@@ -377,9 +377,8 @@ if app_mode == "🗣️ 스피킹 마스터":
             p.onplay = applyRate;
             applyRate();
             
-            // 💡 무한 반복 보완: 끝까지 재생되면 처음으로 돌리고 다시 재생
+            # 오디오가 끝나면 무조건 처음으로 돌려서 다시 재생 (강력한 전체 반복)
             p.onended = function() {{
-                // 만약 3초 찍찍이(구간 반복) 중이 아니라면 전체 반복 수행
                 if (!window.loopIntervals['{player_id}_3sec']) {{
                     p.currentTime = 0;
                     p.play().catch(function(e){{}});
@@ -399,7 +398,6 @@ if app_mode == "🗣️ 스피킹 마스터":
         function startLoop3Sec(id) {{
             var audio = document.getElementById(id);
             if(audio) {{
-                // 기존 전체 반복이나 구간 반복 인터벌 정리
                 if (window.loopIntervals[id]) clearInterval(window.loopIntervals[id]);
                 window.loopIntervals['{player_id}_3sec'] = true;
 
