@@ -81,9 +81,9 @@ if app_mode == "🗣️ 스피킹 마스터":
     # 🔤 글자 크기 조절
     font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=26, max_value=45, value=26, step=1, key="pure_font_slider")
 
-    # ⚡ 문장 재생 속도 조절 슬라이더 (기본값: 1.0)
+    # ⚡ 라디오 발음 속도 조절 슬라이더 (기본값: 1.0)
     speech_speed = st.slider(
-        "⚡ 문장 재생 속도 조절 (기본값: 1.0배속)",
+        "⚡ 라디오 발음 속도 조절 (기본값: 1.0배속)",
         min_value=0.6,
         max_value=1.2,
         value=1.0,
@@ -351,13 +351,13 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_level2 = len(level2_records)
     total_level1 = len(level1_records)
 
-    # 📻 [속도 변경 시 초기화 및 신규 속도 적용 완료] 플레이어 템플릿
+    # 📻 [버튼 순서 변경] [표준 재생] [방금 3초 찍찍이] [5초 뒤로] 순서로 배치된 플레이어 템플릿
     def create_player_html(player_id, audio_base64_str, rate):
         return f"""
         <div style="background-color: #f8fafc; padding: 10px 12px; border-radius: 10px; margin-top: 4px; margin-bottom: 4px; border: 1px solid #cbd5e1;">
             <audio id="{player_id}" src="data:audio/mp3;base64,{audio_base64_str}" controls style="width: 100%; margin-bottom: 8px;"></audio>
             <div style="display: flex; gap: 8px; width: 100%;">
-                <button id="toggle-btn-{player_id}" onclick="togglePlayPause('{player_id}')" style="flex: 1; padding: 9px 0px; background-color: #0f172a; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer;">▶ 표준 재생</button>
+                <button onclick="stopLoop3Sec('{player_id}')" style="flex: 1; padding: 9px 0px; background-color: #475569; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer;">▶ 표준 재생</button>
                 <button onclick="startLoop3Sec('{player_id}')" style="flex: 1; padding: 5px 0px; background-color: #e11d48; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; line-height: 1.15; cursor: pointer;">🔂 방금 3초<br>찍찍이</button>
                 <button onclick="skipTime('{player_id}', -5)" style="flex: 1; padding: 9px 0px; background-color: #3b82f6; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer;">⏪ 5초 뒤로</button>
             </div>
@@ -367,65 +367,24 @@ if app_mode == "🗣️ 스피킹 마스터":
             window.loopIntervals = {{}};
         }}
         var p = document.getElementById('{player_id}');
-        var toggleBtn = document.getElementById('toggle-btn-{player_id}');
-        
+       
         function applyRate() {{
-            if(p) {{
-                p.playbackRate = {rate};
-            }}
+            if(p) p.playbackRate = {rate};
         }}
 
         if(p) {{
-            // 💡 슬라이더 조절로 리프레시될 때 속도는 새로 반영하고 위치는 0초로 초기화
+            p.oncanplay = applyRate;
+            p.onplay = applyRate;
             applyRate();
-            p.currentTime = 0;
-            p.pause();
-            
-            p.oncanplay = function() {{
-                applyRate();
-            }};
-            p.onplay = function() {{
-                applyRate();
-            }};
-
-            function updateButtonState() {{
-                if(toggleBtn) {{
-                    if(window.loopIntervals['{player_id}_3sec']) {{
-                        toggleBtn.innerText = "🔂 찍찍이 중";
-                        toggleBtn.style.backgroundColor = "#e11d48";
-                    }} else if(p.paused) {{
-                        toggleBtn.innerText = "▶ 표준 재생";
-                        toggleBtn.style.backgroundColor = "#0f172a";
-                    }} else {{
-                        toggleBtn.innerText = "❚❚ 일시정지";
-                        toggleBtn.style.backgroundColor = "#475569";
-                    }}
-                }}
-            }}
-
-            p.addEventListener('play', updateButtonState);
-            p.addEventListener('pause', updateButtonState);
-            updateButtonState();
-
+           
             p.addEventListener('ended', function() {{
                 if (!window.loopIntervals['{player_id}_3sec']) {{
                     p.currentTime = 0;
                     p.play().catch(function(e){{}});
                 }}
             }});
-        }}
 
-        // 하단 토글 버튼 클릭 시 오디오 멈춤/재생 토글
-        function togglePlayPause(id) {{
-            var audio = document.getElementById(id);
-            if(audio) {{
-                if (audio.paused) {{
-                    audio.play();
-                }} else {{
-                    audio.pause();
-                    stopLoop3Sec(id);
-                }}
-            }}
+            p.play().catch(function(e){{}});
         }}
 
         function skipTime(id, sec) {{
@@ -440,11 +399,6 @@ if app_mode == "🗣️ 스피킹 마스터":
             if(audio) {{
                 if (window.loopIntervals[id]) clearInterval(window.loopIntervals[id]);
                 window.loopIntervals['{player_id}_3sec'] = true;
-
-                if(toggleBtn) {{
-                    toggleBtn.innerText = "🔂 찍찍이 중";
-                    toggleBtn.style.backgroundColor = "#e11d48";
-                }}
 
                 var start = Math.max(0, audio.currentTime - 3);
                 var end = audio.currentTime;
@@ -466,13 +420,6 @@ if app_mode == "🗣️ 스피킹 마스터":
                 delete window.loopIntervals[id];
             }}
             delete window.loopIntervals['{player_id}_3sec'];
-            if(audio && !audio.paused && toggleBtn) {{
-                toggleBtn.innerText = "❚❚ 일시정지";
-                toggleBtn.style.backgroundColor = "#475569";
-            }} else if(audio && toggleBtn) {{
-                toggleBtn.innerText = "▶ 표준 재생";
-                toggleBtn.style.backgroundColor = "#0f172a";
-            }}
         }}
         </script>
         """
@@ -528,7 +475,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                             part_fp.seek(0)
                             relay_audio_l4.write(part_fp.read())
                             relay_audio_l4.write(b'\x00' * 2500)
-                    
+                   
                     relay_audio_l4.seek(0)
                     audio_base64_l4 = base64.b64encode(relay_audio_l4.read()).decode('utf-8')
                     st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level4-radio-player", audio_base64_l4, speech_speed)
@@ -557,7 +504,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                             part_fp.seek(0)
                             relay_audio_l3.write(part_fp.read())
                             relay_audio_l3.write(b'\x00' * 2500)
-                    
+                   
                     relay_audio_l3.seek(0)
                     audio_base64_l3 = base64.b64encode(relay_audio_l3.read()).decode('utf-8')
                     st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level3-radio-player", audio_base64_l3, speech_speed)
@@ -586,7 +533,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                             part_fp.seek(0)
                             relay_audio_l2.write(part_fp.read())
                             relay_audio_l2.write(b'\x00' * 2500)
-                    
+                   
                     relay_audio_l2.seek(0)
                     audio_base64_l2 = base64.b64encode(relay_audio_l2.read()).decode('utf-8')
                     st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level2-radio-player", audio_base64_l2, speech_speed)
@@ -615,7 +562,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                             part_fp.seek(0)
                             relay_audio_l1.write(part_fp.read())
                             relay_audio_l1.write(b'\x00' * 2500)
-                    
+                   
                     relay_audio_l1.seek(0)
                     audio_base64_l1 = base64.b64encode(relay_audio_l1.read()).decode('utf-8')
                     st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level1-radio-player", audio_base64_l1, speech_speed)
@@ -755,7 +702,7 @@ else:
             padding-left: 10px !important;
             padding-right: 0px !important;
         }
-        
+       
         .custom-title {
             font-size: 26px !important;
             font-weight: bold !important;
@@ -769,7 +716,7 @@ else:
         button[title="Fork this app"] {display: none !important; visibility: hidden !important;}
         header {visibility: hidden !important; height: 0px !important;}
         footer {visibility: hidden !important; height: 0px !important;}
-        
+       
         .track-title {
             font-size: 17px;
             font-weight: bold;
@@ -787,7 +734,7 @@ else:
         }
         </style>
     """, unsafe_allow_html=True)
-    
+   
     st.markdown("<div class='custom-title'>👑 리스닝 마스터 👑</div>", unsafe_allow_html=True)
     st.write("---")
 
@@ -823,7 +770,7 @@ else:
             return
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M") if mark_as_done else ""
         is_completed_str = "TRUE" if mark_as_done else "FALSE"
-        
+       
         try:
             records = ws.get_all_records()
             found_row = None
@@ -831,7 +778,7 @@ else:
                 if r.get('filename') == filename:
                     found_row = idx
                     break
-            
+           
             if found_row:
                 ws.update_cell(found_row, 2, is_completed_str)
                 ws.update_cell(found_row, 3, now_str)
@@ -851,7 +798,7 @@ else:
                 if r.get('filename') == filename:
                     found_row = idx
                     break
-            
+           
             if found_row:
                 ws.update_cell(found_row, 4, note_text)
             else:
@@ -862,7 +809,7 @@ else:
     def build_drive_service():
         creds_dict = json.loads(st.secrets["gcp_service_account"])
         creds = ServiceAccountCredentials.from_json_keyfile_dict(
-            creds_dict, 
+            creds_dict,
             scopes=["https://www.googleapis.com/auth/drive.readonly"]
         )
         return build('drive', 'v3', credentials=creds)
@@ -927,12 +874,12 @@ else:
                 st.session_state[play_state_key] = False
 
             c1, c2 = st.columns([7.5, 2.5])
-            
+           
             with c1:
                 st.markdown(f"<div class='track-title'>🎵 {idx}. {fname}</div>", unsafe_allow_html=True)
                 if is_done:
                     st.markdown(f"<div class='badge-completed'>✅ 완독: {done_time}</div>", unsafe_allow_html=True)
-            
+           
             with c2:
                 btn_label = "❚❚ 닫기" if st.session_state[play_state_key] else "▶ 재생"
                 if st.button(btn_label, key=f"btn_toggle_{fid}"):
@@ -942,7 +889,7 @@ else:
             if st.session_state[play_state_key]:
                 with st.spinner(f"📥 [{fname}] 음성 로딩 중..."):
                     audio_bytes = download_audio_bytes(fid)
-                
+               
                 if audio_bytes:
                     b64_audio = base64.b64encode(audio_bytes).decode('utf-8')
                     player_id = f"custom_audio_{fid}"
@@ -996,14 +943,14 @@ else:
                     </script>
                     """
                     st.components.v1.html(custom_player_html, height=140)
-                    
+                   
                     user_note = st.text_area(
                         "📝 나만의 청취 메모 (중요 표현, 구간 적기):",
                         value=current_note,
                         key=f"note_input_{fid}",
                         height=80
                     )
-                    
+                   
                     col_note_btn, col_blank = st.columns([3, 7])
                     with col_note_btn:
                         if st.button("💾 메모 저장하기", key=f"save_note_btn_{fid}"):
@@ -1043,8 +990,8 @@ else:
                                 st.rerun()
                 else:
                     st.error("오디오 로딩 실패")
-            
+           
             st.write("---")
-            
+           
     else:
         st.warning("구글 드라이브 폴더에 MP3 파일이 없습니다.")
