@@ -477,7 +477,7 @@ if app_mode == "🗣️ 스피킹 마스터":
 
     # 1. 📻 전체 재생 초록 버튼
     if total_sentences > 0:
-        if st.button(f"📻 🔁 🟥🟧🟨🟩 {selected_menu} 전체 문장 반복 재생 시작 ({total_sentences}개)", key=f"total_relay_btn_{real_sheet_name}"):
+        if st.button(f"📻 🔁 🟥🟧🟨🟩 전체 문장 반복 재생 시작 ({total_sentences}개)", key=f"total_relay_btn_{real_sheet_name}"):
             st.session_state["pure_stage_filter_box"] = f"🟥🟧🟨🟩 전체 보기 (모든 문장 · {total_sentences}개)"
             st.session_state[active_btn_key] = "total"
             with st.spinner("⚡ 전체 문장 취합 중..."):
