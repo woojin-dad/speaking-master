@@ -622,7 +622,7 @@ if app_mode == "🗣️ 스피킹 마스터":
 
     # 🎯 단계별 필터링 선택 상자 (세션 상태 안전 방어 적용)
     stage_filter_options = [
-        f"🌟 전체 보기 (모든 문장 · {total_sentences}개)",
+        f"🟥🟧🟨🟩 전체 보기 (모든 문장 · {total_sentences}개)",
         f"🟥 4단계만 보기 (미숙 · {total_level4}개)",
         f"🟧 3단계만 보기 (초급 · {total_level3}개)",
         f"🟨 2단계만 보기 (중급 · {total_level2}개)",
