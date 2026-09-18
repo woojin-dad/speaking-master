@@ -5,6 +5,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 import json
 from gtts import gTTS
+from pydub import AudioSegment
 import io
 import threading
 import base64
@@ -351,11 +352,61 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_level2 = len(level2_records)
     total_level1 = len(level1_records)
 
+    # ==========================================================================
+    # 🆕 [신규] 문장별 시작/종료 시각을 함께 계산해주는 릴레이 오디오 생성 함수
+    #     - pydub으로 실제 오디오 길이(ms)를 측정해서 "자막 타임라인"을 만든다.
+    #     - HTML5 <audio>의 currentTime은 배속(playbackRate)을 바꿔도
+    #       "원본 오디오 기준 위치"를 그대로 반영하므로, 배속을 바꿔도 싱크가 깨지지 않는다.
+    # ==========================================================================
+    def generate_relay_with_subtitles(records_list, silence_ms=600):
+        combined = AudioSegment.silent(duration=0)
+        silence = AudioSegment.silent(duration=silence_ms)
+        subtitles = []
+
+        for item in records_list:
+            english_sentence = str(item['en']).strip()
+            if not english_sentence:
+                continue
+            try:
+                tts_part = gTTS(text=english_sentence, lang='en')
+                part_fp = io.BytesIO()
+                tts_part.write_to_fp(part_fp)
+                part_fp.seek(0)
+                seg = AudioSegment.from_file(part_fp, format='mp3')
+            except Exception:
+                continue
+
+            start_ms = len(combined)
+            combined += seg
+            end_ms = len(combined)
+            combined += silence
+
+            subtitles.append({
+                'id': str(item['id']),
+                'kr': str(item['kr']),
+                'en': str(item['en']),
+                'start': round(start_ms / 1000, 3),
+                'end': round(end_ms / 1000, 3),
+            })
+
+        out_fp = io.BytesIO()
+        combined.export(out_fp, format='mp3')
+        out_fp.seek(0)
+        return out_fp.read(), subtitles
+
     # 📻 [초기 버튼 상태 오디오 연동 수정] 플레이어 생성 시 실제 오디오 상태에 맞춰 버튼 표시
-    def create_player_html(player_id, audio_base64_str, rate):
+    #     + 🆕 재생기 아래에 현재 재생 중인 문장을 자막처럼 보여주는 박스 추가
+    def create_player_html(player_id, audio_base64_str, rate, subtitles=None):
+        subtitles = subtitles or []
+        subtitles_json = json.dumps(subtitles, ensure_ascii=False)
         return f"""
         <div style="background-color: #f8fafc; padding: 10px 12px; border-radius: 10px; margin-top: 4px; margin-bottom: 4px; border: 1px solid #cbd5e1;">
             <audio id="{player_id}" src="data:audio/mp3;base64,{audio_base64_str}" controls style="width: 100%; margin-bottom: 8px;"></audio>
+
+            <div id="subtitle-{player_id}" style="background-color:#0f172a; color:#ffffff; border-radius:8px; padding:10px 12px; margin-bottom:8px; font-size:18px; font-weight:bold; line-height:1.4; min-height:54px; white-space:pre-line;">
+                ▶ 재생을 시작하면 문장이 여기에 표시됩니다
+            </div>
+
             <div style="display: flex; gap: 8px; width: 100%;">
                 <button id="toggle-btn-{player_id}" onclick="togglePlayPause('{player_id}')" style="flex: 1; padding: 9px 0px; background-color: #475569; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer;">❚❚ 일시정지</button>
                 <button onclick="startLoop3Sec('{player_id}')" style="flex: 1; padding: 5px 0px; background-color: #e11d48; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; line-height: 1.15; cursor: pointer;">🔂 3초 찍찍이</button>
@@ -368,9 +419,23 @@ if app_mode == "🗣️ 스피킹 마스터":
         }}
         var p = document.getElementById('{player_id}');
         var toggleBtn = document.getElementById('toggle-btn-{player_id}');
-       
+        var subtitleBox = document.getElementById('subtitle-{player_id}');
+        var subtitleData = {subtitles_json};
+
         function applyRate() {{
             if(p) p.playbackRate = {rate};
+        }}
+
+        // 🆕 현재 재생 위치(currentTime)에 해당하는 문장을 찾아 자막으로 표시
+        function updateSubtitle() {{
+            if (!subtitleBox || !p) return;
+            var t = p.currentTime;
+            for (var i = 0; i < subtitleData.length; i++) {{
+                if (t >= subtitleData[i].start && t < subtitleData[i].end) {{
+                    subtitleBox.innerHTML = subtitleData[i].kr + "<br><span style='color:#93c5fd;'>" + subtitleData[i].en + "</span>";
+                    return;
+                }}
+            }}
         }}
 
         if(p) {{
@@ -396,6 +461,7 @@ if app_mode == "🗣️ 스피킹 마스터":
 
             p.addEventListener('play', updateButtonState);
             p.addEventListener('pause', updateButtonState);
+            p.addEventListener('timeupdate', updateSubtitle);
             updateButtonState();
 
             p.addEventListener('ended', function() {{
@@ -482,27 +548,18 @@ if app_mode == "🗣️ 스피킹 마스터":
             st.session_state[active_btn_key] = "total"
             with st.spinner("⚡ 전체 문장 취합 중..."):
                 try:
-                    relay_audio = io.BytesIO()
-                    for item in all_display_records:
-                        english_sentence = str(item['en']).strip()
-                        if english_sentence:
-                            tts_part = gTTS(text=english_sentence, lang='en')
-                            part_fp = io.BytesIO()
-                            tts_part.write_to_fp(part_fp)
-                            part_fp.seek(0)
-                            relay_audio.write(part_fp.read())
-                            relay_audio.write(b'\x00' * 2500)
-                   
-                    relay_audio.seek(0)
-                    audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("total-radio-player", audio_base64, speech_speed)
+                    audio_bytes, subtitles = generate_relay_with_subtitles(all_display_records)
+                    audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
+                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html(
+                        "total-radio-player", audio_base64, speech_speed, subtitles
+                    )
                 except Exception as e:
                     pass
             st.rerun()
 
     # 전체 버튼 바로 아래에 재생기 출력
     if st.session_state.get(active_btn_key) == "total" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=135)
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=210)
 
     # 2. 🟥 4단계 전용 반복 재생 버튼
     if total_level4 > 0:
@@ -511,27 +568,18 @@ if app_mode == "🗣️ 스피킹 마스터":
             st.session_state[active_btn_key] = "level4"
             with st.spinner(f"⚡ 4단계 {total_level4}개 문장 음성 결합 중..."):
                 try:
-                    relay_audio_l4 = io.BytesIO()
-                    for item in level4_records:
-                        english_sentence = str(item['en']).strip()
-                        if english_sentence:
-                            tts_part = gTTS(text=english_sentence, lang='en')
-                            part_fp = io.BytesIO()
-                            tts_part.write_to_fp(part_fp)
-                            part_fp.seek(0)
-                            relay_audio_l4.write(part_fp.read())
-                            relay_audio_l4.write(b'\x00' * 2500)
-                   
-                    relay_audio_l4.seek(0)
-                    audio_base64_l4 = base64.b64encode(relay_audio_l4.read()).decode('utf-8')
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level4-radio-player", audio_base64_l4, speech_speed)
+                    audio_bytes_l4, subtitles_l4 = generate_relay_with_subtitles(level4_records)
+                    audio_base64_l4 = base64.b64encode(audio_bytes_l4).decode('utf-8')
+                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html(
+                        "level4-radio-player", audio_base64_l4, speech_speed, subtitles_l4
+                    )
                 except Exception as e:
                     pass
             st.rerun()
 
     # 4단계 버튼 바로 아래에 재생기 출력
     if st.session_state.get(active_btn_key) == "level4" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=135)
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=210)
 
     # 3. 🟧 3단계 전용 반복 재생 버튼
     if total_level3 > 0:
@@ -540,27 +588,18 @@ if app_mode == "🗣️ 스피킹 마스터":
             st.session_state[active_btn_key] = "level3"
             with st.spinner(f"⚡ 3단계 {total_level3}개 문장 음성 결합 중..."):
                 try:
-                    relay_audio_l3 = io.BytesIO()
-                    for item in level3_records:
-                        english_sentence = str(item['en']).strip()
-                        if english_sentence:
-                            tts_part = gTTS(text=english_sentence, lang='en')
-                            part_fp = io.BytesIO()
-                            tts_part.write_to_fp(part_fp)
-                            part_fp.seek(0)
-                            relay_audio_l3.write(part_fp.read())
-                            relay_audio_l3.write(b'\x00' * 2500)
-                   
-                    relay_audio_l3.seek(0)
-                    audio_base64_l3 = base64.b64encode(relay_audio_l3.read()).decode('utf-8')
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level3-radio-player", audio_base64_l3, speech_speed)
+                    audio_bytes_l3, subtitles_l3 = generate_relay_with_subtitles(level3_records)
+                    audio_base64_l3 = base64.b64encode(audio_bytes_l3).decode('utf-8')
+                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html(
+                        "level3-radio-player", audio_base64_l3, speech_speed, subtitles_l3
+                    )
                 except Exception as e:
                     pass
             st.rerun()
 
     # 3단계 버튼 바로 아래에 재생기 출력
     if st.session_state.get(active_btn_key) == "level3" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=135)
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=210)
 
     # 4. 🟨 2단계 전용 반복 재생 버튼
     if total_level2 > 0:
@@ -569,27 +608,18 @@ if app_mode == "🗣️ 스피킹 마스터":
             st.session_state[active_btn_key] = "level2"
             with st.spinner(f"⚡ 2단계 {total_level2}개 문장 음성 결합 중..."):
                 try:
-                    relay_audio_l2 = io.BytesIO()
-                    for item in level2_records:
-                        english_sentence = str(item['en']).strip()
-                        if english_sentence:
-                            tts_part = gTTS(text=english_sentence, lang='en')
-                            part_fp = io.BytesIO()
-                            tts_part.write_to_fp(part_fp)
-                            part_fp.seek(0)
-                            relay_audio_l2.write(part_fp.read())
-                            relay_audio_l2.write(b'\x00' * 2500)
-                   
-                    relay_audio_l2.seek(0)
-                    audio_base64_l2 = base64.b64encode(relay_audio_l2.read()).decode('utf-8')
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level2-radio-player", audio_base64_l2, speech_speed)
+                    audio_bytes_l2, subtitles_l2 = generate_relay_with_subtitles(level2_records)
+                    audio_base64_l2 = base64.b64encode(audio_bytes_l2).decode('utf-8')
+                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html(
+                        "level2-radio-player", audio_base64_l2, speech_speed, subtitles_l2
+                    )
                 except Exception as e:
                     pass
             st.rerun()
 
     # 2단계 버튼 바로 아래에 재생기 출력
     if st.session_state.get(active_btn_key) == "level2" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=135)
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=210)
 
     # 5. 🟩 1단계 전용 반복 재생 버튼
     if total_level1 > 0:
@@ -598,27 +628,18 @@ if app_mode == "🗣️ 스피킹 마스터":
             st.session_state[active_btn_key] = "level1"
             with st.spinner(f"⚡ 1단계 {total_level1}개 문장 음성 결합 중..."):
                 try:
-                    relay_audio_l1 = io.BytesIO()
-                    for item in level1_records:
-                        english_sentence = str(item['en']).strip()
-                        if english_sentence:
-                            tts_part = gTTS(text=english_sentence, lang='en')
-                            part_fp = io.BytesIO()
-                            tts_part.write_to_fp(part_fp)
-                            part_fp.seek(0)
-                            relay_audio_l1.write(part_fp.read())
-                            relay_audio_l1.write(b'\x00' * 2500)
-                   
-                    relay_audio_l1.seek(0)
-                    audio_base64_l1 = base64.b64encode(relay_audio_l1.read()).decode('utf-8')
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level1-radio-player", audio_base64_l1, speech_speed)
+                    audio_bytes_l1, subtitles_l1 = generate_relay_with_subtitles(level1_records)
+                    audio_base64_l1 = base64.b64encode(audio_bytes_l1).decode('utf-8')
+                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html(
+                        "level1-radio-player", audio_base64_l1, speech_speed, subtitles_l1
+                    )
                 except Exception as e:
                     pass
             st.rerun()
 
     # 1단계 버튼 바로 아래에 재생기 출력
     if st.session_state.get(active_btn_key) == "level1" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=135)
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=210)
 
     # 🎯 단계별 필터링 선택 상자 (세션 상태 안전 방어 적용)
     stage_filter_options = [
