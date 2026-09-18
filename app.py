@@ -351,17 +351,11 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_level2 = len(level2_records)
     total_level1 = len(level1_records)
 
-    # 📻 [영어 자막 연동형] 플레이어 생성 템플릿
-    def create_player_html(player_id, audio_base64_str, rate, sentences_list):
-        # 자바스크립트에 전달할 문장 배열 데이터 준비
-        js_sentences = json.dumps(sentences_list)
+    # 📻 [초기 버튼 상태 오디오 연동 수정] 플레이어 생성 시 실제 오디오 상태에 맞춰 버튼 표시
+    def create_player_html(player_id, audio_base64_str, rate):
         return f"""
-        <div style="background-color: #f8fafc; padding: 12px 14px; border-radius: 12px; margin-top: 4px; margin-bottom: 4px; border: 1px solid #cbd5e1;">
-            <!-- 📺 노래방 스타일 실시간 자막 박스 -->
-            <div id="karaoke-subtitle-{player_id}" style="background-color: #1e293b; color: #f1c40f; padding: 12px 15px; border-radius: 8px; font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 10px; min-height: 50px; display: flex; align-items: center; justify-content: center; word-break: keep-all; line-height: 1.4;">
-                🎧 재생 버튼을 누르면 자막이 시작됩니다
-            </div>
-            <audio id="{player_id}" src="data:audio/mp3;base64,{b64_audio_str}" controls style="width: 100%; margin-bottom: 8px;"></audio>
+        <div style="background-color: #f8fafc; padding: 10px 12px; border-radius: 10px; margin-top: 4px; margin-bottom: 4px; border: 1px solid #cbd5e1;">
+            <audio id="{player_id}" src="data:audio/mp3;base64,{audio_base64_str}" controls style="width: 100%; margin-bottom: 8px;"></audio>
             <div style="display: flex; gap: 8px; width: 100%;">
                 <button id="toggle-btn-{player_id}" onclick="togglePlayPause('{player_id}')" style="flex: 1; padding: 9px 0px; background-color: #475569; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer;">❚❚ 일시정지</button>
                 <button onclick="startLoop3Sec('{player_id}')" style="flex: 1; padding: 5px 0px; background-color: #e11d48; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; line-height: 1.15; cursor: pointer;">🔂 3초 찍찍이</button>
@@ -374,31 +368,7 @@ if app_mode == "🗣️ 스피킹 마스터":
         }}
         var p = document.getElementById('{player_id}');
         var toggleBtn = document.getElementById('toggle-btn-{player_id}');
-        var subtitleBox = document.getElementById('karaoke-subtitle-{player_id}');
-        var sentences = {js_sentences};
-        
-        // 문장별 예상 재생 시간 계산 (글자 수 기준 대략적 추정)
-        var cumulativeDurations = [];
-        var totalEstDuration = 0;
-        for(var i=0; i<sentences.length; i++) {{
-            var textLen = sentences[i].length;
-            // 글자당 약 0.07초 + 음성 간 공백 2.5초(파이썬 묵음 바이트 기준) 고려
-            var estTime = Math.max(1.5, textLen * 0.07) + 2.5; 
-            totalEstDuration += estTime;
-            cumulativeDurations.push(totalEstDuration);
-        }}
-
-        // 실제 오디오 길이에 맞춰 타임스탬프 비율 보정
-        p.addEventListener('loadedmetadata', function() {{
-            var realDuration = p.duration;
-            if(realDuration && totalEstDuration > 0) {{
-                var ratio = realDuration / totalEstDuration;
-                for(var i=0; i<cumulativeDurations.length; i++) {{
-                    cumulativeDurations[i] *= ratio;
-                }}
-            }}
-        }});
-
+       
         function applyRate() {{
             if(p) p.playbackRate = {rate};
         }}
@@ -407,7 +377,8 @@ if app_mode == "🗣️ 스피킹 마스터":
             p.oncanplay = applyRate;
             p.onplay = applyRate;
             applyRate();
-            
+           
+            // 💡 오디오 실제 상태에 맞춰 초기 버튼 텍스트와 색상 동기화
             function updateButtonState() {{
                 if(toggleBtn) {{
                     if(window.loopIntervals['{player_id}_3sec']) {{
@@ -427,22 +398,6 @@ if app_mode == "🗣️ 스피킹 마스터":
             p.addEventListener('pause', updateButtonState);
             updateButtonState();
 
-            // 실시간 재생 시간에 따라 자막 갱신
-            p.addEventListener('timeupdate', function() {{
-                var curTime = p.currentTime;
-                var currentIndex = 0;
-                for(var i=0; i<cumulativeDurations.length; i++) {{
-                    if(curTime <= cumulativeDurations[i]) {{
-                        currentIndex = i;
-                        break;
-                    }}
-                    currentIndex = cumulativeDurations.length - 1;
-                }}
-                if(sentences.length > 0 && subtitleBox) {{
-                    subtitleBox.innerText = sentences[currentIndex];
-                }}
-            }});
-
             p.addEventListener('ended', function() {{
                 if (!window.loopIntervals['{player_id}_3sec']) {{
                     p.currentTime = 0;
@@ -453,6 +408,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             p.play().catch(function(e){{}});
         }}
 
+        // 하단 토글 버튼 클릭 시 오디오 멈춤/재생 토글
         function togglePlayPause(id) {{
             var audio = document.getElementById(id);
             if(audio) {{
@@ -527,11 +483,9 @@ if app_mode == "🗣️ 스피킹 마스터":
             with st.spinner("⚡ 전체 문장 취합 중..."):
                 try:
                     relay_audio = io.BytesIO()
-                    sentences_list = []
                     for item in all_display_records:
                         english_sentence = str(item['en']).strip()
                         if english_sentence:
-                            sentences_list.append(f"{item['id']}. {english_sentence}")
                             tts_part = gTTS(text=english_sentence, lang='en')
                             part_fp = io.BytesIO()
                             tts_part.write_to_fp(part_fp)
@@ -540,15 +494,15 @@ if app_mode == "🗣️ 스피킹 마스터":
                             relay_audio.write(b'\x00' * 2500)
                    
                     relay_audio.seek(0)
-                    b64_audio_str = base64.b64encode(relay_audio.read()).decode('utf-8')
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("total-radio-player", b64_audio_str, speech_speed, sentences_list)
+                    audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
+                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("total-radio-player", audio_base64, speech_speed)
                 except Exception as e:
                     pass
             st.rerun()
 
     # 전체 버튼 바로 아래에 재생기 출력
     if st.session_state.get(active_btn_key) == "total" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=185)
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=135)
 
     # 2. 🟥 4단계 전용 반복 재생 버튼
     if total_level4 > 0:
@@ -558,28 +512,26 @@ if app_mode == "🗣️ 스피킹 마스터":
             with st.spinner(f"⚡ 4단계 {total_level4}개 문장 음성 결합 중..."):
                 try:
                     relay_audio_l4 = io.BytesIO()
-                    sentences_list_l4 = []
                     for item in level4_records:
                         english_sentence = str(item['en']).strip()
                         if english_sentence:
-                            sentences_list_l4.append(f"{item['id']}. {english_sentence}")
                             tts_part = gTTS(text=english_sentence, lang='en')
                             part_fp = io.BytesIO()
                             tts_part.write_to_fp(part_fp)
                             part_fp.seek(0)
                             relay_audio_l4.write(part_fp.read())
                             relay_audio_l4.write(b'\x00' * 2500)
-                    
+                   
                     relay_audio_l4.seek(0)
-                    b64_audio_str = base64.b64encode(relay_audio_l4.read()).decode('utf-8')
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level4-radio-player", b64_audio_str, speech_speed, sentences_list_l4)
+                    audio_base64_l4 = base64.b64encode(relay_audio_l4.read()).decode('utf-8')
+                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level4-radio-player", audio_base64_l4, speech_speed)
                 except Exception as e:
                     pass
             st.rerun()
 
     # 4단계 버튼 바로 아래에 재생기 출력
     if st.session_state.get(active_btn_key) == "level4" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=185)
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=135)
 
     # 3. 🟧 3단계 전용 반복 재생 버튼
     if total_level3 > 0:
@@ -589,28 +541,26 @@ if app_mode == "🗣️ 스피킹 마스터":
             with st.spinner(f"⚡ 3단계 {total_level3}개 문장 음성 결합 중..."):
                 try:
                     relay_audio_l3 = io.BytesIO()
-                    sentences_list_l3 = []
                     for item in level3_records:
                         english_sentence = str(item['en']).strip()
                         if english_sentence:
-                            sentences_list_l3.append(f"{item['id']}. {english_sentence}")
                             tts_part = gTTS(text=english_sentence, lang='en')
                             part_fp = io.BytesIO()
                             tts_part.write_to_fp(part_fp)
                             part_fp.seek(0)
                             relay_audio_l3.write(part_fp.read())
                             relay_audio_l3.write(b'\x00' * 2500)
-                    
+                   
                     relay_audio_l3.seek(0)
-                    b64_audio_str = base64.b64encode(relay_audio_l3.read()).decode('utf-8')
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level3-radio-player", b64_audio_str, speech_speed, sentences_list_l3)
+                    audio_base64_l3 = base64.b64encode(relay_audio_l3.read()).decode('utf-8')
+                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level3-radio-player", audio_base64_l3, speech_speed)
                 except Exception as e:
                     pass
             st.rerun()
 
     # 3단계 버튼 바로 아래에 재생기 출력
     if st.session_state.get(active_btn_key) == "level3" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=185)
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=135)
 
     # 4. 🟨 2단계 전용 반복 재생 버튼
     if total_level2 > 0:
@@ -620,28 +570,26 @@ if app_mode == "🗣️ 스피킹 마스터":
             with st.spinner(f"⚡ 2단계 {total_level2}개 문장 음성 결합 중..."):
                 try:
                     relay_audio_l2 = io.BytesIO()
-                    sentences_list_l2 = []
                     for item in level2_records:
                         english_sentence = str(item['en']).strip()
                         if english_sentence:
-                            sentences_list_l2.append(f"{item['id']}. {english_sentence}")
                             tts_part = gTTS(text=english_sentence, lang='en')
                             part_fp = io.BytesIO()
                             tts_part.write_to_fp(part_fp)
                             part_fp.seek(0)
                             relay_audio_l2.write(part_fp.read())
                             relay_audio_l2.write(b'\x00' * 2500)
-                    
+                   
                     relay_audio_l2.seek(0)
-                    b64_audio_str = base64.b64encode(relay_audio_l2.read()).decode('utf-8')
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level2-radio-player", b64_audio_str, speech_speed, sentences_list_l2)
+                    audio_base64_l2 = base64.b64encode(relay_audio_l2.read()).decode('utf-8')
+                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level2-radio-player", audio_base64_l2, speech_speed)
                 except Exception as e:
                     pass
             st.rerun()
 
     # 2단계 버튼 바로 아래에 재생기 출력
     if st.session_state.get(active_btn_key) == "level2" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=185)
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=135)
 
     # 5. 🟩 1단계 전용 반복 재생 버튼
     if total_level1 > 0:
@@ -651,28 +599,26 @@ if app_mode == "🗣️ 스피킹 마스터":
             with st.spinner(f"⚡ 1단계 {total_level1}개 문장 음성 결합 중..."):
                 try:
                     relay_audio_l1 = io.BytesIO()
-                    sentences_list_l1 = []
                     for item in level1_records:
                         english_sentence = str(item['en']).strip()
                         if english_sentence:
-                            sentences_list_l1.append(f"{item['id']}. {english_sentence}")
                             tts_part = gTTS(text=english_sentence, lang='en')
                             part_fp = io.BytesIO()
                             tts_part.write_to_fp(part_fp)
                             part_fp.seek(0)
                             relay_audio_l1.write(part_fp.read())
                             relay_audio_l1.write(b'\x00' * 2500)
-                    
+                   
                     relay_audio_l1.seek(0)
-                    b64_audio_str = base64.b64encode(relay_audio_l1.read()).decode('utf-8')
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level1-radio-player", b64_audio_str, speech_speed, sentences_list_l1)
+                    audio_base64_l1 = base64.b64encode(relay_audio_l1.read()).decode('utf-8')
+                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level1-radio-player", audio_base64_l1, speech_speed)
                 except Exception as e:
                     pass
             st.rerun()
 
     # 1단계 버튼 바로 아래에 재생기 출력
     if st.session_state.get(active_btn_key) == "level1" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=185)
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=135)
 
     # 🎯 단계별 필터링 선택 상자 (세션 상태 안전 방어 적용)
     stage_filter_options = [
@@ -802,7 +748,7 @@ else:
             padding-left: 10px !important;
             padding-right: 0px !important;
         }
-        
+       
         .custom-title {
             font-size: 26px !important;
             font-weight: bold !important;
@@ -816,7 +762,7 @@ else:
         button[title="Fork this app"] {display: none !important; visibility: hidden !important;}
         header {visibility: hidden !important; height: 0px !important;}
         footer {visibility: hidden !important; height: 0px !important;}
-        
+       
         .track-title {
             font-size: 17px;
             font-weight: bold;
@@ -834,7 +780,7 @@ else:
         }
         </style>
     """, unsafe_allow_html=True)
-    
+   
     st.markdown("<div class='custom-title'>👑 리스닝 마스터 👑</div>", unsafe_allow_html=True)
     st.write("---")
 
@@ -870,7 +816,7 @@ else:
             return
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M") if mark_as_done else ""
         is_completed_str = "TRUE" if mark_as_done else "FALSE"
-        
+       
         try:
             records = ws.get_all_records()
             found_row = None
@@ -878,7 +824,7 @@ else:
                 if r.get('filename') == filename:
                     found_row = idx
                     break
-            
+           
             if found_row:
                 ws.update_cell(found_row, 2, is_completed_str)
                 ws.update_cell(found_row, 3, now_str)
@@ -898,7 +844,7 @@ else:
                 if r.get('filename') == filename:
                     found_row = idx
                     break
-            
+           
             if found_row:
                 ws.update_cell(found_row, 4, note_text)
             else:
@@ -909,7 +855,7 @@ else:
     def build_drive_service():
         creds_dict = json.loads(st.secrets["gcp_service_account"])
         creds = ServiceAccountCredentials.from_json_keyfile_dict(
-            creds_dict, 
+            creds_dict,
             scopes=["https://www.googleapis.com/auth/drive.readonly"]
         )
         return build('drive', 'v3', credentials=creds)
@@ -974,12 +920,12 @@ else:
                 st.session_state[play_state_key] = False
 
             c1, c2 = st.columns([7.5, 2.5])
-            
+           
             with c1:
                 st.markdown(f"<div class='track-title'>🎵 {idx}. {fname}</div>", unsafe_allow_html=True)
                 if is_done:
                     st.markdown(f"<div class='badge-completed'>✅ 완독: {done_time}</div>", unsafe_allow_html=True)
-            
+           
             with c2:
                 btn_label = "❚❚ 닫기" if st.session_state[play_state_key] else "▶ 재생"
                 if st.button(btn_label, key=f"btn_toggle_{fid}"):
@@ -989,7 +935,7 @@ else:
             if st.session_state[play_state_key]:
                 with st.spinner(f"📥 [{fname}] 음성 로딩 중..."):
                     audio_bytes = download_audio_bytes(fid)
-                
+               
                 if audio_bytes:
                     b64_audio = base64.b64encode(audio_bytes).decode('utf-8')
                     player_id = f"custom_audio_{fid}"
@@ -1043,14 +989,14 @@ else:
                     </script>
                     """
                     st.components.v1.html(custom_player_html, height=140)
-                    
+                   
                     user_note = st.text_area(
                         "📝 나만의 청취 메모 (중요 표현, 구간 적기):",
                         value=current_note,
                         key=f"note_input_{fid}",
                         height=80
                     )
-                    
+                   
                     col_note_btn, col_blank = st.columns([3, 7])
                     with col_note_btn:
                         if st.button("💾 메모 저장하기", key=f"save_note_btn_{fid}"):
@@ -1090,8 +1036,8 @@ else:
                                 st.rerun()
                 else:
                     st.error("오디오 로딩 실패")
-            
+           
             st.write("---")
-            
+           
     else:
         st.warning("구글 드라이브 폴더에 MP3 파일이 없습니다.")
