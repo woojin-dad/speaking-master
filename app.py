@@ -351,18 +351,16 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_level2 = len(level2_records)
     total_level1 = len(level1_records)
 
-    # 📻 [오디오 세그먼트 순차 전환 기반 절대 칼싱크 플레이어 템플릿]
-    def create_player_html(player_id, audio_chunks_b64, rate, sentences_list):
-        js_chunks = json.dumps(audio_chunks_b64)
+    # 📻 [부드러운 연속 재생 및 실시간 칼싱크 보정 플레이어 템플릿]
+    def create_player_html(player_id, audio_base64_str, rate, sentences_list):
         js_sentences = json.dumps(sentences_list)
         return f"""
         <div style="background-color: #f8fafc; padding: 12px 14px; border-radius: 12px; margin-top: 4px; margin-bottom: 4px; border: 1px solid #cbd5e1;">
-            <!-- 📺 속도와 관계없이 절대 틀어지지 않는 칼싱크 자막 박스 -->
+            <!-- 📺 실시간 싱크 자막 박스 -->
             <div id="karaoke-subtitle-{player_id}" style="background-color: #1e293b; color: #f1c40f; padding: 12px 15px; border-radius: 8px; font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 10px; min-height: 55px; display: flex; align-items: center; justify-content: center; word-break: keep-all; line-height: 1.4;">
                 🎧 재생 버튼을 누르면 자막이 시작됩니다
             </div>
-            <!-- 단일 오디오 요소 대신 순차 제어용 오디오 엔진 -->
-            <audio id="{player_id}" controls style="width: 100%; margin-bottom: 8px;"></audio>
+            <audio id="{player_id}" src="data:audio/mp3;base64,{audio_base64_str}" controls style="width: 100%; margin-bottom: 8px;"></audio>
             <div style="display: flex; gap: 8px; width: 100%;">
                 <button id="toggle-btn-{player_id}" onclick="togglePlayPause('{player_id}')" style="flex: 1; padding: 9px 0px; background-color: #475569; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer;">❚❚ 일시정지</button>
                 <button onclick="startLoop3Sec('{player_id}')" style="flex: 1; padding: 5px 0px; background-color: #e11d48; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; line-height: 1.15; cursor: pointer;">🔂 3초 찍찍이</button>
@@ -370,64 +368,53 @@ if app_mode == "🗣️ 스피킹 마스터":
             </div>
         </div>
         <script>
-        if (typeof window.playerStates === 'undefined') {{
-            window.playerStates = {{}};
+        if (typeof window.loopIntervals === 'undefined') {{
+            window.loopIntervals = {{}};
         }}
-
-        var chunks = {js_chunks};
-        var sentences = {js_sentences};
         var p = document.getElementById('{player_id}');
         var toggleBtn = document.getElementById('toggle-btn-{player_id}');
         var subtitleBox = document.getElementById('karaoke-subtitle-{player_id}');
+        var sentences = {js_sentences};
+        
+        // 각 문장의 글자 수 비율을 이용해 오디오 전체 길이 기반 정밀 구간 계산
+        var cumulativeDurations = [];
+        var totalTextLen = 0;
+        for(var i=0; i<sentences.length; i++) {{
+            totalTextLen += Math.max(5, sentences[i].length);
+        }}
 
-        var state = window.playerStates['{player_id}'] || {{
-            currentIndex: 0,
-            isPlaying: true,
-            isLooping3Sec: false,
-            loopTimer: null
-        }};
-        window.playerStates['{player_id}'] = state;
+        function initDurations(realDuration) {{
+            cumulativeDurations = [];
+            var sumTime = 0;
+            for(var i=0; i<sentences.length; i++) {{
+                var weight = Math.max(5, sentences[i].length) / totalTextLen;
+                sumTime += realDuration * weight;
+                cumulativeDurations.push(sumTime);
+            }}
+        }}
+
+        p.addEventListener('loadedmetadata', function() {{
+            if(p.duration) {{
+                initDurations(p.duration);
+            }}
+        }});
 
         function applyRate() {{
             if(p) p.playbackRate = {rate};
         }}
 
-        function loadAndPlayChunk(idx) {{
-            if (idx >= chunks.length) {{
-                idx = 0; // 반복 순환
-            }}
-            state.currentIndex = idx;
-            if (sentences[idx] && subtitleBox) {{
-                subtitleBox.innerText = sentences[idx];
-            }}
-            p.src = "data:audio/mp3;base64," + chunks[idx];
-            applyRate();
-            if (state.isPlaying) {{
-                p.play().catch(function(e){{}});
-            }}
-        }}
-
         if(p) {{
-            applyRate();
-
             p.oncanplay = applyRate;
             p.onplay = applyRate;
+            applyRate();
 
-            // 한 문장이 끝나면 자동으로 다음 문장으로 순차 전환
-            p.onended = function() {{
-                if (!state.isLooping3Sec) {{
-                    loadAndPlayChunk(state.currentIndex + 1);
-                }}
-            }};
-
-            // 초기 로드 시 첫 문장 세팅 및 재생
-            if (!p.src || p.src === window.location.href) {{
-                loadAndPlayChunk(state.currentIndex);
+            if(p.duration) {{
+                initDurations(p.duration);
             }}
-
+            
             function updateButtonState() {{
                 if(toggleBtn) {{
-                    if(state.isLooping3Sec) {{
+                    if(window.loopIntervals['{player_id}_3sec']) {{
                         toggleBtn.innerText = "🔂 찍찍이 중";
                         toggleBtn.style.backgroundColor = "#e11d48";
                     }} else if(p.paused) {{
@@ -440,25 +427,44 @@ if app_mode == "🗣️ 스피킹 마스터":
                 }}
             }}
 
-            p.addEventListener('play', function() {{
-                state.isPlaying = true;
-                updateButtonState();
-            }});
-            p.addEventListener('pause', function() {{
-                if(!state.isLooping3Sec) state.isPlaying = false;
-                updateButtonState();
-            }});
+            p.addEventListener('play', updateButtonState);
+            p.addEventListener('pause', updateButtonState);
             updateButtonState();
+
+            p.addEventListener('timeupdate', function() {{
+                if(cumulativeDurations.length === 0 && p.duration) {{
+                    initDurations(p.duration);
+                }}
+                var curTime = p.currentTime;
+                var currentIndex = 0;
+                for(var i=0; i<cumulativeDurations.length; i++) {{
+                    if(curTime <= cumulativeDurations[i]) {{
+                        currentIndex = i;
+                        break;
+                    }}
+                    currentIndex = cumulativeDurations.length - 1;
+                }}
+                if(sentences.length > 0 && subtitleBox) {{
+                    subtitleBox.innerText = sentences[currentIndex];
+                }}
+            }});
+
+            p.addEventListener('ended', function() {{
+                if (!window.loopIntervals['{player_id}_3sec']) {{
+                    p.currentTime = 0;
+                    p.play().catch(function(e){{}});
+                }}
+            }});
+
+            p.play().catch(function(e){{}});
         }}
 
         function togglePlayPause(id) {{
             var audio = document.getElementById(id);
             if(audio) {{
                 if (audio.paused) {{
-                    state.isPlaying = true;
                     audio.play();
                 }} else {{
-                    state.isPlaying = false;
                     audio.pause();
                     stopLoop3Sec(id);
                 }}
@@ -475,8 +481,8 @@ if app_mode == "🗣️ 스피킹 마스터":
         function startLoop3Sec(id) {{
             var audio = document.getElementById(id);
             if(audio) {{
-                if (state.loopTimer) clearInterval(state.loopTimer);
-                state.isLooping3Sec = true;
+                if (window.loopIntervals[id]) clearInterval(window.loopIntervals[id]);
+                window.loopIntervals['{player_id}_3sec'] = true;
 
                 if(toggleBtn) {{
                     toggleBtn.innerText = "🔂 찍찍이 중";
@@ -488,7 +494,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                 audio.currentTime = start;
                 audio.play();
 
-                state.loopTimer = setInterval(function() {{
+                window.loopIntervals[id] = setInterval(function() {{
                     if (audio.currentTime >= end || audio.currentTime < start) {{
                         audio.currentTime = start;
                     }}
@@ -498,11 +504,11 @@ if app_mode == "🗣️ 스피킹 마스터":
 
         function stopLoop3Sec(id) {{
             var audio = document.getElementById(id);
-            if (state.loopTimer) {{
-                clearInterval(state.loopTimer);
-                state.loopTimer = null;
+            if (window.loopIntervals[id]) {{
+                clearInterval(window.loopIntervals[id]);
+                delete window.loopIntervals[id];
             }}
-            state.isLooping3Sec = false;
+            delete window.loopIntervals['{player_id}_3sec'];
             if(audio && !audio.paused && toggleBtn) {{
                 toggleBtn.innerText = "❚❚ 일시정지";
                 toggleBtn.style.backgroundColor = "#475569";
@@ -526,8 +532,8 @@ if app_mode == "🗣️ 스피킹 마스터":
             st.session_state[active_btn_key] = "total"
             with st.spinner("⚡ 전체 문장 취합 중..."):
                 try:
+                    relay_audio = io.BytesIO()
                     sentences_list = []
-                    chunks_b64 = []
                     for item in all_display_records:
                         english_sentence = str(item['en']).strip()
                         if english_sentence:
@@ -536,9 +542,12 @@ if app_mode == "🗣️ 스피킹 마스터":
                             part_fp = io.BytesIO()
                             tts_part.write_to_fp(part_fp)
                             part_fp.seek(0)
-                            chunks_b64.append(base64.b64encode(part_fp.read()).decode('utf-8'))
+                            relay_audio.write(part_fp.read())
+                            relay_audio.write(b'\x00' * 2500)
                    
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("total-radio-player", chunks_b64, speech_speed, sentences_list)
+                    relay_audio.seek(0)
+                    b64_audio_str = base64.b64encode(relay_audio.read()).decode('utf-8')
+                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("total-radio-player", b64_audio_str, speech_speed, sentences_list)
                 except Exception as e:
                     pass
             st.rerun()
@@ -554,8 +563,8 @@ if app_mode == "🗣️ 스피킹 마스터":
             st.session_state[active_btn_key] = "level4"
             with st.spinner(f"⚡ 4단계 {total_level4}개 문장 음성 결합 중..."):
                 try:
+                    relay_audio_l4 = io.BytesIO()
                     sentences_list_l4 = []
-                    chunks_b64_l4 = []
                     for item in level4_records:
                         english_sentence = str(item['en']).strip()
                         if english_sentence:
@@ -564,9 +573,12 @@ if app_mode == "🗣️ 스피킹 마스터":
                             part_fp = io.BytesIO()
                             tts_part.write_to_fp(part_fp)
                             part_fp.seek(0)
-                            chunks_b64_l4.append(base64.b64encode(part_fp.read()).decode('utf-8'))
+                            relay_audio_l4.write(part_fp.read())
+                            relay_audio_l4.write(b'\x00' * 2500)
                     
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level4-radio-player", chunks_b64_l4, speech_speed, sentences_list_l4)
+                    relay_audio_l4.seek(0)
+                    b64_audio_str = base64.b64encode(relay_audio_l4.read()).decode('utf-8')
+                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level4-radio-player", b64_audio_str, speech_speed, sentences_list_l4)
                 except Exception as e:
                     pass
             st.rerun()
@@ -582,8 +594,8 @@ if app_mode == "🗣️ 스피킹 마스터":
             st.session_state[active_btn_key] = "level3"
             with st.spinner(f"⚡ 3단계 {total_level3}개 문장 음성 결합 중..."):
                 try:
+                    relay_audio_l3 = io.BytesIO()
                     sentences_list_l3 = []
-                    chunks_b64_l3 = []
                     for item in level3_records:
                         english_sentence = str(item['en']).strip()
                         if english_sentence:
@@ -592,9 +604,12 @@ if app_mode == "🗣️ 스피킹 마스터":
                             part_fp = io.BytesIO()
                             tts_part.write_to_fp(part_fp)
                             part_fp.seek(0)
-                            chunks_b64_l3.append(base64.b64encode(part_fp.read()).decode('utf-8'))
+                            relay_audio_l3.write(part_fp.read())
+                            relay_audio_l3.write(b'\x00' * 2500)
                     
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level3-radio-player", chunks_b64_l3, speech_speed, sentences_list_l3)
+                    relay_audio_l3.seek(0)
+                    b64_audio_str = base64.b64encode(relay_audio_l3.read()).decode('utf-8')
+                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level3-radio-player", b64_audio_str, speech_speed, sentences_list_l3)
                 except Exception as e:
                     pass
             st.rerun()
@@ -610,8 +625,8 @@ if app_mode == "🗣️ 스피킹 마스터":
             st.session_state[active_btn_key] = "level2"
             with st.spinner(f"⚡ 2단계 {total_level2}개 문장 음성 결합 중..."):
                 try:
+                    relay_audio_l2 = io.BytesIO()
                     sentences_list_l2 = []
-                    chunks_b64_l2 = []
                     for item in level2_records:
                         english_sentence = str(item['en']).strip()
                         if english_sentence:
@@ -620,9 +635,12 @@ if app_mode == "🗣️ 스피킹 마스터":
                             part_fp = io.BytesIO()
                             tts_part.write_to_fp(part_fp)
                             part_fp.seek(0)
-                            chunks_b64_l2.append(base64.b64encode(part_fp.read()).decode('utf-8'))
+                            relay_audio_l2.write(part_fp.read())
+                            relay_audio_l2.write(b'\x00' * 2500)
                     
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level2-radio-player", chunks_b64_l2, speech_speed, sentences_list_l2)
+                    relay_audio_l2.seek(0)
+                    b64_audio_str = base64.b64encode(relay_audio_l2.read()).decode('utf-8')
+                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level2-radio-player", b64_audio_str, speech_speed, sentences_list_l2)
                 except Exception as e:
                     pass
             st.rerun()
@@ -638,8 +656,8 @@ if app_mode == "🗣️ 스피킹 마스터":
             st.session_state[active_btn_key] = "level1"
             with st.spinner(f"⚡ 1단계 {total_level1}개 문장 음성 결합 중..."):
                 try:
+                    relay_audio_l1 = io.BytesIO()
                     sentences_list_l1 = []
-                    chunks_b64_l1 = []
                     for item in level1_records:
                         english_sentence = str(item['en']).strip()
                         if english_sentence:
@@ -648,9 +666,12 @@ if app_mode == "🗣️ 스피킹 마스터":
                             part_fp = io.BytesIO()
                             tts_part.write_to_fp(part_fp)
                             part_fp.seek(0)
-                            chunks_b64_l1.append(base64.b64encode(part_fp.read()).decode('utf-8'))
+                            relay_audio_l1.write(part_fp.read())
+                            relay_audio_l1.write(b'\x00' * 2500)
                     
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level1-radio-player", chunks_b64_l1, speech_speed, sentences_list_l1)
+                    relay_audio_l1.seek(0)
+                    b64_audio_str = base64.b64encode(relay_audio_l1.read()).decode('utf-8')
+                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level1-radio-player", b64_audio_str, speech_speed, sentences_list_l1)
                 except Exception as e:
                     pass
             st.rerun()
