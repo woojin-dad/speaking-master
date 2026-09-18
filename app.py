@@ -351,17 +351,16 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_level2 = len(level2_records)
     total_level1 = len(level1_records)
 
-    # 📻 [영어 자막 연동형] 플레이어 생성 템플릿
+    # 📻 [자막 및 플레이어 영역 높이 확장 템플릿]
     def create_player_html(player_id, audio_base64_str, rate, sentences_list):
-        # 자바스크립트에 전달할 문장 배열 데이터 준비
         js_sentences = json.dumps(sentences_list)
         return f"""
         <div style="background-color: #f8fafc; padding: 12px 14px; border-radius: 12px; margin-top: 4px; margin-bottom: 4px; border: 1px solid #cbd5e1;">
-            <!-- 📺 노래방 스타일 실시간 자막 박스 -->
-            <div id="karaoke-subtitle-{player_id}" style="background-color: #1e293b; color: #f1c40f; padding: 12px 15px; border-radius: 8px; font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 10px; min-height: 50px; display: flex; align-items: center; justify-content: center; word-break: keep-all; line-height: 1.4;">
+            <!-- 📺 순수 영어 문장만 나오는 실시간 자막 박스 -->
+            <div id="karaoke-subtitle-{player_id}" style="background-color: #1e293b; color: #f1c40f; padding: 12px 15px; border-radius: 8px; font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 10px; min-height: 55px; display: flex; align-items: center; justify-content: center; word-break: keep-all; line-height: 1.4;">
                 🎧 재생 버튼을 누르면 자막이 시작됩니다
             </div>
-            <audio id="{player_id}" src="data:audio/mp3;base64,{b64_audio_str}" controls style="width: 100%; margin-bottom: 8px;"></audio>
+            <audio id="{player_id}" src="data:audio/mp3;base64,{audio_base64_str}" controls style="width: 100%; margin-bottom: 8px;"></audio>
             <div style="display: flex; gap: 8px; width: 100%;">
                 <button id="toggle-btn-{player_id}" onclick="togglePlayPause('{player_id}')" style="flex: 1; padding: 9px 0px; background-color: #475569; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer;">❚❚ 일시정지</button>
                 <button onclick="startLoop3Sec('{player_id}')" style="flex: 1; padding: 5px 0px; background-color: #e11d48; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; line-height: 1.15; cursor: pointer;">🔂 3초 찍찍이</button>
@@ -377,18 +376,15 @@ if app_mode == "🗣️ 스피킹 마스터":
         var subtitleBox = document.getElementById('karaoke-subtitle-{player_id}');
         var sentences = {js_sentences};
         
-        // 문장별 예상 재생 시간 계산 (글자 수 기준 대략적 추정)
         var cumulativeDurations = [];
         var totalEstDuration = 0;
         for(var i=0; i<sentences.length; i++) {{
             var textLen = sentences[i].length;
-            // 글자당 약 0.07초 + 음성 간 공백 2.5초(파이썬 묵음 바이트 기준) 고려
             var estTime = Math.max(1.5, textLen * 0.07) + 2.5; 
             totalEstDuration += estTime;
             cumulativeDurations.push(totalEstDuration);
         }}
 
-        // 실제 오디오 길이에 맞춰 타임스탬프 비율 보정
         p.addEventListener('loadedmetadata', function() {{
             var realDuration = p.duration;
             if(realDuration && totalEstDuration > 0) {{
@@ -427,7 +423,6 @@ if app_mode == "🗣️ 스피킹 마스터":
             p.addEventListener('pause', updateButtonState);
             updateButtonState();
 
-            // 실시간 재생 시간에 따라 자막 갱신
             p.addEventListener('timeupdate', function() {{
                 var curTime = p.currentTime;
                 var currentIndex = 0;
@@ -531,7 +526,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                     for item in all_display_records:
                         english_sentence = str(item['en']).strip()
                         if english_sentence:
-                            sentences_list.append(f"{item['id']}. {english_sentence}")
+                            sentences_list.append(english_sentence)
                             tts_part = gTTS(text=english_sentence, lang='en')
                             part_fp = io.BytesIO()
                             tts_part.write_to_fp(part_fp)
@@ -546,9 +541,9 @@ if app_mode == "🗣️ 스피킹 마스터":
                     pass
             st.rerun()
 
-    # 전체 버튼 바로 아래에 재생기 출력
+    # 전체 버튼 바로 아래에 재생기 출력 (높이 여유 있게 230으로 설정)
     if st.session_state.get(active_btn_key) == "total" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=185)
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=230)
 
     # 2. 🟥 4단계 전용 반복 재생 버튼
     if total_level4 > 0:
@@ -562,7 +557,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                     for item in level4_records:
                         english_sentence = str(item['en']).strip()
                         if english_sentence:
-                            sentences_list_l4.append(f"{item['id']}. {english_sentence}")
+                            sentences_list_l4.append(english_sentence)
                             tts_part = gTTS(text=english_sentence, lang='en')
                             part_fp = io.BytesIO()
                             tts_part.write_to_fp(part_fp)
@@ -579,7 +574,7 @@ if app_mode == "🗣️ 스피킹 마스터":
 
     # 4단계 버튼 바로 아래에 재생기 출력
     if st.session_state.get(active_btn_key) == "level4" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=185)
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=230)
 
     # 3. 🟧 3단계 전용 반복 재생 버튼
     if total_level3 > 0:
@@ -593,7 +588,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                     for item in level3_records:
                         english_sentence = str(item['en']).strip()
                         if english_sentence:
-                            sentences_list_l3.append(f"{item['id']}. {english_sentence}")
+                            sentences_list_l3.append(english_sentence)
                             tts_part = gTTS(text=english_sentence, lang='en')
                             part_fp = io.BytesIO()
                             tts_part.write_to_fp(part_fp)
@@ -610,7 +605,7 @@ if app_mode == "🗣️ 스피킹 마스터":
 
     # 3단계 버튼 바로 아래에 재생기 출력
     if st.session_state.get(active_btn_key) == "level3" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=185)
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=230)
 
     # 4. 🟨 2단계 전용 반복 재생 버튼
     if total_level2 > 0:
@@ -624,7 +619,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                     for item in level2_records:
                         english_sentence = str(item['en']).strip()
                         if english_sentence:
-                            sentences_list_l2.append(f"{item['id']}. {english_sentence}")
+                            sentences_list_l2.append(english_sentence)
                             tts_part = gTTS(text=english_sentence, lang='en')
                             part_fp = io.BytesIO()
                             tts_part.write_to_fp(part_fp)
@@ -641,7 +636,7 @@ if app_mode == "🗣️ 스피킹 마스터":
 
     # 2단계 버튼 바로 아래에 재생기 출력
     if st.session_state.get(active_btn_key) == "level2" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=185)
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=230)
 
     # 5. 🟩 1단계 전용 반복 재생 버튼
     if total_level1 > 0:
@@ -655,7 +650,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                     for item in level1_records:
                         english_sentence = str(item['en']).strip()
                         if english_sentence:
-                            sentences_list_l1.append(f"{item['id']}. {english_sentence}")
+                            sentences_list_l1.append(english_sentence)
                             tts_part = gTTS(text=english_sentence, lang='en')
                             part_fp = io.BytesIO()
                             tts_part.write_to_fp(part_fp)
@@ -672,7 +667,7 @@ if app_mode == "🗣️ 스피킹 마스터":
 
     # 1단계 버튼 바로 아래에 재생기 출력
     if st.session_state.get(active_btn_key) == "level1" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=185)
+        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=230)
 
     # 🎯 단계별 필터링 선택 상자 (세션 상태 안전 방어 적용)
     stage_filter_options = [
