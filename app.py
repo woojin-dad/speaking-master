@@ -351,12 +351,13 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_level2 = len(level2_records)
     total_level1 = len(level1_records)
 
-    # 📻 [자막 및 플레이어 영역 높이 확장 템플릿]
-    def create_player_html(player_id, audio_base64_str, rate, sentences_list):
+    # 📻 [정밀 타임라인 기반 자막 싱크 보정 플레이어 템플릿]
+    def create_player_html(player_id, audio_base64_str, rate, sentences_list, durations_list):
         js_sentences = json.dumps(sentences_list)
+        js_durations = json.dumps(durations_list)
         return f"""
         <div style="background-color: #f8fafc; padding: 12px 14px; border-radius: 12px; margin-top: 4px; margin-bottom: 4px; border: 1px solid #cbd5e1;">
-            <!-- 📺 순수 영어 문장만 나오는 실시간 자막 박스 -->
+            <!-- 📺 속도 변화에도 밀리지 않는 칼싱크 자막 박스 -->
             <div id="karaoke-subtitle-{player_id}" style="background-color: #1e293b; color: #f1c40f; padding: 12px 15px; border-radius: 8px; font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 10px; min-height: 55px; display: flex; align-items: center; justify-content: center; word-break: keep-all; line-height: 1.4;">
                 🎧 재생 버튼을 누르면 자막이 시작됩니다
             </div>
@@ -375,20 +376,21 @@ if app_mode == "🗣️ 스피킹 마스터":
         var toggleBtn = document.getElementById('toggle-btn-{player_id}');
         var subtitleBox = document.getElementById('karaoke-subtitle-{player_id}');
         var sentences = {js_sentences};
+        var rawDurations = {js_durations};
         
+        // 파이썬에서 계산된 실제 음성 파일의 정확한 길이를 바탕으로 누적 타임라인 생성
         var cumulativeDurations = [];
-        var totalEstDuration = 0;
-        for(var i=0; i<sentences.length; i++) {{
-            var textLen = sentences[i].length;
-            var estTime = Math.max(1.5, textLen * 0.07) + 2.5; 
-            totalEstDuration += estTime;
-            cumulativeDurations.push(totalEstDuration);
+        var sumTime = 0;
+        for(var i=0; i<rawDurations.length; i++) {{
+            sumTime += rawDurations[i];
+            cumulativeDurations.push(sumTime);
         }}
 
+        // 실제 로드된 오디오 총 길이와 비교하여 오차 완벽 보정
         p.addEventListener('loadedmetadata', function() {{
             var realDuration = p.duration;
-            if(realDuration && totalEstDuration > 0) {{
-                var ratio = realDuration / totalEstDuration;
+            if(realDuration && sumTime > 0) {{
+                var ratio = realDuration / sumTime;
                 for(var i=0; i<cumulativeDurations.length; i++) {{
                     cumulativeDurations[i] *= ratio;
                 }}
@@ -523,6 +525,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                 try:
                     relay_audio = io.BytesIO()
                     sentences_list = []
+                    durations_list = []
                     for item in all_display_records:
                         english_sentence = str(item['en']).strip()
                         if english_sentence:
@@ -530,13 +533,22 @@ if app_mode == "🗣️ 스피킹 마스터":
                             tts_part = gTTS(text=english_sentence, lang='en')
                             part_fp = io.BytesIO()
                             tts_part.write_to_fp(part_fp)
-                            part_fp.seek(0)
-                            relay_audio.write(part_fp.read())
+                            part_bytes = part_fp.getvalue()
+                            
+                            # 💡 gTTS 음성 바이트 크기를 기반으로 정확한 재생 시간(초) 산출 (MP3 128kbps 기준 약 16KB/s)
+                            part_duration = len(part_bytes) / 16000.0
+                            durations_list.append(part_duration)
+                            
+                            relay_audio.write(part_bytes)
+                            
+                            # 묵음 바이트(2500바이트)의 예상 재생 시간 추가 (~0.15초)
+                            pause_duration = len(b'\x00' * 2500) / 16000.0
+                            durations_list.append(pause_duration)
                             relay_audio.write(b'\x00' * 2500)
                    
                     relay_audio.seek(0)
                     b64_audio_str = base64.b64encode(relay_audio.read()).decode('utf-8')
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("total-radio-player", b64_audio_str, speech_speed, sentences_list)
+                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("total-radio-player", b64_audio_str, speech_speed, sentences_list, durations_list)
                 except Exception as e:
                     pass
             st.rerun()
@@ -554,6 +566,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                 try:
                     relay_audio_l4 = io.BytesIO()
                     sentences_list_l4 = []
+                    durations_list_l4 = []
                     for item in level4_records:
                         english_sentence = str(item['en']).strip()
                         if english_sentence:
@@ -561,13 +574,19 @@ if app_mode == "🗣️ 스피킹 마스터":
                             tts_part = gTTS(text=english_sentence, lang='en')
                             part_fp = io.BytesIO()
                             tts_part.write_to_fp(part_fp)
-                            part_fp.seek(0)
-                            relay_audio_l4.write(part_fp.read())
+                            part_bytes = part_fp.getvalue()
+                            
+                            part_duration = len(part_bytes) / 16000.0
+                            durations_list_l4.append(part_duration)
+                            relay_audio_l4.write(part_bytes)
+                            
+                            pause_duration = len(b'\x00' * 2500) / 16000.0
+                            durations_list_l4.append(pause_duration)
                             relay_audio_l4.write(b'\x00' * 2500)
                     
                     relay_audio_l4.seek(0)
                     b64_audio_str = base64.b64encode(relay_audio_l4.read()).decode('utf-8')
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level4-radio-player", b64_audio_str, speech_speed, sentences_list_l4)
+                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level4-radio-player", b64_audio_str, speech_speed, sentences_list_l4, durations_list_l4)
                 except Exception as e:
                     pass
             st.rerun()
@@ -585,6 +604,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                 try:
                     relay_audio_l3 = io.BytesIO()
                     sentences_list_l3 = []
+                    durations_list_l3 = []
                     for item in level3_records:
                         english_sentence = str(item['en']).strip()
                         if english_sentence:
@@ -592,13 +612,19 @@ if app_mode == "🗣️ 스피킹 마스터":
                             tts_part = gTTS(text=english_sentence, lang='en')
                             part_fp = io.BytesIO()
                             tts_part.write_to_fp(part_fp)
-                            part_fp.seek(0)
-                            relay_audio_l3.write(part_fp.read())
+                            part_bytes = part_fp.getvalue()
+                            
+                            part_duration = len(part_bytes) / 16000.0
+                            durations_list_l3.append(part_duration)
+                            relay_audio_l3.write(part_bytes)
+                            
+                            pause_duration = len(b'\x00' * 2500) / 16000.0
+                            durations_list_l3.append(pause_duration)
                             relay_audio_l3.write(b'\x00' * 2500)
                     
                     relay_audio_l3.seek(0)
                     b64_audio_str = base64.b64encode(relay_audio_l3.read()).decode('utf-8')
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level3-radio-player", b64_audio_str, speech_speed, sentences_list_l3)
+                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level3-radio-player", b64_audio_str, speech_speed, sentences_list_l3, durations_list_l3)
                 except Exception as e:
                     pass
             st.rerun()
@@ -616,6 +642,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                 try:
                     relay_audio_l2 = io.BytesIO()
                     sentences_list_l2 = []
+                    durations_list_l2 = []
                     for item in level2_records:
                         english_sentence = str(item['en']).strip()
                         if english_sentence:
@@ -623,13 +650,19 @@ if app_mode == "🗣️ 스피킹 마스터":
                             tts_part = gTTS(text=english_sentence, lang='en')
                             part_fp = io.BytesIO()
                             tts_part.write_to_fp(part_fp)
-                            part_fp.seek(0)
-                            relay_audio_l2.write(part_fp.read())
+                            part_bytes = part_fp.getvalue()
+                            
+                            part_duration = len(part_bytes) / 16000.0
+                            durations_list_l2.append(part_duration)
+                            relay_audio_l2.write(part_bytes)
+                            
+                            pause_duration = len(b'\x00' * 2500) / 16000.0
+                            durations_list_l2.append(pause_duration)
                             relay_audio_l2.write(b'\x00' * 2500)
                     
                     relay_audio_l2.seek(0)
                     b64_audio_str = base64.b64encode(relay_audio_l2.read()).decode('utf-8')
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level2-radio-player", b64_audio_str, speech_speed, sentences_list_l2)
+                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level2-radio-player", b64_audio_str, speech_speed, sentences_list_l2, durations_list_l2)
                 except Exception as e:
                     pass
             st.rerun()
@@ -647,6 +680,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                 try:
                     relay_audio_l1 = io.BytesIO()
                     sentences_list_l1 = []
+                    durations_list_l1 = []
                     for item in level1_records:
                         english_sentence = str(item['en']).strip()
                         if english_sentence:
@@ -654,13 +688,19 @@ if app_mode == "🗣️ 스피킹 마스터":
                             tts_part = gTTS(text=english_sentence, lang='en')
                             part_fp = io.BytesIO()
                             tts_part.write_to_fp(part_fp)
-                            part_fp.seek(0)
-                            relay_audio_l1.write(part_fp.read())
+                            part_bytes = part_fp.getvalue()
+                            
+                            part_duration = len(part_bytes) / 16000.0
+                            durations_list_l1.append(part_duration)
+                            relay_audio_l1.write(part_bytes)
+                            
+                            pause_duration = len(b'\x00' * 2500) / 16000.0
+                            durations_list_l1.append(pause_duration)
                             relay_audio_l1.write(b'\x00' * 2500)
                     
                     relay_audio_l1.seek(0)
                     b64_audio_str = base64.b64encode(relay_audio_l1.read()).decode('utf-8')
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level1-radio-player", b64_audio_str, speech_speed, sentences_list_l1)
+                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level1-radio-player", b64_audio_str, speech_speed, sentences_list_l1, durations_list_l1)
                 except Exception as e:
                     pass
             st.rerun()
