@@ -79,7 +79,7 @@ if app_mode == "🗣️ 스피킹 마스터":
     is_priority_mode = "우선순위" in selected_menu
 
     # 🔤 글자 크기 조절
-    font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=26, max_value=45, value=26, step=1, key="pure_font_slider")
+    font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=26, max_value=50, value=26, step=1, key="pure_font_slider")
 
     # ⚡ 문장 재생 속도 조절 슬라이더 (기본값: 1.0)
     speech_speed = st.slider(
