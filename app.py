@@ -28,7 +28,7 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 🎛️️ [최상단 메인 스위치] 서비스 모드 전환
+# 🎛️ [최상단 메인 스위치] 서비스 모드 전환
 app_mode = st.radio(
     "📱 학습 서비스 선택",
     ["🗣️ 스피킹 마스터", "🎧 리스닝 마스터"],
@@ -48,7 +48,6 @@ if app_mode == "🗣️ 스피킹 마스터":
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         return gspread.authorize(creds)
 
-    # 💡 시트 목록 및 제목을 캐시 없이 항상 실시간 조회하도록 수정
     def get_sheet_titles():
         try:
             client = init_gspread()
@@ -299,20 +298,25 @@ if app_mode == "🗣️ 스피킹 마스터":
     if st.session_state["last_menu"] != selected_menu:
         st.session_state["last_menu"] = selected_menu
 
-    # 💡 시트 객체 및 데이터를 매번 실시간으로 불러오도록 변경 (캐시 우회)
+    # 💡 시트 데이터 안전 로딩 및 예외 처리 강화
     try:
         client = init_gspread()
         sheet = client.open("SpeakingMaster").worksheet(real_sheet_name)
         st.session_state[user_sheet_key] = sheet
         records = sheet.get_all_records()
-    except:
+    except Exception as e:
+        sheet = None
         st.session_state[user_sheet_key] = None
         records = []
+        st.error(f"⚠️ 구글 시트 데이터를 읽어오는 중 문제가 발생했습니다: {e}")
 
     all_display_records = []
     for idx, r in enumerate(records):
         try:
-            e_val = int(r['energy'])
+            # 필수 키가 비어있거나 누락된 경우 건너뛰기
+            if not r.get('id') and not r.get('en'):
+                continue
+            e_val = int(r.get('energy', 0))
             if e_val > 3: e_val = 3
             elif e_val < 0: e_val = 0
         except:
@@ -321,9 +325,9 @@ if app_mode == "🗣️ 스피킹 마스터":
         all_display_records.append({
             'original_index': idx,
             'original_row': idx + 2,
-            'id': r['id'],
-            'kr': r['kr'],
-            'en': r['en'],
+            'id': r.get('id', idx + 1),
+            'kr': r.get('kr', ''),
+            'en': r.get('en', ''),
             'energy': e_val
         })
 
@@ -340,7 +344,7 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_level2 = len(level2_records)
     total_level1 = len(level1_records)
 
-    # 📻 [초기 버튼 상태 오디오 연동 수정] 플레이어 생성 시 실제 오디오 상태에 맞춰 버튼 표시
+    # 📻 플레이어 생성 템플릿
     def create_player_html(player_id, audio_base64_str, rate):
         return f"""
         <div style="background-color: #f8fafc; padding: 10px 12px; border-radius: 10px; margin-top: 4px; margin-bottom: 4px; border: 1px solid #cbd5e1;">
@@ -367,7 +371,6 @@ if app_mode == "🗣️ 스피킹 마스터":
             p.onplay = applyRate;
             applyRate();
            
-            // 💡 오디오 실제 상태에 맞춰 초기 버튼 텍스트와 색상 동기화
             function updateButtonState() {{
                 if(toggleBtn) {{
                     if(window.loopIntervals['{player_id}_3sec']) {{
@@ -397,7 +400,6 @@ if app_mode == "🗣️ 스피킹 마스터":
             p.play().catch(function(e){{}});
         }}
 
-        // 하단 토글 버튼 클릭 시 오디오 멈춤/재생 토글
         function togglePlayPause(id) {{
             var audio = document.getElementById(id);
             if(audio) {{
