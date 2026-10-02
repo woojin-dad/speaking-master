@@ -212,26 +212,72 @@ if app_mode == "🗣️ 스피킹 마스터":
             font-weight: bold !important;
         }}
        
-        /* 🔤 순수 HTML 기반 초고속 문장 토글 버튼 스타일 */
-        .fast-sentence-btn {{
+        /* 🔤 원래 쓰시던 큼직하고 깔끔한 문장 버튼 스타일 복원 */
+        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {{
             width: 100% !important;
+            height: auto !important;
+            text-align: left !important;
             background-color: #2c3e50 !important;
             border: none !important;
             border-radius: 8px !important;
             padding: 10px 12px !important;
-            text-align: left !important;
-            cursor: pointer !important;
+            white-space: pre-line !important;
+        }}
+       
+        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button p,
+        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button div,
+        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button span,
+        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button * {{
             font-size: {font_size}px !important;
             font-weight: 900 !important;
             color: #ffffff !important;
             line-height: 1.35 !important;
             white-space: pre-line !important;
             word-break: keep-all !important;
-            display: block !important;
-            transition: color 0.15s ease;
+            overflow: visible !important;
+            text-overflow: clip !important;
         }}
-        .fast-sentence-btn:hover {{
+       
+        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button:hover * {{
             color: #f1c40f !important;
+        }}
+       
+        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton {{
+            text-align: center !important;
+            width: 100% !important;
+            display: flex !important;
+            justify-content: center !important;
+            margin: 0px auto !important;
+        }}
+        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button {{
+            background-color: #ffffff !important;
+            border: none !important;
+            padding: 0px !important;
+            margin: 0px !important;
+            width: auto !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+        }}
+       
+        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button p,
+        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button div,
+        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button span,
+        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button * {{
+            font-size: 16px !important;
+            white-space: pre-line !important;
+            line-height: 1.0 !important;
+            text-align: center !important;
+            padding: 0px !important;
+            margin: 0px !important;
+        }}
+
+        div[data-testid="stHorizontalBlock"] > div:nth-child(2) iframe {{
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin: 0px auto !important;
+            width: 100% !important;
         }}
        
         hr {{ margin: 6px 0px !important; padding: 0px !important; }}
@@ -250,6 +296,7 @@ if app_mode == "🗣️ 스피킹 마스터":
     if "last_menu" not in st.session_state:
         st.session_state["last_menu"] = selected_menu
 
+    # 메뉴나 세션이 바뀔 때만 시트에서 데이터를 불러오도록 설정
     if st.session_state["last_menu"] != selected_menu or user_data_key not in st.session_state:
         st.session_state["last_menu"] = selected_menu
         try:
@@ -609,7 +656,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             except:
                 pass
 
-    # 💡 딜레이 제로! 서버 재실행 없이 브라우저(자바스크립트)에서 즉시 한/영 전환되는 문장 리스트 렌더링
+    # 💡 원래 쓰시던 Streamlit 고유 버튼 UI 구조로 복원 (세션 상태로 빠른 반응 구현)
     for item in display_records:
         orig_idx = item['original_index']
         row_idx = item['original_row']
@@ -618,73 +665,66 @@ if app_mode == "🗣️ 스피킹 마스터":
         col1, col2 = st.columns([8.2, 1.8])
        
         with col1:
-            kr_text = f"{item['id']}.\n{item['kr']}"
-            en_text = f"{item['id']}.\n{item['en']}"
-            btn_html_id = f"fast_btn_{real_sheet_name}_{orig_idx}"
-            
-            # 💡 버튼 클릭 시 서버로 요청을 보내지 않고 브라우저 안에서 텍스트만 0초 만에 휙 바꿈
-            fast_toggle_html = f"""
-                <button id="{btn_html_id}" onclick="toggleSentence('{btn_html_id}')" class="fast-sentence-btn" data-kr="{kr_text.replace(chr(10), '<br>')}" data-en="{en_text.replace(chr(10), '<br>')}">
-                    {kr_text.replace(chr(10), '<br>')}
-                </button>
-                <script>
-                if (typeof window.sentenceStates === 'undefined') {{
-                    window.sentenceStates = {{}};
-                }}
-                if (typeof window.sentenceStates['{btn_html_id}'] === 'undefined') {{
-                    window.sentenceStates['{btn_html_id}'] = false; // false: 한글, true: 영어
-                }}
-                
-                // 초기 상태 반영
-                var btn = document.getElementById('{btn_html_id}');
-                if (btn) {{
-                    if (window.sentenceStates['{btn_html_id}']) {{
-                        btn.innerHTML = btn.getAttribute('data-en');
-                    }} else {{
-                        btn.innerHTML = btn.getAttribute('data-kr');
-                    }}
-                }}
-
-                function toggleSentence(id) {{
-                    var b = document.getElementById(id);
-                    if (b) {{
-                        var isEn = window.sentenceStates[id];
-                        if (isEn) {{
-                            b.innerHTML = b.getAttribute('data-kr');
-                            window.sentenceStates[id] = false;
-                        }} else {{
-                            b.innerHTML = b.getAttribute('data-en');
-                            window.sentenceStates[id] = true;
-                        }}
-                    }}
-                }}
-                </script>
-            """
-            st.components.v1.html(fast_toggle_html, height=75)
+            state_key = f"show_{real_sheet_name}_{orig_idx}"
+            if state_key not in st.session_state:
+                st.session_state[state_key] = False
+               
+            is_english = st.session_state[state_key]
+            text_content = item['en'] if is_english else item['kr']
+            btn_label = f"{item['id']}.\n{text_content}"
+           
+            if st.button(btn_label, key=f"sentence_{real_sheet_name}_{orig_idx}"):
+                st.session_state[state_key] = not st.session_state[state_key]
+                st.rerun()
                
         with col2:
-            # 우측 오디오 플레이어 (영어일 때만 표시되도록 조절 가능하지만 기존 구조 유지)
-            # 여기서는 편의상 기존처럼 유지하되, 에너지 블록 터치 시에는 즉시 백그라운드 저장
-            if energy_val == 0:
-                color_block_text = "🟥\n🟥\n🟥\n🟥"
-            elif energy_val == 1:
-                color_block_text = "🟧\n🟧\n🟧"
-            elif energy_val == 2:
-                color_block_text = "🟨\n🟨"
+            if is_english:
+                try:
+                    tts = gTTS(text=item['en'], lang='en')
+                    fp = io.BytesIO()
+                    tts.write_to_fp(fp)
+                    fp.seek(0)
+                    b64_audio = base64.b64encode(fp.read()).decode('utf-8')
+                    player_id = f"direct_player_{real_sheet_name}_{orig_idx}"
+
+                    audio_html = f"""
+                        <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;">
+                            <audio id="{player_id}" src="data:audio/mp3;base64,{b64_audio}" controls loop style="width: 100%; max-width: 110px; height: 32px;"></audio>
+                        </div>
+                        <script>
+                            var p = document.getElementById('{player_id}');
+                            function applyRate() {{
+                                p.playbackRate = {speech_speed};
+                            }}
+                            p.oncanplay = applyRate;
+                            p.onplay = applyRate;
+                            applyRate();
+                        </script>
+                    """
+                    st.components.v1.html(audio_html, height=45)
+                except:
+                    pass
             else:
-                color_block_text = "🟩"
-           
-            if st.button(color_block_text, key=f"bar_touch_{real_sheet_name}_{orig_idx}"):
-                new_energy = energy_val + 1 if energy_val < 3 else 0
-                st.session_state[user_data_key][orig_idx]['energy'] = new_energy
+                if energy_val == 0:
+                    color_block_text = "🟥\n🟥\n🟥\n🟥"
+                elif energy_val == 1:
+                    color_block_text = "🟧\n🟧\n🟧"
+                elif energy_val == 2:
+                    color_block_text = "🟨\n🟨"
+                else:
+                    color_block_text = "🟩"
                
-                threading.Thread(
-                    target=save_to_google_sheet,
-                    args=(sheet, row_idx, 4, new_energy),
-                    daemon=True
-                ).start()
-               
-                st.rerun()
+                if st.button(color_block_text, key=f"bar_touch_{real_sheet_name}_{orig_idx}"):
+                    new_energy = energy_val + 1 if energy_val < 3 else 0
+                    st.session_state[user_data_key][orig_idx]['energy'] = new_energy
+                   
+                    threading.Thread(
+                        target=save_to_google_sheet,
+                        args=(sheet, row_idx, 4, new_energy),
+                        daemon=True
+                    ).start()
+                   
+                    st.rerun()
                    
         st.write("---")
 
