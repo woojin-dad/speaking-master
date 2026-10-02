@@ -290,56 +290,56 @@ if app_mode == "🗣️ 스피킹 마스터":
         </style>
     """, unsafe_allow_html=True)
 
+    user_data_key = f"records_cache_{real_sheet_name}"
     user_sheet_key = f"sheet_{real_sheet_name}"
 
     if "last_menu" not in st.session_state:
         st.session_state["last_menu"] = selected_menu
 
-    if st.session_state["last_menu"] != selected_menu:
+    # 메뉴나 세션이 바뀔 때만 시트에서 데이터를 불러오도록 설정하여 속도 극대화
+    if st.session_state["last_menu"] != selected_menu or user_data_key not in st.session_state:
         st.session_state["last_menu"] = selected_menu
+        try:
+            client = init_gspread()
+            sheet = client.open("SpeakingMaster").worksheet(real_sheet_name)
+            st.session_state[user_sheet_key] = sheet
+            rows = sheet.get_all_values()
+        except:
+            sheet = None
+            st.session_state[user_sheet_key] = None
+            rows = []
 
-    # 💡 헤더 중복 에러 방지: get_all_records 대신 get_all_values로 행단위 안전 읽기 수행
-    try:
-        client = init_gspread()
-        sheet = client.open("SpeakingMaster").worksheet(real_sheet_name)
-        st.session_state[user_sheet_key] = sheet
-        rows = sheet.get_all_values() # 첫 행부터 모든 데이터를 리스트 형태로 가져옴
-    except Exception as e:
-        sheet = None
-        st.session_state[user_sheet_key] = None
-        rows = []
-        st.error(f"⚠️ 구글 시트 데이터를 읽어오는 중 문제가 발생했습니다: {e}")
-
-    all_display_records = []
-    if len(rows) > 1:
-        # 첫 번째 행은 헤더로 간주하고 2번째 행부터 데이터 추출
-        for idx, r in enumerate(rows[1:], start=2):
-            if not r or not r[0].strip() and (len(r) <= 2 or not r[2].strip()):
-                continue # 빈 행 건너뛰기
-            try:
-                # 1열: id, 2열: kr, 3열: en, 4열: energy
-                row_id = r[0] if len(r) > 0 else str(idx - 1)
-                row_kr = r[1] if len(r) > 1 else ""
-                row_en = r[2] if len(r) > 2 else ""
-                
+        cached_rows = []
+        if len(rows) > 1:
+            for idx, r in enumerate(rows[1:], start=2):
+                if not r or not r[0].strip() and (len(r) <= 2 or not r[2].strip()):
+                    continue
                 try:
-                    e_val = int(r[3]) if len(r) > 3 and str(r[3]).strip() != "" else 0
+                    row_id = r[0] if len(r) > 0 else str(idx - 1)
+                    row_kr = r[1] if len(r) > 1 else ""
+                    row_en = r[2] if len(r) > 2 else ""
+                    try:
+                        e_val = int(r[3]) if len(r) > 3 and str(r[3]).strip() != "" else 0
+                    except:
+                        e_val = 0
+
+                    if e_val > 3: e_val = 3
+                    elif e_val < 0: e_val = 0
+
+                    cached_rows.append({
+                        'original_index': idx - 2,
+                        'original_row': idx,
+                        'id': row_id,
+                        'kr': row_kr,
+                        'en': row_en,
+                        'energy': e_val
+                    })
                 except:
-                    e_val = 0
+                    continue
+        st.session_state[user_data_key] = cached_rows
 
-                if e_val > 3: e_val = 3
-                elif e_val < 0: e_val = 0
-
-                all_display_records.append({
-                    'original_index': idx - 2,
-                    'original_row': idx,
-                    'id': row_id,
-                    'kr': row_kr,
-                    'en': row_en,
-                    'energy': e_val
-                })
-            except Exception as ex:
-                continue
+    all_display_records = st.session_state[user_data_key]
+    sheet = st.session_state.get(user_sheet_key, None)
 
     total_sentences = len(all_display_records)
 
@@ -724,6 +724,8 @@ if app_mode == "🗣️ 스피킹 마스터":
                
                 if st.button(color_block_text, key=f"bar_touch_{real_sheet_name}_{orig_idx}"):
                     new_energy = energy_val + 1 if energy_val < 3 else 0
+                    
+                    # 메모리 캐시 데이터 즉시 갱신
                     st.session_state[user_data_key][orig_idx]['energy'] = new_energy
                    
                     threading.Thread(
@@ -982,6 +984,7 @@ else:
                     }}
 
                     function stopLoop3Sec(id) {{
+                        var audio = document.getElementById(id);
                         if (window.loopIntervals[id]) {{
                             clearInterval(window.loopIntervals[id]);
                             delete window.loopIntervals[id];
@@ -1034,7 +1037,7 @@ else:
                                 if fname in completed_records:
                                     del completed_records[fname]
                                 st.info("완독 기록이 취소되었습니다.")
-                                st.rerun()
+                                st.reron() if hasattr(st, 'reron') else st.rerun()
                 else:
                     st.error("오디오 로딩 실패")
             
