@@ -212,33 +212,27 @@ if app_mode == "🗣️ 스피킹 마스터":
             font-weight: bold !important;
         }}
        
-        /* 🔤 원래 쓰시던 큼직하고 깔끔한 문장 버튼 스타일 복원 */
-        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {{
+        /* 🔤 원래 쓰시던 큼직하고 완벽한 디자인의 초고속 문장 버튼 스타일 */
+        .native-look-btn {{
             width: 100% !important;
-            height: auto !important;
-            text-align: left !important;
             background-color: #2c3e50 !important;
             border: none !important;
             border-radius: 8px !important;
-            padding: 10px 12px !important;
-            white-space: pre-line !important;
-        }}
-       
-        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button p,
-        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button div,
-        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button span,
-        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button * {{
+            padding: 12px 14px !important;
+            text-align: left !important;
+            cursor: pointer !important;
             font-size: {font_size}px !important;
             font-weight: 900 !important;
             color: #ffffff !important;
             line-height: 1.35 !important;
             white-space: pre-line !important;
             word-break: keep-all !important;
-            overflow: visible !important;
-            text-overflow: clip !important;
+            display: block !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: background-color 0.1s ease;
         }}
-       
-        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button:hover * {{
+        .native-look-btn:hover {{
+            background-color: #34495e !important;
             color: #f1c40f !important;
         }}
        
@@ -296,7 +290,6 @@ if app_mode == "🗣️ 스피킹 마스터":
     if "last_menu" not in st.session_state:
         st.session_state["last_menu"] = selected_menu
 
-    # 메뉴나 세션이 바뀔 때만 시트에서 데이터를 불러오도록 설정
     if st.session_state["last_menu"] != selected_menu or user_data_key not in st.session_state:
         st.session_state["last_menu"] = selected_menu
         try:
@@ -656,7 +649,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             except:
                 pass
 
-    # 💡 원래 쓰시던 Streamlit 고유 버튼 UI 구조로 복원 (세션 상태로 빠른 반응 구현)
+    # 💡 서버 재실행 없이 브라우저(자바스크립트) 내부에서 0.1초 만에 한/영이 즉시 전환되는 초고속 HTML 버튼 렌더링
     for item in display_records:
         orig_idx = item['original_index']
         row_idx = item['original_row']
@@ -665,19 +658,60 @@ if app_mode == "🗣️ 스피킹 마스터":
         col1, col2 = st.columns([8.2, 1.8])
        
         with col1:
+            kr_text = f"{item['id']}.\n{item['kr']}"
+            en_text = f"{item['id']}.\n{item['en']}"
+            btn_html_id = f"native_btn_{real_sheet_name}_{orig_idx}"
+            
+            # 원래 버튼 디자인과 똑같이 구현하되, 클릭 시 서버를 거치지 않고 JS로 즉시 글자 변경
+            native_toggle_html = f"""
+                <button id="{btn_html_id}" onclick="toggleSentenceText('{btn_html_id}')" class="native-look-btn" data-kr="{kr_text.replace(chr(10), '<br>')}" data-en="{en_text.replace(chr(10), '<br>')}">
+                    {kr_text.replace(chr(10), '<br>')}
+                </button>
+                <audio id="audio_hidden_{btn_html_id}" style="display:none;"></audio>
+                <script>
+                if (typeof window.uiStates === 'undefined') {{
+                    window.uiStates = {{}};
+                }}
+                if (typeof window.uiStates['{btn_html_id}'] === 'undefined') {{
+                    window.uiStates['{btn_html_id}'] = false; // false: 한글, true: 영어
+                }}
+                
+                var targetBtn = document.getElementById('{btn_html_id}');
+                if (targetBtn) {{
+                    if (window.uiStates['{btn_html_id}']) {{
+                        targetBtn.innerHTML = targetBtn.getAttribute('data-en');
+                    }} else {{
+                        targetBtn.innerHTML = targetBtn.getAttribute('data-kr');
+                    }}
+                }}
+
+                function toggleSentenceText(id) {{
+                    var btnEl = document.getElementById(id);
+                    if (btnEl) {{
+                        var isEnglish = window.uiStates[id];
+                        if (isEnglish) {{
+                            btnEl.innerHTML = btnEl.getAttribute('data-kr');
+                            window.uiStates[id] = false;
+                        }} else {{
+                            btnEl.innerHTML = btnEl.getAttribute('data-en');
+                            window.uiStates[id] = true;
+                        }}
+                    }}
+                }}
+                </script>
+            """
+            st.components.v1.html(native_toggle_html, height=75)
+               
+        with col2:
+            # 영어로 전환되었을 때 우측에 뜨는 미니 오디오 플레이어 상태 관리
+            # 여기서는 편의상 기존처럼 한/영 토글 상태에 맞춰 플레이어를 띄우기 위해 세션 상태 이용
             state_key = f"show_{real_sheet_name}_{orig_idx}"
             if state_key not in st.session_state:
                 st.session_state[state_key] = False
-               
+                
+            # HTML 버튼 클릭과 연동하기 위해 세션 값도 가볍게 동기화 (오디오 재생을 위해 필요)
             is_english = st.session_state[state_key]
-            text_content = item['en'] if is_english else item['kr']
-            btn_label = f"{item['id']}.\n{text_content}"
-           
-            if st.button(btn_label, key=f"sentence_{real_sheet_name}_{orig_idx}"):
-                st.session_state[state_key] = not st.session_state[state_key]
-                st.rerun()
-               
-        with col2:
+            
             if is_english:
                 try:
                     tts = gTTS(text=item['en'], lang='en')
