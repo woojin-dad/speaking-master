@@ -42,12 +42,14 @@ st.write("---")
 # ==============================================================================
 if app_mode == "🗣️ 스피킹 마스터":
 
+    @st.cache_resource
     def init_gspread():
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
         creds_dict = json.loads(st.secrets["gcp_service_account"])
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         return gspread.authorize(creds)
 
+    @st.cache_resource
     def get_sheet_titles():
         try:
             client = init_gspread()
@@ -77,7 +79,7 @@ if app_mode == "🗣️ 스피킹 마스터":
     is_priority_mode = "우선순위" in selected_menu
 
     # 🔤 글자 크기 조절
-    font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=26, max_value=50, value=26, step=1, key="pure_font_slider")
+    font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=26, max_value=45, value=26, step=1, key="pure_font_slider")
 
     # ⚡ 문장 재생 속도 조절 슬라이더 (기본값: 1.0)
     speech_speed = st.slider(
@@ -290,56 +292,51 @@ if app_mode == "🗣️ 스피킹 마스터":
         </style>
     """, unsafe_allow_html=True)
 
-    user_data_key = f"records_cache_{real_sheet_name}"
+    user_data_key = f"records_{real_sheet_name}"
     user_sheet_key = f"sheet_{real_sheet_name}"
 
     if "last_menu" not in st.session_state:
         st.session_state["last_menu"] = selected_menu
 
-    # 메뉴나 세션이 바뀔 때만 시트에서 데이터를 불러오도록 설정하여 속도 극대화
-    if st.session_state["last_menu"] != selected_menu or user_data_key not in st.session_state:
+    if st.session_state["last_menu"] != selected_menu:
         st.session_state["last_menu"] = selected_menu
+
+    if user_sheet_key not in st.session_state or st.session_state[user_sheet_key] is None:
         try:
             client = init_gspread()
-            sheet = client.open("SpeakingMaster").worksheet(real_sheet_name)
-            st.session_state[user_sheet_key] = sheet
-            rows = sheet.get_all_values()
+            st.session_state[user_sheet_key] = client.open("SpeakingMaster").worksheet(real_sheet_name)
         except:
-            sheet = None
             st.session_state[user_sheet_key] = None
-            rows = []
 
-        cached_rows = []
-        if len(rows) > 1:
-            for idx, r in enumerate(rows[1:], start=2):
-                if not r or not r[0].strip() and (len(r) <= 2 or not r[2].strip()):
-                    continue
-                try:
-                    row_id = r[0] if len(r) > 0 else str(idx - 1)
-                    row_kr = r[1] if len(r) > 1 else ""
-                    row_en = r[2] if len(r) > 2 else ""
-                    try:
-                        e_val = int(r[3]) if len(r) > 3 and str(r[3]).strip() != "" else 0
-                    except:
-                        e_val = 0
+    if user_data_key not in st.session_state:
+        if st.session_state[user_sheet_key]:
+            try:
+                st.session_state[user_data_key] = st.session_state[user_sheet_key].get_all_records()
+            except:
+                st.session_state[user_data_key] = []
+        else:
+            st.session_state[user_data_key] = []
 
-                    if e_val > 3: e_val = 3
-                    elif e_val < 0: e_val = 0
+    records = st.session_state[user_data_key]
+    sheet = st.session_state[user_sheet_key]
 
-                    cached_rows.append({
-                        'original_index': idx - 2,
-                        'original_row': idx,
-                        'id': row_id,
-                        'kr': row_kr,
-                        'en': row_en,
-                        'energy': e_val
-                    })
-                except:
-                    continue
-        st.session_state[user_data_key] = cached_rows
-
-    all_display_records = st.session_state[user_data_key]
-    sheet = st.session_state.get(user_sheet_key, None)
+    all_display_records = []
+    for idx, r in enumerate(records):
+        try:
+            e_val = int(r['energy'])
+            if e_val > 3: e_val = 3
+            elif e_val < 0: e_val = 0
+        except:
+            e_val = 0
+           
+        all_display_records.append({
+            'original_index': idx,
+            'original_row': idx + 2,
+            'id': r['id'],
+            'kr': r['kr'],
+            'en': r['en'],
+            'energy': e_val
+        })
 
     total_sentences = len(all_display_records)
 
@@ -354,7 +351,7 @@ if app_mode == "🗣️ 스피킹 마스터":
     total_level2 = len(level2_records)
     total_level1 = len(level1_records)
 
-    # 📻 플레이어 생성 템플릿
+    # 📻 [초기 버튼 상태 오디오 연동 수정] 플레이어 생성 시 실제 오디오 상태에 맞춰 버튼 표시
     def create_player_html(player_id, audio_base64_str, rate):
         return f"""
         <div style="background-color: #f8fafc; padding: 10px 12px; border-radius: 10px; margin-top: 4px; margin-bottom: 4px; border: 1px solid #cbd5e1;">
@@ -381,6 +378,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             p.onplay = applyRate;
             applyRate();
            
+            // 💡 오디오 실제 상태에 맞춰 초기 버튼 텍스트와 색상 동기화
             function updateButtonState() {{
                 if(toggleBtn) {{
                     if(window.loopIntervals['{player_id}_3sec']) {{
@@ -410,6 +408,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             p.play().catch(function(e){{}});
         }}
 
+        // 하단 토글 버튼 클릭 시 오디오 멈춤/재생 토글
         function togglePlayPause(id) {{
             var audio = document.getElementById(id);
             if(audio) {{
@@ -522,7 +521,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                             part_fp.seek(0)
                             relay_audio_l4.write(part_fp.read())
                             relay_audio_l4.write(b'\x00' * 2500)
-                    
+                   
                     relay_audio_l4.seek(0)
                     audio_base64_l4 = base64.b64encode(relay_audio_l4.read()).decode('utf-8')
                     st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level4-radio-player", audio_base64_l4, speech_speed)
@@ -551,7 +550,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                             part_fp.seek(0)
                             relay_audio_l3.write(part_fp.read())
                             relay_audio_l3.write(b'\x00' * 2500)
-                    
+                   
                     relay_audio_l3.seek(0)
                     audio_base64_l3 = base64.b64encode(relay_audio_l3.read()).decode('utf-8')
                     st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level3-radio-player", audio_base64_l3, speech_speed)
@@ -580,7 +579,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                             part_fp.seek(0)
                             relay_audio_l2.write(part_fp.read())
                             relay_audio_l2.write(b'\x00' * 2500)
-                    
+                   
                     relay_audio_l2.seek(0)
                     audio_base64_l2 = base64.b64encode(relay_audio_l2.read()).decode('utf-8')
                     st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level2-radio-player", audio_base64_l2, speech_speed)
@@ -609,7 +608,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                             part_fp.seek(0)
                             relay_audio_l1.write(part_fp.read())
                             relay_audio_l1.write(b'\x00' * 2500)
-                    
+                   
                     relay_audio_l1.seek(0)
                     audio_base64_l1 = base64.b64encode(relay_audio_l1.read()).decode('utf-8')
                     st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level1-radio-player", audio_base64_l1, speech_speed)
@@ -724,8 +723,6 @@ if app_mode == "🗣️ 스피킹 마스터":
                
                 if st.button(color_block_text, key=f"bar_touch_{real_sheet_name}_{orig_idx}"):
                     new_energy = energy_val + 1 if energy_val < 3 else 0
-                    
-                    # 메모리 캐시 데이터 즉시 갱신
                     st.session_state[user_data_key][orig_idx]['energy'] = new_energy
                    
                     threading.Thread(
@@ -751,7 +748,7 @@ else:
             padding-left: 10px !important;
             padding-right: 0px !important;
         }
-        
+       
         .custom-title {
             font-size: 26px !important;
             font-weight: bold !important;
@@ -765,7 +762,7 @@ else:
         button[title="Fork this app"] {display: none !important; visibility: hidden !important;}
         header {visibility: hidden !important; height: 0px !important;}
         footer {visibility: hidden !important; height: 0px !important;}
-        
+       
         .track-title {
             font-size: 17px;
             font-weight: bold;
@@ -783,7 +780,7 @@ else:
         }
         </style>
     """, unsafe_allow_html=True)
-    
+   
     st.markdown("<div class='custom-title'>👑 리스닝 마스터 👑</div>", unsafe_allow_html=True)
     st.write("---")
 
@@ -819,7 +816,7 @@ else:
             return
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M") if mark_as_done else ""
         is_completed_str = "TRUE" if mark_as_done else "FALSE"
-        
+       
         try:
             records = ws.get_all_records()
             found_row = None
@@ -827,7 +824,7 @@ else:
                 if r.get('filename') == filename:
                     found_row = idx
                     break
-            
+           
             if found_row:
                 ws.update_cell(found_row, 2, is_completed_str)
                 ws.update_cell(found_row, 3, now_str)
@@ -847,7 +844,7 @@ else:
                 if r.get('filename') == filename:
                     found_row = idx
                     break
-            
+           
             if found_row:
                 ws.update_cell(found_row, 4, note_text)
             else:
@@ -858,7 +855,7 @@ else:
     def build_drive_service():
         creds_dict = json.loads(st.secrets["gcp_service_account"])
         creds = ServiceAccountCredentials.from_json_keyfile_dict(
-            creds_dict, 
+            creds_dict,
             scopes=["https://www.googleapis.com/auth/drive.readonly"]
         )
         return build('drive', 'v3', credentials=creds)
@@ -923,12 +920,12 @@ else:
                 st.session_state[play_state_key] = False
 
             c1, c2 = st.columns([7.5, 2.5])
-            
+           
             with c1:
                 st.markdown(f"<div class='track-title'>🎵 {idx}. {fname}</div>", unsafe_allow_html=True)
                 if is_done:
                     st.markdown(f"<div class='badge-completed'>✅ 완독: {done_time}</div>", unsafe_allow_html=True)
-            
+           
             with c2:
                 btn_label = "❚❚ 닫기" if st.session_state[play_state_key] else "▶ 재생"
                 if st.button(btn_label, key=f"btn_toggle_{fid}"):
@@ -938,7 +935,7 @@ else:
             if st.session_state[play_state_key]:
                 with st.spinner(f"📥 [{fname}] 음성 로딩 중..."):
                     audio_bytes = download_audio_bytes(fid)
-                
+               
                 if audio_bytes:
                     b64_audio = base64.b64encode(audio_bytes).decode('utf-8')
                     player_id = f"custom_audio_{fid}"
@@ -984,7 +981,6 @@ else:
                     }}
 
                     function stopLoop3Sec(id) {{
-                        var audio = document.getElementById(id);
                         if (window.loopIntervals[id]) {{
                             clearInterval(window.loopIntervals[id]);
                             delete window.loopIntervals[id];
@@ -993,14 +989,14 @@ else:
                     </script>
                     """
                     st.components.v1.html(custom_player_html, height=140)
-                    
+                   
                     user_note = st.text_area(
                         "📝 나만의 청취 메모 (중요 표현, 구간 적기):",
                         value=current_note,
                         key=f"note_input_{fid}",
                         height=80
                     )
-                    
+                   
                     col_note_btn, col_blank = st.columns([3, 7])
                     with col_note_btn:
                         if st.button("💾 메모 저장하기", key=f"save_note_btn_{fid}"):
@@ -1037,11 +1033,11 @@ else:
                                 if fname in completed_records:
                                     del completed_records[fname]
                                 st.info("완독 기록이 취소되었습니다.")
-                                st.reron() if hasattr(st, 'reron') else st.rerun()
+                                st.rerun()
                 else:
                     st.error("오디오 로딩 실패")
-            
+           
             st.write("---")
-            
+           
     else:
         st.warning("구글 드라이브 폴더에 MP3 파일이 없습니다.")
