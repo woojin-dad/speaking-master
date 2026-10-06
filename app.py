@@ -18,26 +18,13 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 💡 모바일 스크린 확대 허용 메타 태그 & 절전/세션 끊김 방지 자동 복구 스크립트
+# 💡 모바일 스크린 확대 허용 메타 태그 (안전한 기본형)
 st.markdown("""
     <script>
         var meta = document.createElement('meta');
         meta.name = 'viewport';
         meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
         document.getElementsByTagName('head')[0].appendChild(meta);
-
-        document.addEventListener("visibilitychange", function() {
-            if (document.visibilityState === "visible") {
-                var lastActive = sessionStorage.getItem('last_active_time');
-                var now = new Date().getTime();
-                if (lastActive && (now - lastActive > 20 * 60 * 1000)) {
-                    sessionStorage.setItem('last_active_time', now);
-                    location.reload();
-                } else {
-                    sessionStorage.setItem('last_active_time', now);
-                }
-            }
-        });
     </script>
 """, unsafe_allow_html=True)
 
@@ -51,7 +38,7 @@ app_mode = st.radio(
 st.write("---")
 
 # ==============================================================================
-# 🔀 [모드 1] 🗣️ 스피킹 마스터
+# 🔀 [모드 1] 🗣️️ 스피킹 마스터
 # ==============================================================================
 if app_mode == "🗣️ 스피킹 마스터":
 
@@ -668,7 +655,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             except:
                 pass
 
-    # 💡 안정적인 원래 문장 렌더링 루프 방식 복원
+    # 💡 문장 리스트 출력 루프 (안정적인 원래 방식)
     for item in display_records:
         orig_idx = item['original_index']
         row_idx = item['original_row']
