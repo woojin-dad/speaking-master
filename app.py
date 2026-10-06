@@ -18,13 +18,27 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 💡 모바일 스크린 확대 허용 메타 태그
+# 💡 모바일 스크린 확대 허용 메타 태그 & 절전/세션 끊김 방지 자동 복구 스크립트
 st.markdown("""
     <script>
         var meta = document.createElement('meta');
         meta.name = 'viewport';
         meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
         document.getElementsByTagName('head')[0].appendChild(meta);
+
+        // 페이지가 다시 활성화되었을 때(백그라운드에서 돌아왔을 때) 세션 끊김 감지 및 자동 새로고침
+        document.addEventListener("visibilitychange", function() {
+            if (document.visibilityState === "visible") {
+                var lastActive = sessionStorage.getItem('last_active_time');
+                var now = new Date().getTime();
+                if (lastActive && (now - lastActive > 20 * 60 * 1000)) { // 20분 이상 방치 시 자동 갱신
+                    sessionStorage.setItem('last_active_time', now);
+                    location.reload();
+                } else {
+                    sessionStorage.setItem('last_active_time', now);
+                }
+            }
+        });
     </script>
 """, unsafe_allow_html=True)
 
@@ -655,7 +669,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             except:
                 pass
 
-    # 💡 [핵심 최적화] 문장 리스트 영역만 @st.fragment로 분리하여 해당 영역만 0.1초 만에 초고속 렌더링
+    # 💡 [최적화 유지 및 완벽한 UI 보존] 문장 리스트 조각 렌더링
     @st.fragment
     def render_sentence_list():
         for item in display_records:
@@ -729,7 +743,6 @@ if app_mode == "🗣️ 스피킹 마스터":
                        
             st.write("---")
 
-    # 최적화된 문장 리스트 조각 렌더링 실행
     render_sentence_list()
 
 # ==============================================================================
