@@ -668,81 +668,77 @@ if app_mode == "🗣️ 스피킹 마스터":
             except:
                 pass
 
-    # 💡 문장 리스트 안정적 렌더링 함수
-    def render_sentence_list(records_to_render):
-        for item in records_to_render:
-            orig_idx = item['original_index']
-            row_idx = item['original_row']
-            energy_val = item['energy']
-           
-            col1, col2 = st.columns([8.2, 1.8])
-           
-            with col1:
-                state_key = f"show_{real_sheet_name}_{orig_idx}"
-                if state_key not in st.session_state:
-                    st.session_state[state_key] = False
-                   
-                is_english = st.session_state[state_key]
-                text_content = item['en'] if is_english else item['kr']
-                btn_label = f"{item['id']}.\n{text_content}"
+    # 💡 안정적인 원래 문장 렌더링 루프 방식 복원
+    for item in display_records:
+        orig_idx = item['original_index']
+        row_idx = item['original_row']
+        energy_val = item['energy']
+       
+        col1, col2 = st.columns([8.2, 1.8])
+       
+        with col1:
+            state_key = f"show_{real_sheet_name}_{orig_idx}"
+            if state_key not in st.session_state:
+                st.session_state[state_key] = False
                
-                if st.button(btn_label, key=f"sentence_{real_sheet_name}_{orig_idx}"):
-                    st.session_state[state_key] = not st.session_state[state_key]
+            is_english = st.session_state[state_key]
+            text_content = item['en'] if is_english else item['kr']
+            btn_label = f"{item['id']}.\n{text_content}"
+           
+            if st.button(btn_label, key=f"sentence_{real_sheet_name}_{orig_idx}"):
+                st.session_state[state_key] = not st.session_state[state_key]
+                st.rerun()
+               
+        with col2:
+            if is_english:
+                try:
+                    tts = gTTS(text=item['en'], lang='en')
+                    fp = io.BytesIO()
+                    tts.write_to_fp(fp)
+                    fp.seek(0)
+                    b64_audio = base64.b64encode(fp.read()).decode('utf-8')
+                    player_id = f"direct_player_{real_sheet_name}_{orig_idx}"
+
+                    audio_html = f"""
+                        <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;">
+                            <audio id="{player_id}" src="data:audio/mp3;base64,{b64_audio}" controls loop style="width: 100%; max-width: 110px; height: 32px;"></audio>
+                        </div>
+                        <script>
+                            var p = document.getElementById('{player_id}');
+                            function applyRate() {{
+                                p.playbackRate = {speech_speed};
+                            }}
+                            p.oncanplay = applyRate;
+                            p.onplay = applyRate;
+                            applyRate();
+                        </script>
+                    """
+                    st.components.v1.html(audio_html, height=45)
+                except:
+                    pass
+            else:
+                if energy_val == 0:
+                    color_block_text = "🟥\n🟥\n🟥\n🟥"
+                elif energy_val == 1:
+                    color_block_text = "🟧\n🟧\n🟧"
+                elif energy_val == 2:
+                    color_block_text = "🟨\n🟨"
+                else:
+                    color_block_text = "🟩"
+               
+                if st.button(color_block_text, key=f"bar_touch_{real_sheet_name}_{orig_idx}"):
+                    new_energy = energy_val + 1 if energy_val < 3 else 0
+                    st.session_state[user_data_key][orig_idx]['energy'] = new_energy
+                   
+                    threading.Thread(
+                        target=save_to_google_sheet,
+                        args=(sheet, row_idx, 4, new_energy),
+                        daemon=True
+                    ).start()
+                   
                     st.rerun()
                    
-            with col2:
-                if is_english:
-                    try:
-                        tts = gTTS(text=item['en'], lang='en')
-                        fp = io.BytesIO()
-                        tts.write_to_fp(fp)
-                        fp.seek(0)
-                        b64_audio = base64.b64encode(fp.read()).decode('utf-8')
-                        player_id = f"direct_player_{real_sheet_name}_{orig_idx}"
-
-                        audio_html = f"""
-                            <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;">
-                                <audio id="{player_id}" src="data:audio/mp3;base64,{b64_audio}" controls loop style="width: 100%; max-width: 110px; height: 32px;"></audio>
-                            </div>
-                            <script>
-                                var p = document.getElementById('{player_id}');
-                                function applyRate() {{
-                                    p.playbackRate = {speech_speed};
-                                }}
-                                p.oncanplay = applyRate;
-                                p.onplay = applyRate;
-                                applyRate();
-                            </script>
-                        """
-                        st.components.v1.html(audio_html, height=45)
-                    except:
-                        pass
-                else:
-                    if energy_val == 0:
-                        color_block_text = "🟥\n🟥\n🟥\n🟥"
-                    elif energy_val == 1:
-                        color_block_text = "🟧\n🟧\n🟧"
-                    elif energy_val == 2:
-                        color_block_text = "🟨\n🟨"
-                    else:
-                        color_block_text = "🟩"
-                   
-                    if st.button(color_block_text, key=f"bar_touch_{real_sheet_name}_{orig_idx}"):
-                        new_energy = energy_val + 1 if energy_val < 3 else 0
-                        st.session_state[user_data_key][orig_idx]['energy'] = new_energy
-                       
-                        threading.Thread(
-                            target=save_to_google_sheet,
-                            args=(sheet, row_idx, 4, new_energy),
-                            daemon=True
-                        ).start()
-                       
-                        st.rerun()
-                       
-            st.write("---")
-
-    # 문장 리스트 출력 실행
-    render_sentence_list(display_records)
+        st.write("---")
 
 # ==============================================================================
 # 🔀 [모드 2] 🎧 리스닝 마스터 (동일 유지)
