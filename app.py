@@ -26,12 +26,11 @@ st.markdown("""
         meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
         document.getElementsByTagName('head')[0].appendChild(meta);
 
-        // 페이지가 다시 활성화되었을 때(백그라운드에서 돌아왔을 때) 세션 끊김 감지 및 자동 새로고침
         document.addEventListener("visibilitychange", function() {
             if (document.visibilityState === "visible") {
                 var lastActive = sessionStorage.getItem('last_active_time');
                 var now = new Date().getTime();
-                if (lastActive && (now - lastActive > 20 * 60 * 1000)) { // 20분 이상 방치 시 자동 갱신
+                if (lastActive && (now - lastActive > 20 * 60 * 1000)) {
                     sessionStorage.setItem('last_active_time', now);
                     location.reload();
                 } else {
@@ -669,10 +668,9 @@ if app_mode == "🗣️ 스피킹 마스터":
             except:
                 pass
 
-    # 💡 [최적화 유지 및 완벽한 UI 보존] 문장 리스트 조각 렌더링
-    @st.fragment
-    def render_sentence_list():
-        for item in display_records:
+    # 💡 문장 리스트 안정적 렌더링 함수
+    def render_sentence_list(records_to_render):
+        for item in records_to_render:
             orig_idx = item['original_index']
             row_idx = item['original_row']
             energy_val = item['energy']
@@ -743,7 +741,8 @@ if app_mode == "🗣️ 스피킹 마스터":
                        
             st.write("---")
 
-    render_sentence_list()
+    # 문장 리스트 출력 실행
+    render_sentence_list(display_records)
 
 # ==============================================================================
 # 🔀 [모드 2] 🎧 리스닝 마스터 (동일 유지)
