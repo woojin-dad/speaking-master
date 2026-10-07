@@ -18,13 +18,28 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 💡 모바일 스크린 확대 허용 메타 태그
+# 💡 모바일 스크린 확대 허용 및 '방치 후 세션 먹통' 자동 감지·복구 스크립트
 st.markdown("""
     <script>
         var meta = document.createElement('meta');
         meta.name = 'viewport';
         meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
         document.getElementsByTagName('head')[0].appendChild(meta);
+
+        // 💡 핸드폰을 끄거나 방치했다가 다시 켰을 때(화면이 다시 보일 때) 세션 끊김 자동 복구
+        let lastVisibleTime = Date.now();
+        document.addEventListener("visibilitychange", function() {
+            if (document.visibilityState === "visible") {
+                let currentTime = Date.now();
+                // 15분 이상 화면을 보지 않고 백그라운드에 두었다가 켰다면 자동 새로고침하여 먹통 방지
+                if (currentTime - lastVisibleTime > 15 * 60 * 1000) {
+                    location.reload();
+                }
+                lastVisibleTime = currentTime;
+            } else {
+                lastVisibleTime = Date.now();
+            }
+        });
     </script>
 """, unsafe_allow_html=True)
 
@@ -517,7 +532,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                             part_fp.seek(0)
                             relay_audio_l4.write(part_fp.read())
                             relay_audio_l4.write(b'\x00' * 2500)
-                   
+                    
                     relay_audio_l4.seek(0)
                     audio_base64_l4 = base64.b64encode(relay_audio_l4.read()).decode('utf-8')
                     st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level4-radio-player", audio_base64_l4, speech_speed)
@@ -545,7 +560,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                             part_fp.seek(0)
                             relay_audio_l3.write(part_fp.read())
                             relay_audio_l3.write(b'\x00' * 2500)
-                   
+                    
                     relay_audio_l3.seek(0)
                     audio_base64_l3 = base64.b64encode(relay_audio_l3.read()).decode('utf-8')
                     st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level3-radio-player", audio_base64_l3, speech_speed)
@@ -573,7 +588,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                             part_fp.seek(0)
                             relay_audio_l2.write(part_fp.read())
                             relay_audio_l2.write(b'\x00' * 2500)
-                   
+                    
                     relay_audio_l2.seek(0)
                     audio_base64_l2 = base64.b64encode(relay_audio_l2.read()).decode('utf-8')
                     st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level2-radio-player", audio_base64_l2, speech_speed)
@@ -601,7 +616,7 @@ if app_mode == "🗣️ 스피킹 마스터":
                             part_fp.seek(0)
                             relay_audio_l1.write(part_fp.read())
                             relay_audio_l1.write(b'\x00' * 2500)
-                   
+                    
                     relay_audio_l1.seek(0)
                     audio_base64_l1 = base64.b64encode(relay_audio_l1.read()).decode('utf-8')
                     st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level1-radio-player", audio_base64_l1, speech_speed)
@@ -655,82 +670,77 @@ if app_mode == "🗣️ 스피킹 마스터":
             except:
                 pass
 
-    # 💡 [핵심 최적화] 문장 리스트 영역만 @st.fragment로 분리하여 해당 영역만 0.1초 만에 초고속 렌더링
-    @st.fragment
-    def render_sentence_list():
-        for item in display_records:
-            orig_idx = item['original_index']
-            row_idx = item['original_row']
-            energy_val = item['energy']
-           
-            col1, col2 = st.columns([8.2, 1.8])
-           
-            with col1:
-                state_key = f"show_{real_sheet_name}_{orig_idx}"
-                if state_key not in st.session_state:
-                    st.session_state[state_key] = False
-                   
-                is_english = st.session_state[state_key]
-                text_content = item['en'] if is_english else item['kr']
-                btn_label = f"{item['id']}.\n{text_content}"
+    # 💡 문장 리스트 출력 루프 (어제 잘 되던 그 안정적인 정석 방식 복원)
+    for item in display_records:
+        orig_idx = item['original_index']
+        row_idx = item['original_row']
+        energy_val = item['energy']
+       
+        col1, col2 = st.columns([8.2, 1.8])
+       
+        with col1:
+            state_key = f"show_{real_sheet_name}_{orig_idx}"
+            if state_key not in st.session_state:
+                st.session_state[state_key] = False
                
-                if st.button(btn_label, key=f"sentence_{real_sheet_name}_{orig_idx}"):
-                    st.session_state[state_key] = not st.session_state[state_key]
+            is_english = st.session_state[state_key]
+            text_content = item['en'] if is_english else item['kr']
+            btn_label = f"{item['id']}.\n{text_content}"
+           
+            if st.button(btn_label, key=f"sentence_{real_sheet_name}_{orig_idx}"):
+                st.session_state[state_key] = not st.session_state[state_key]
+                st.rerun()
+               
+        with col2:
+            if is_english:
+                try:
+                    tts = gTTS(text=item['en'], lang='en')
+                    fp = io.BytesIO()
+                    tts.write_to_fp(fp)
+                    fp.seek(0)
+                    b64_audio = base64.b64encode(fp.read()).decode('utf-8')
+                    player_id = f"direct_player_{real_sheet_name}_{orig_idx}"
+
+                    audio_html = f"""
+                        <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;">
+                            <audio id="{player_id}" src="data:audio/mp3;base64,{b64_audio}" controls loop style="width: 100%; max-width: 110px; height: 32px;"></audio>
+                        </div>
+                        <script>
+                            var p = document.getElementById('{player_id}');
+                            function applyRate() {{
+                                p.playbackRate = {speech_speed};
+                            }}
+                            p.oncanplay = applyRate;
+                            p.onplay = applyRate;
+                            applyRate();
+                        </script>
+                    """
+                    st.components.v1.html(audio_html, height=45)
+                except:
+                    pass
+            else:
+                if energy_val == 0:
+                    color_block_text = "🟥\n🟥\n🟥\n🟥"
+                elif energy_val == 1:
+                    color_block_text = "🟧\n🟧\n🟧"
+                elif energy_val == 2:
+                    color_block_text = "🟨\n🟨"
+                else:
+                    color_block_text = "🟩"
+               
+                if st.button(color_block_text, key=f"bar_touch_{real_sheet_name}_{orig_idx}"):
+                    new_energy = energy_val + 1 if energy_val < 3 else 0
+                    st.session_state[user_data_key][orig_idx]['energy'] = new_energy
+                   
+                    threading.Thread(
+                        target=save_to_google_sheet,
+                        args=(sheet, row_idx, 4, new_energy),
+                        daemon=True
+                    ).start()
+                   
                     st.rerun()
                    
-            with col2:
-                if is_english:
-                    try:
-                        tts = gTTS(text=item['en'], lang='en')
-                        fp = io.BytesIO()
-                        tts.write_to_fp(fp)
-                        fp.seek(0)
-                        b64_audio = base64.b64encode(fp.read()).decode('utf-8')
-                        player_id = f"direct_player_{real_sheet_name}_{orig_idx}"
-
-                        audio_html = f"""
-                            <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;">
-                                <audio id="{player_id}" src="data:audio/mp3;base64,{b64_audio}" controls loop style="width: 100%; max-width: 110px; height: 32px;"></audio>
-                            </div>
-                            <script>
-                                var p = document.getElementById('{player_id}');
-                                function applyRate() {{
-                                    p.playbackRate = {speech_speed};
-                                }}
-                                p.oncanplay = applyRate;
-                                p.onplay = applyRate;
-                                applyRate();
-                            </script>
-                        """
-                        st.components.v1.html(audio_html, height=45)
-                    except:
-                        pass
-                else:
-                    if energy_val == 0:
-                        color_block_text = "🟥\n🟥\n🟥\n🟥"
-                    elif energy_val == 1:
-                        color_block_text = "🟧\n🟧\n🟧"
-                    elif energy_val == 2:
-                        color_block_text = "🟨\n🟨"
-                    else:
-                        color_block_text = "🟩"
-                   
-                    if st.button(color_block_text, key=f"bar_touch_{real_sheet_name}_{orig_idx}"):
-                        new_energy = energy_val + 1 if energy_val < 3 else 0
-                        st.session_state[user_data_key][orig_idx]['energy'] = new_energy
-                       
-                        threading.Thread(
-                            target=save_to_google_sheet,
-                            args=(sheet, row_idx, 4, new_energy),
-                            daemon=True
-                        ).start()
-                       
-                        st.rerun()
-                       
-            st.write("---")
-
-    # 최적화된 문장 리스트 조각 렌더링 실행
-    render_sentence_list()
+        st.write("---")
 
 # ==============================================================================
 # 🔀 [모드 2] 🎧 리스닝 마스터 (동일 유지)
@@ -745,7 +755,7 @@ else:
             padding-left: 10px !important;
             padding-right: 0px !important;
         }
-       
+        
         .custom-title {
             font-size: 26px !important;
             font-weight: bold !important;
@@ -759,7 +769,7 @@ else:
         button[title="Fork this app"] {display: none !important; visibility: hidden !important;}
         header {visibility: hidden !important; height: 0px !important;}
         footer {visibility: hidden !important; height: 0px !important;}
-       
+        
         .track-title {
             font-size: 17px;
             font-weight: bold;
@@ -777,7 +787,7 @@ else:
         }
         </style>
     """, unsafe_allow_html=True)
-   
+    
     st.markdown("<div class='custom-title'>👑 리스닝 마스터 👑</div>", unsafe_allow_html=True)
     st.write("---")
 
@@ -813,7 +823,7 @@ else:
             return
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M") if mark_as_done else ""
         is_completed_str = "TRUE" if mark_as_done else "FALSE"
-       
+        
         try:
             records = ws.get_all_records()
             found_row = None
@@ -821,7 +831,7 @@ else:
                 if r.get('filename') == filename:
                     found_row = idx
                     break
-           
+            
             if found_row:
                 ws.update_cell(found_row, 2, is_completed_str)
                 ws.update_cell(found_row, 3, now_str)
@@ -841,7 +851,7 @@ else:
                 if r.get('filename') == filename:
                     found_row = idx
                     break
-           
+            
             if found_row:
                 ws.update_cell(found_row, 4, note_text)
             else:
@@ -852,7 +862,7 @@ else:
     def build_drive_service():
         creds_dict = json.loads(st.secrets["gcp_service_account"])
         creds = ServiceAccountCredentials.from_json_keyfile_dict(
-            creds_dict,
+            creds_dict, 
             scopes=["https://www.googleapis.com/auth/drive.readonly"]
         )
         return build('drive', 'v3', credentials=creds)
@@ -917,12 +927,12 @@ else:
                 st.session_state[play_state_key] = False
 
             c1, c2 = st.columns([7.5, 2.5])
-           
+            
             with c1:
                 st.markdown(f"<div class='track-title'>🎵 {idx}. {fname}</div>", unsafe_allow_html=True)
                 if is_done:
                     st.markdown(f"<div class='badge-completed'>✅ 완독: {done_time}</div>", unsafe_allow_html=True)
-           
+            
             with c2:
                 btn_label = "❚❚ 닫기" if st.session_state[play_state_key] else "▶ 재생"
                 if st.button(btn_label, key=f"btn_toggle_{fid}"):
@@ -932,7 +942,7 @@ else:
             if st.session_state[play_state_key]:
                 with st.spinner(f"📥 [{fname}] 음성 로딩 중..."):
                     audio_bytes = download_audio_bytes(fid)
-               
+                
                 if audio_bytes:
                     b64_audio = base64.b64encode(audio_bytes).decode('utf-8')
                     player_id = f"custom_audio_{fid}"
@@ -987,14 +997,14 @@ else:
                     </script>
                     """
                     st.components.v1.html(custom_player_html, height=140)
-                   
+                    
                     user_note = st.text_area(
                         "📝 나만의 청취 메모 (중요 표현, 구간 적기):",
                         value=current_note,
                         key=f"note_input_{fid}",
                         height=80
                     )
-                   
+                    
                     col_note_btn, col_blank = st.columns([3, 7])
                     with col_note_btn:
                         if st.button("💾 메모 저장하기", key=f"save_note_btn_{fid}"):
@@ -1034,8 +1044,8 @@ else:
                                 st.rerun()
                 else:
                     st.error("오디오 로딩 실패")
-           
+            
             st.write("---")
-           
+            
     else:
         st.warning("구글 드라이브 폴더에 MP3 파일이 없습니다.")
