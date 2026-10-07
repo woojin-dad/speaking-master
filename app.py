@@ -18,7 +18,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 💡 모바일 스크린 확대 허용 및 '방치 후 세션 먹통' 자동 감지·복구 스크립트
+# 💡 모바일 스크린 확대 허용 메타 태그 & 방치 후 세션 먹통 방지 스크립트
 st.markdown("""
     <script>
         var meta = document.createElement('meta');
@@ -26,12 +26,10 @@ st.markdown("""
         meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
         document.getElementsByTagName('head')[0].appendChild(meta);
 
-        // 💡 핸드폰을 끄거나 방치했다가 다시 켰을 때(화면이 다시 보일 때) 세션 끊김 자동 복구
         let lastVisibleTime = Date.now();
         document.addEventListener("visibilitychange", function() {
             if (document.visibilityState === "visible") {
                 let currentTime = Date.now();
-                // 15분 이상 화면을 보지 않고 백그라운드에 두었다가 켰다면 자동 새로고침하여 먹통 방지
                 if (currentTime - lastVisibleTime > 15 * 60 * 1000) {
                     location.reload();
                 }
@@ -72,11 +70,10 @@ if app_mode == "🗣️ 스피킹 마스터":
         except:
             return ["동탕"]
 
-    existing_sheets = get_sheet_titles()
-    menu_options = []
-    for title in existing_sheets:
-        menu_options.append(title)
-        menu_options.append(f"{title} (우선순위)")
+    # 💡 우선순위 옵션을 제거하고 순수 시트 이름들만 메뉴에 담도록 수정
+    menu_options = get_sheet_titles()
+    if not menu_options:
+        menu_options = ["동탕"]
 
     if "pure_main_menu_box" in st.session_state and st.session_state["pure_main_menu_box"] in menu_options:
         selected_menu = st.session_state["pure_main_menu_box"]
@@ -88,8 +85,8 @@ if app_mode == "🗣️ 스피킹 마스터":
 
     st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="pure_main_menu_box")
 
-    real_sheet_name = selected_menu.replace(" (우선순위)", "").strip()
-    is_priority_mode = "우선순위" in selected_menu
+    real_sheet_name = selected_menu.strip()
+    is_priority_mode = False  # 우선순위 모드 비활성화
 
     # 🔤 글자 크기 조절
     font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=26, max_value=50, value=26, step=1, key="pure_font_slider")
@@ -658,8 +655,7 @@ if app_mode == "🗣️ 스피킹 마스터":
 
     display_records = filtered_records
 
-    if is_priority_mode:
-        display_records = sorted(display_records, key=lambda x: x['energy'])
+    # 우선순위 정렬 로직 제거됨 (시트 순서 그대로 출력)
 
     st.write("---")
 
@@ -670,7 +666,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             except:
                 pass
 
-    # 💡 문장 리스트 출력 루프 (어제 잘 되던 그 안정적인 정석 방식 복원)
+    # 💡 순수 시트 순서대로 문장 리스트 출력 루프
     for item in display_records:
         orig_idx = item['original_index']
         row_idx = item['original_row']
