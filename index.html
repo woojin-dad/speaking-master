@@ -141,7 +141,7 @@
       </div>
     </div>
 
-    <!-- 문장 리스트 출력 영역 (0.1초 즉시 토글) -->
+    <!-- 문장 리스트 출력 영역 -->
     <div id="sentenceContainer" class="flex flex-col gap-2.5">
       <div class="text-center py-10 text-slate-400">Loading sentences...</div>
     </div>
@@ -200,9 +200,6 @@
     function changeSpeed(val) {
       currentSpeed = parseFloat(val);
       document.getElementById('speedVal').textContent = val + 'x';
-      document.querySelectorAll('audio').forEach(audio => {
-        audio.playbackRate = currentSpeed;
-      });
     }
 
     function initSpeakingMaster() {
@@ -277,34 +274,26 @@
         const rowDiv = document.createElement('div');
         rowDiv.className = "flex items-center gap-3 bg-white p-3 rounded-2xl shadow-sm border border-slate-200";
 
-        const btnId = `sent_btn_${currentSheetName}_${index}`;
         const leftCol = document.createElement('div');
         leftCol.className = "flex-1";
         
         const sentenceBtn = document.createElement('button');
-        sentenceBtn.id = btnId;
         sentenceBtn.className = "sentence-btn w-full font-black";
         sentenceBtn.style.fontSize = currentFontSize + 'px';
         sentenceBtn.innerHTML = `${item.id}.<br>${item.kr}`;
         sentenceBtn.dataset.state = 'kr';
         sentenceBtn.dataset.kr = `${item.id}.\n${item.kr}`;
         sentenceBtn.dataset.en = `${item.id}.\n${item.en}`;
-        sentenceBtn.dataset.rawEn = item.en;
 
         leftCol.appendChild(sentenceBtn);
 
-        // 우측 영역 (오디오 재생 버튼 + 난이도 에너지 블록)
+        // 우측 영역 (듣기 버튼 공간 + 난이도 에너지 블록)
         const rightCol = document.createElement('div');
         rightCol.className = "w-28 flex items-center gap-2 justify-end";
 
-        // 음성 재생(TTS) 버튼 (영어 변환 시 또는 언제든 누르면 발음 재생)
-        const speakBtn = document.createElement('button');
-        speakBtn.className = "p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-bold text-xs flex items-center justify-center shadow-sm transition";
-        speakBtn.innerHTML = "🔊 듣기";
-        speakBtn.title = "원어민 발음 듣기";
-        speakBtn.onclick = () => {
-          playTTS(item.en);
-        };
+        // 영어로 바뀔 때만 나타날 듣기 버튼 컨테이너
+        const actionSlot = document.createElement('div');
+        actionSlot.className = "flex items-center";
 
         const energyBtn = document.createElement('button');
         energyBtn.className = "energy-btn flex-1 text-xs font-black p-2";
@@ -315,20 +304,32 @@
           localStorage.setItem(`sheet_cache_${currentSheetName}`, JSON.stringify(rows));
         };
 
-        // 문장 클릭 시 토글 (한글 <-> 영어)
+        // 문장 클릭 시 토글 (한글 <-> 영어) 및 듣기 버튼 동적 생성
         sentenceBtn.onclick = () => {
           if (sentenceBtn.dataset.state === 'kr') {
+            // 영어로 전환
             sentenceBtn.innerText = sentenceBtn.dataset.en;
             sentenceBtn.dataset.state = 'en';
-            // 영어로 바뀔 때 자동으로 원어민 발음도 같이 재생되게 할 수도 있음
+            
+            // 영어로 바뀔 때만 [🔊 듣기] 버튼 생성해서 보여주기
+            actionSlot.innerHTML = `
+              <button onclick="event.stopPropagation(); playTTS('${item.en.replace(/'/g, "\\'")}')" 
+                class="p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-bold text-xs shadow-sm transition whitespace-nowrap">
+                🔊 듣기
+              </button>
+            `;
+            // 자동 음성 재생
             playTTS(item.en);
           } else {
+            // 한글로 복원
             sentenceBtn.innerText = sentenceBtn.dataset.kr;
             sentenceBtn.dataset.state = 'kr';
+            // 한글 상태일 때는 듣기 버튼 숨기기
+            actionSlot.innerHTML = '';
           }
         };
 
-        rightCol.appendChild(speakBtn);
+        rightCol.appendChild(actionSlot);
         rightCol.appendChild(energyBtn);
 
         rowDiv.appendChild(leftCol);
@@ -337,16 +338,12 @@
       });
     }
 
-    // 브라우저 내장 Web Speech API를 활용한 고성능 즉시 TTS 발음 재생
     function playTTS(text) {
-      if (!('speechSynthesis' in window)) {
-        alert("이 브라우저는 음성 재생을 지원하지 않습니다.");
-        return;
-      }
-      window.speechSynthesis.cancel(); // 이전 재생 중인 음성 즉시 중단
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'en-US';
-      utterance.rate = currentSpeed; // 슬라이더로 조절한 속도 즉시 반영
+      utterance.rate = currentSpeed;
       window.speechSynthesis.speak(utterance);
     }
 
