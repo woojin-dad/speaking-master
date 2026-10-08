@@ -70,7 +70,6 @@ if app_mode == "🗣️ 스피킹 마스터":
         except:
             return ["동탕"]
 
-    # 💡 우선순위 옵션을 제거하고 순수 시트 이름들만 메뉴에 담도록 수정
     menu_options = get_sheet_titles()
     if not menu_options:
         menu_options = ["동탕"]
@@ -83,10 +82,22 @@ if app_mode == "🗣️ 스피킹 마스터":
     st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
     st.write("---")
 
-    st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="pure_main_menu_box")
+    col_menu_box, col_refresh_btn = st.columns([7.5, 2.5])
+    with col_menu_box:
+        st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="pure_main_menu_box")
+    
+    with col_refresh_btn:
+        st.write("") # 정렬 맞춤용 공백
+        st.write("")
+        if st.button("🔄 시트 문장 새로고침", key="manual_sheet_refresh_btn"):
+            # 캐시 및 세션 강제 초기화 후 새로고침
+            keys_to_clear = [k for k in st.session_state.keys() if "records_cache_" in k or "sheet_" in k or "last_menu" in k]
+            for k in keys_to_clear:
+                del st.session_state[k]
+            st.success("최신 시트 데이터를 불러왔습니다!")
+            st.rerun()
 
     real_sheet_name = selected_menu.strip()
-    is_priority_mode = False  # 우선순위 모드 비활성화
 
     # 🔤 글자 크기 조절
     font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=26, max_value=50, value=26, step=1, key="pure_font_slider")
@@ -308,6 +319,7 @@ if app_mode == "🗣️ 스피킹 마스터":
     if "last_menu" not in st.session_state:
         st.session_state["last_menu"] = selected_menu
 
+    # 💡 [핵심 최적화] 최초 로딩 또는 수동 새로고침 시에만 구글 시트에 접근하여 메모리에 캐싱
     if st.session_state["last_menu"] != selected_menu or user_data_key not in st.session_state:
         st.session_state["last_menu"] = selected_menu
         try:
@@ -655,8 +667,6 @@ if app_mode == "🗣️ 스피킹 마스터":
 
     display_records = filtered_records
 
-    # 우선순위 정렬 로직 제거됨 (시트 순서 그대로 출력)
-
     st.write("---")
 
     def save_to_google_sheet(sheet_obj, row, col, val):
@@ -666,7 +676,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             except:
                 pass
 
-    # 💡 순수 시트 순서대로 문장 리스트 출력 루프
+    # 💡 순수 시트 순서대로 문장 리스트 출력 루프 (메모리 캐시 기반 즉시 전환)
     for item in display_records:
         orig_idx = item['original_index']
         row_idx = item['original_row']
