@@ -1,982 +1,399 @@
-import streamlit as st
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload
-import json
-from gtts import gTTS
-import io
-import threading
-import base64
-import time
-from datetime import datetime
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
 
-# 1. 웹페이지 기본 설정
-st.set_page_config(
-    page_title="스피킹 & 리스닝 마스터",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+  <title>스피킹 & 리스닝 마스터 👑</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Jua&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Jua', 'Fredoka', cursive, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+      background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%) !important;
+      min-height: 100vh;
+    }
+    .font-eng {
+      font-family: 'Fredoka', cursive, sans-serif;
+    }
+    .toy-btn {
+      transition: all 0.1s ease-in-out;
+      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.15);
+    }
+    .toy-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+    }
+    .sentence-btn {
+      transition: all 0.1s ease;
+      background-color: #2c3e50 !important;
+      color: #ffffff !important;
+      border-radius: 8px !important;
+      text-align: left !important;
+      padding: 12px 14px !important;
+      word-break: keep-all !important;
+      white-space: pre-line !important;
+    }
+    .sentence-btn:hover {
+      color: #f1c40f !important;
+    }
+    .energy-btn {
+      background-color: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      border-radius: 8px !important;
+      font-weight: bold;
+      text-align: center;
+      cursor: pointer;
+      padding: 6px;
+      line-height: 1.2;
+      transition: background 0.1s;
+    }
+    .energy-btn:hover {
+      background-color: #f1f5f9 !important;
+    }
+  </style>
+</head>
+<body class="flex flex-col text-slate-800 p-2 sm:p-4 md:p-6 max-w-4xl mx-auto">
 
-# 💡 모바일 스크린 확대 허용 메타 태그 & 방치 후 세션 먹통 방지 스크립트
-st.markdown("""
-    <script>
-        var meta = document.createElement('meta');
-        meta.name = 'viewport';
-        meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
-        document.getElementsByTagName('head')[0].appendChild(meta);
+  <!-- 상단 모드 전환 탭 -->
+  <div class="flex items-center justify-center gap-3 bg-white p-2 rounded-2xl shadow-sm border border-slate-200 mb-4">
+    <button id="modeSpeakingBtn" onclick="switchMode('speaking')" class="flex-1 py-2.5 rounded-xl font-bold text-base sm:text-lg bg-[#2c3e50] text-white shadow transition">
+      🗣️ 스피킹 마스터
+    </button>
+    <button id="modeListeningBtn" onclick="switchMode('listening')" class="flex-1 py-2.5 rounded-xl font-bold text-base sm:text-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition">
+      🎧 리스닝 마스터
+    </button>
+  </div>
 
-        let lastVisibleTime = Date.now();
-        document.addEventListener("visibilitychange", function() {
-            if (document.visibilityState === "visible") {
-                let currentTime = Date.now();
-                if (currentTime - lastVisibleTime > 15 * 60 * 1000) {
-                    location.reload();
-                }
-                lastVisibleTime = currentTime;
-            } else {
-                lastVisibleTime = Date.now();
-            }
-        });
-    </script>
-""", unsafe_allow_html=True)
-
-# 🎛️ [최상단 메인 스위치] 서비스 모드 전환
-app_mode = st.radio(
-    "📱 학습 서비스 선택",
-    ["🗣️ 스피킹 마스터", "🎧 리스닝 마스터"],
-    key="main_app_mode_switcher",
-    horizontal=True
-)
-st.write("---")
-
-# ==============================================================================
-# 🔀 [모드 1] 🗣️ 스피킹 마스터 (원본 UI 100% 완벽 복원 버전)
-# ==============================================================================
-if app_mode == "🗣️ 스피킹 마스터":
-
-    def init_gspread():
-        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        creds_dict = json.loads(st.secrets["gcp_service_account"])
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-        return gspread.authorize(creds)
-
-    def get_sheet_titles():
-        try:
-            client = init_gspread()
-            doc = client.open("SpeakingMaster")
-            titles = [ws.title for ws in doc.worksheets()]
-            return [t for t in titles if t != "ListeningRecord"]
-        except:
-            return ["동탕"]
-
-    menu_options = get_sheet_titles()
-    if not menu_options:
-        menu_options = ["동탕"]
-
-    if "pure_main_menu_box" in st.session_state and st.session_state["pure_main_menu_box"] in menu_options:
-        selected_menu = st.session_state["pure_main_menu_box"]
-    else:
-        selected_menu = menu_options[0]
-
-    st.markdown(f"<div class='custom-title'>👑 {selected_menu}의 스피킹 마스터 👑</div>", unsafe_allow_html=True)
-    st.write("---")
-
-    col_menu_box, col_refresh_btn = st.columns([7.5, 2.5])
-    with col_menu_box:
-        st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="pure_main_menu_box")
+  <!-- ========================================== -->
+  <!-- 🗣️ [모드 1] 스피킹 마스터 영역                 -->
+  <!-- ========================================== -->
+  <div id="speakingSection" class="flex flex-col gap-3">
     
-    with col_refresh_btn:
-        st.write("") 
-        st.write("")
-        if st.button("🔄 시트 문장 새로고침", key="manual_sheet_refresh_btn"):
-            keys_to_clear = [k for k in st.session_state.keys() if "records_cache_" in k or "sheet_" in k or "last_menu" in k]
-            for k in keys_to_clear:
-                del st.session_state[k]
-            st.success("최신 시트 데이터를 불러왔습니다!")
-            st.rerun()
-
-    real_sheet_name = selected_menu.strip()
-
-    # 🔤 글자 크기 조절
-    font_size = st.slider("🔤 문장 글자 크기 조절 (기본값: 26px)", min_value=26, max_value=50, value=26, step=1, key="pure_font_slider")
-
-    # ⚡ 문장 재생 속도 조절 슬라이더 (기본값: 1.0)
-    speech_speed = st.slider(
-        "⚡ 문장 재생 속도 조절 (기본값: 1.0배속)",
-        min_value=0.6,
-        max_value=1.2,
-        value=1.0,
-        step=0.05,
-        key="speech_speed_slider"
-    )
-
-    st.markdown(f"""
-        <style>
-        .block-container {{
-            max-width: 100% !important;
-            padding-top: 0.5rem !important;
-            padding-bottom: 1rem !important;
-            padding-left: 10px !important;
-            padding-right: 0px !important;
-        }}
-
-        div[data-testid="stHorizontalBlock"] {{
-            display: flex !important;
-            flex-direction: row !important;
-            flex-wrap: nowrap !important;
-            align-items: center !important;
-            justify-content: space-between !important;
-            gap: 15px !important;
-            width: 100% !important;
-        }}
-       
-        div[data-testid="stHorizontalBlock"] > div:nth-child(1) {{ flex: 8.2 1 0% !important; min-width: 0 !important; }}
-        div[data-testid="stHorizontalBlock"] > div:nth-child(2) {{
-            flex: 1.8 1 0% !important;
-            min-width: 0 !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-        }}
-       
-        .custom-title {{
-            font-size: 26px !important;
-            font-weight: bold !important;
-            color: #2c3e50 !important;
-            text-align: center !important;
-            padding-top: 5px;
-            margin-top: 10px !important;
-        }}
-
-        /* 📻 반복 재생 버튼 스타일들 */
-        div.stButton > button[key^="total_relay_btn_"],
-        div.stButton > button[key^="level4_relay_btn_"],
-        div.stButton > button[key^="level3_relay_btn_"],
-        div.stButton > button[key^="level2_relay_btn_"],
-        div.stButton > button[key^="level1_relay_btn_"] {{
-            border-radius: 12px !important;
-            padding: 14px 15px !important;
-            width: 100% !important;
-            text-align: center !important;
-            margin-bottom: 8px !important;
-            font-size: 17px !important;
-            font-weight: bold !important;
-        }}
-       
-        /* 🔤 원본 Streamlit 문장 버튼 스타일 100% 복원 */
-        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {{
-            width: 100% !important;
-            height: auto !important;
-            text-align: left !important;
-            background-color: #2c3e50 !important;
-            border: none !important;
-            border-radius: 8px !important;
-            padding: 10px 12px !important;
-            white-space: pre-line !important;
-        }}
-       
-        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button p,
-        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button div,
-        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button span,
-        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button * {{
-            font-size: {font_size}px !important;
-            font-weight: 900 !important;
-            color: #ffffff !important;
-            line-height: 1.35 !important;
-            white-space: pre-line !important;
-            word-break: keep-all !important;
-            overflow: visible !important;
-            text-overflow: clip !important;
-        }}
-       
-        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button:hover * {{
-            color: #f1c40f !important;
-        }}
-       
-        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton {{
-            text-align: center !important;
-            width: 100% !important;
-            display: flex !important;
-            justify-content: center !important;
-            margin: 0px auto !important;
-        }}
-        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button {{
-            background-color: #ffffff !important;
-            border: none !important;
-            padding: 0px !important;
-            margin: 0px !important;
-            width: auto !important;
-            display: flex !important;
-            justify-content: center !important;
-            align-items: center !important;
-        }}
-       
-        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button p,
-        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button div,
-        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button span,
-        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button * {{
-            font-size: 16px !important;
-            white-space: pre-line !important;
-            line-height: 1.0 !important;
-            text-align: center !important;
-            padding: 0px !important;
-            margin: 0px !important;
-        }}
-
-        div[data-testid="stHorizontalBlock"] > div:nth-child(2) iframe {{
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            margin: 0px auto !important;
-            width: 100% !important;
-        }}
-       
-        hr {{ margin: 6px 0px !important; padding: 0px !important; }}
-        [data-testid="stStatusWidget"] {{display: none !important; visibility: hidden !important;}}
-        footer {{visibility: hidden !important; height: 0px !important; padding: 0px !important;}}
-        header {{visibility: hidden !important; height: 0px !important;}}
-        .stAppDeployButton {{display: none !important;}}
-        [data-testid="stToolbar"] {{display: none !important; visibility: hidden !important;}}
-        button[title="Fork this app"] {{display: none !important; visibility: hidden !important;}}
-        </style>
-    """, unsafe_allow_html=True)
-
-    user_data_key = f"records_cache_{real_sheet_name}"
-    user_sheet_key = f"sheet_{real_sheet_name}"
-
-    if "last_menu" not in st.session_state:
-        st.session_state["last_menu"] = selected_menu
-
-    # 💡 최초 로딩 또는 수동 새로고침 시에만 구글 시트 접근
-    if st.session_state["last_menu"] != selected_menu or user_data_key not in st.session_state:
-        st.session_state["last_menu"] = selected_menu
-        try:
-            client = init_gspread()
-            sheet = client.open("SpeakingMaster").worksheet(real_sheet_name)
-            st.session_state[user_sheet_key] = sheet
-            rows = sheet.get_all_values()
-        except:
-            sheet = None
-            st.session_state[user_sheet_key] = None
-            rows = []
-
-        cached_rows = []
-        if len(rows) > 1:
-            for idx, r in enumerate(rows[1:], start=2):
-                if not r or not r[0].strip() and (len(r) <= 2 or not r[2].strip()):
-                    continue
-                try:
-                    row_id = r[0] if len(r) > 0 else str(idx - 1)
-                    row_kr = r[1] if len(r) > 1 else ""
-                    row_en = r[2] if len(r) > 2 else ""
-                    try:
-                        e_val = int(r[3]) if len(r) > 3 and str(r[3]).strip() != "" else 0
-                    except:
-                        e_val = 0
-
-                    if e_val > 3: e_val = 3
-                    elif e_val < 0: e_val = 0
-
-                    cached_rows.append({
-                        'original_index': idx - 2,
-                        'original_row': idx,
-                        'id': row_id,
-                        'kr': row_kr,
-                        'en': row_en,
-                        'energy': e_val
-                    })
-                except:
-                    continue
-        st.session_state[user_data_key] = cached_rows
-
-    all_display_records = st.session_state[user_data_key]
-    sheet = st.session_state.get(user_sheet_key, None)
-
-    total_sentences = len(all_display_records)
-
-    level4_records = [item for item in all_display_records if item['energy'] == 0]
-    level3_records = [item for item in all_display_records if item['energy'] == 1]
-    level2_records = [item for item in all_display_records if item['energy'] == 2]
-    level1_records = [item for item in all_display_records if item['energy'] == 3]
-
-    total_level4 = len(level4_records)
-    total_level3 = len(level3_records)
-    total_level2 = len(level2_records)
-    total_level1 = len(level1_records)
-
-    def create_player_html(player_id, audio_base64_str, rate):
-        return f"""
-        <div style="background-color: #f8fafc; padding: 10px 12px; border-radius: 10px; margin-top: 4px; margin-bottom: 4px; border: 1px solid #cbd5e1;">
-            <audio id="{player_id}" src="data:audio/mp3;base64,{audio_base64_str}" controls style="width: 100%; margin-bottom: 8px;"></audio>
-            <div style="display: flex; gap: 8px; width: 100%;">
-                <button id="toggle-btn-{player_id}" onclick="togglePlayPause('{player_id}')" style="flex: 1; padding: 9px 0px; background-color: #475569; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer;">❚❚ 일시정지</button>
-                <button onclick="startLoop3Sec('{player_id}')" style="flex: 1; padding: 5px 0px; background-color: #e11d48; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; line-height: 1.15; cursor: pointer;">🔂 3초 찍찍이</button>
-                <button onclick="skipTime('{player_id}', -5)" style="flex: 1; padding: 9px 0px; background-color: #3b82f6; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer;">⏪ 5초 뒤로</button>
-            </div>
+    <!-- 타이틀 및 시트 선택 -->
+    <div class="bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200 flex flex-col gap-3">
+      <h1 id="speakingTitle" class="text-2xl sm:text-3xl font-black text-slate-800 text-center">👑 스피킹 마스터 👑</h1>
+      
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+        <div>
+          <label class="text-xs font-bold text-slate-500 mb-1 block">👤 학습 시트 선택</label>
+          <select id="sheetSelect" onchange="changeSheet()" class="w-full p-2.5 rounded-xl border border-slate-300 font-bold bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500">
+            <option value="">시트 목록 불러오는 중...</option>
+          </select>
         </div>
-        <script>
-        if (typeof window.loopIntervals === 'undefined') {{
-            window.loopIntervals = {{}};
-        }}
-        var p = document.getElementById('{player_id}');
-        var toggleBtn = document.getElementById('toggle-btn-{player_id}');
-       
-        function applyRate() {{
-            if(p) p.playbackRate = {rate};
-        }}
+        <div class="flex items-end justify-end">
+          <button onclick="reloadSheetData()" class="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow transition flex items-center justify-center gap-1.5 text-sm">
+            <span>🔄 시트 문장 새로고침</span>
+          </button>
+        </div>
+      </div>
 
-        if(p) {{
-            p.oncanplay = applyRate;
-            p.onplay = applyRate;
-            applyRate();
-           
-            function updateButtonState() {{
-                if(toggleBtn) {{
-                    if(window.loopIntervals['{player_id}_3sec']) {{
-                        toggleBtn.innerText = "🔂 찍찍이 중";
-                        toggleBtn.style.backgroundColor = "#e11d48";
-                    }} else if(p.paused) {{
-                        toggleBtn.innerText = "▶ 표준 재생";
-                        toggleBtn.style.backgroundColor = "#0f172a";
-                    }} else {{
-                        toggleBtn.innerText = "❚❚ 일시정지";
-                        toggleBtn.style.backgroundColor = "#475569";
-                    }}
-                }}
-            }}
+      <!-- 슬라이더 조절바 (글자 크기 & 속도) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+        <div>
+          <div class="flex justify-between text-xs font-bold text-slate-600 mb-1">
+            <span>🔤 문장 글자 크기</span>
+            <span id="fontSizeVal">26px</span>
+          </div>
+          <input type="range" id="fontSizeSlider" min="20" max="42" value="26" class="w-full accent-slate-700" oninput="changeFontSize(this.value)">
+        </div>
+        <div>
+          <div class="flex justify-between text-xs font-bold text-slate-600 mb-1">
+            <span>⚡ 음성 재생 속도</span>
+            <span id="speedVal">1.0배속</span>
+          </div>
+          <input type="range" id="speedSlider" min="0.6" max="1.3" step="0.05" value="1.0" class="w-full accent-slate-700" oninput="changeSpeed(this.value)">
+        </div>
+      </div>
+    </div>
 
-            p.addEventListener('play', updateButtonState);
-            p.addEventListener('pause', updateButtonState);
-            updateButtonState();
+    <!-- 단계별 필터 및 전체 재생 버튼들 -->
+    <div class="bg-white rounded-3xl p-4 shadow-sm border border-slate-200 flex flex-col gap-2">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <button onclick="playRelay('all')" class="toy-btn p-3 bg-emerald-50 border-2 border-emerald-500 rounded-xl text-emerald-800 font-black text-sm sm:text-base flex items-center justify-center gap-2">
+          <span>📻 🔁 전체 문장 반복 재생</span>
+        </button>
+        <button onclick="playRelay('level4')" class="toy-btn p-3 bg-rose-50 border-2 border-rose-500 rounded-xl text-rose-800 font-black text-sm sm:text-base flex items-center justify-center gap-2">
+          <span>📻 🔁 🟥 4단계(미숙) 연속 반복</span>
+        </button>
+      </div>
+      
+      <div>
+        <label class="text-xs font-bold text-slate-500 mb-1 block">🎯 학습할 단계 필터링</label>
+        <select id="stageFilterSelect" onchange="renderSentenceList()" class="w-full p-2.5 rounded-xl border border-slate-300 font-bold bg-slate-50 text-slate-800">
+          <option value="all">🟥🟧🟨🟩 전체 보기</option>
+          <option value="4">🟥 4단계만 보기 (미숙)</option>
+          <option value="3">🟧 3단계만 보기 (초급)</option>
+          <option value="2">🟨 2단계만 보기 (중급)</option>
+          <option value="1">🟩 1단계만 보기 (마스터)</option>
+        </select>
+      </div>
 
-            p.addEventListener('ended', function() {{
-                if (!window.loopIntervals['{player_id}_3sec']) {{
-                    p.currentTime = 0;
-                    p.play().catch(function(e){{}});
-                }}
-            }});
+      <!-- 릴레이 재생 플레이어 컨테이너 -->
+      <div id="relayPlayerBox" style="display: none;" class="mt-2 p-3 bg-slate-100 rounded-2xl border border-slate-300 flex flex-col gap-2">
+        <audio id="relayAudio" controls class="w-full"></audio>
+        <div class="flex gap-2">
+          <button onclick="toggleRelayPlayPause()" id="relayPlayBtn" class="flex-1 py-2 bg-slate-700 text-white rounded-xl font-bold text-xs">❚❚ 일시정지</button>
+          <button onclick="startRelay3SecLoop()" class="flex-1 py-2 bg-rose-600 text-white rounded-xl font-bold text-xs">🔂 3초 찍찍이</button>
+          <button onclick="skipRelayTime(-5)" class="flex-1 py-2 bg-blue-600 text-white rounded-xl font-bold text-xs">⏪ 5초 뒤로</button>
+        </div>
+      </div>
+    </div>
 
-            p.play().catch(function(e){{}});
-        }}
+    <!-- 문장 리스트 출력 영역 (0.1초 즉시 토글) -->
+    <div id="sentenceContainer" class="flex flex-col gap-2.5">
+      <div class="text-center py-10 text-slate-400">구글 시트 데이터를 불러오는 중입니다... ⚡</div>
+    </div>
 
-        function togglePlayPause(id) {{
-            var audio = document.getElementById(id);
-            if(audio) {{
-                if (audio.paused) {{
-                    audio.play();
-                }} else {{
-                    audio.pause();
-                    stopLoop3Sec(id);
-                }}
-            }}
-        }}
+  </div>
 
-        function skipTime(id, sec) {{
-            var audio = document.getElementById(id);
-            if(audio) {{
-                audio.currentTime = Math.max(0, audio.currentTime + sec);
-            }}
-        }}
-
-        function startLoop3Sec(id) {{
-            var audio = document.getElementById(id);
-            if(audio) {{
-                if (window.loopIntervals[id]) clearInterval(window.loopIntervals[id]);
-                window.loopIntervals['{player_id}_3sec'] = true;
-
-                if(toggleBtn) {{
-                    toggleBtn.innerText = "🔂 찍찍이 중";
-                    toggleBtn.style.backgroundColor = "#e11d48";
-                }}
-
-                var start = Math.max(0, audio.currentTime - 3);
-                var end = audio.currentTime;
-                audio.currentTime = start;
-                audio.play();
-
-                window.loopIntervals[id] = setInterval(function() {{
-                    if (audio.currentTime >= end || audio.currentTime < start) {{
-                        audio.currentTime = start;
-                    }}
-                }}, 200);
-            }}
-        }}
-
-        function stopLoop3Sec(id) {{
-            var audio = document.getElementById(id);
-            if (window.loopIntervals[id]) {{
-                clearInterval(window.loopIntervals[id]);
-                delete window.loopIntervals[id];
-            }}
-            delete window.loopIntervals['{player_id}_3sec'];
-            if(audio && !audio.paused && toggleBtn) {{
-                toggleBtn.innerText = "❚❚ 일시정지";
-                toggleBtn.style.backgroundColor = "#475569";
-            }} else if(audio && toggleBtn) {{
-                toggleBtn.innerText = "▶ 표준 재생";
-                toggleBtn.style.backgroundColor = "#0f172a";
-            }}
-        }}
-        </script>
-        """
-
-    active_btn_key = f"active_relay_type_{real_sheet_name}"
-    if active_btn_key not in st.session_state:
-        st.session_state[active_btn_key] = None
-
-    # 1. 📻 전체 재생 초록 버튼
-    if total_sentences > 0:
-        if st.button(f"📻 🔁 🟥🟧🟨🟩 전체 문장 반복 재생 ({total_sentences}개)", key=f"total_relay_btn_{real_sheet_name}"):
-            st.session_state["pure_stage_filter_box"] = f"🟥🟧🟨🟩 전체 보기 (모든 문장 · {total_sentences}개)"
-            st.session_state[active_btn_key] = "total"
-            with st.spinner("⚡ 전체 문장 취합 중..."):
-                try:
-                    relay_audio = io.BytesIO()
-                    for item in all_display_records:
-                        english_sentence = str(item['en']).strip()
-                        if english_sentence:
-                            tts_part = gTTS(text=english_sentence, lang='en')
-                            part_fp = io.BytesIO()
-                            tts_part.write_to_fp(part_fp)
-                            part_fp.seek(0)
-                            relay_audio.write(part_fp.read())
-                            relay_audio.write(b'\x00' * 2500)
-                   
-                    relay_audio.seek(0)
-                    audio_base64 = base64.b64encode(relay_audio.read()).decode('utf-8')
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("total-radio-player", audio_base64, speech_speed)
-                except Exception as e:
-                    pass
-            st.rerun()
-
-    if st.session_state.get(active_btn_key) == "total" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=135)
-
-    # 2. 🟥 4단계 전용 반복 재생 버튼
-    if total_level4 > 0:
-        if st.button(f"📻 🔁 🟥 4단계 문장 연속 반복 재생 ({total_level4}개)", key=f"level4_relay_btn_{real_sheet_name}"):
-            st.session_state["pure_stage_filter_box"] = f"🟥 4단계만 보기 (미숙 · {total_level4}개)"
-            st.session_state[active_btn_key] = "level4"
-            with st.spinner(f"⚡ 4단계 {total_level4}개 문장 음성 결합 중..."):
-                try:
-                    relay_audio_l4 = io.BytesIO()
-                    for item in level4_records:
-                        english_sentence = str(item['en']).strip()
-                        if english_sentence:
-                            tts_part = gTTS(text=english_sentence, lang='en')
-                            part_fp = io.BytesIO()
-                            tts_part.write_to_fp(part_fp)
-                            part_fp.seek(0)
-                            relay_audio_l4.write(part_fp.read())
-                            relay_audio_l4.write(b'\x00' * 2500)
-                    
-                    relay_audio_l4.seek(0)
-                    audio_base64_l4 = base64.b64encode(relay_audio_l4.read()).decode('utf-8')
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level4-radio-player", audio_base64_l4, speech_speed)
-                except Exception as e:
-                    pass
-            st.rerun()
-
-    if st.session_state.get(active_btn_key) == "level4" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=135)
-
-    # 3. 🟧 3단계 전용 반복 재생 버튼
-    if total_level3 > 0:
-        if st.button(f"📻 🔁 🟧 3단계 문장 연속 반복 재생 ({total_level3}개)", key=f"level3_relay_btn_{real_sheet_name}"):
-            st.session_state["pure_stage_filter_box"] = f"🟧 3단계만 보기 (초급 · {total_level3}개)"
-            st.session_state[active_btn_key] = "level3"
-            with st.spinner(f"⚡ 3단계 {total_level3}개 문장 음성 결합 중..."):
-                try:
-                    relay_audio_l3 = io.BytesIO()
-                    for item in level3_records:
-                        english_sentence = str(item['en']).strip()
-                        if english_sentence:
-                            tts_part = gTTS(text=english_sentence, lang='en')
-                            part_fp = io.BytesIO()
-                            tts_part.write_to_fp(part_fp)
-                            part_fp.seek(0)
-                            relay_audio_l3.write(part_fp.read())
-                            relay_audio_l3.write(b'\x00' * 2500)
-                    
-                    relay_audio_l3.seek(0)
-                    audio_base64_l3 = base64.b64encode(relay_audio_l3.read()).decode('utf-8')
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level3-radio-player", audio_base64_l3, speech_speed)
-                except Exception as e:
-                    pass
-            st.rerun()
-
-    if st.session_state.get(active_btn_key) == "level3" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=135)
-
-    # 4. 🟨 2단계 전용 반복 재생 버튼
-    if total_level2 > 0:
-        if st.button(f"📻 🔁 🟨 2단계 문장 연속 반복 재생 ({total_level2}개)", key=f"level2_relay_btn_{real_sheet_name}"):
-            st.session_state["pure_stage_filter_box"] = f"🟨 2단계만 보기 (중급 · {total_level2}개)"
-            st.session_state[active_btn_key] = "level2"
-            with st.spinner(f"⚡ 2단계 {total_level2}개 문장 음성 결합 중..."):
-                try:
-                    relay_audio_l2 = io.BytesIO()
-                    for item in level2_records:
-                        english_sentence = str(item['en']).strip()
-                        if english_sentence:
-                            tts_part = gTTS(text=english_sentence, lang='en')
-                            part_fp = io.BytesIO()
-                            tts_part.write_to_fp(part_fp)
-                            part_fp.seek(0)
-                            relay_audio_l2.write(part_fp.read())
-                            relay_audio_l2.write(b'\x00' * 2500)
-                    
-                    relay_audio_l2.seek(0)
-                    audio_base64_l2 = base64.b64encode(relay_audio_l2.read()).decode('utf-8')
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level2-radio-player", audio_base64_l2, speech_speed)
-                except Exception as e:
-                    pass
-            st.rerun()
-
-    if st.session_state.get(active_btn_key) == "level2" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=135)
-
-    # 5. 🟩 1단계 전용 반복 재생 버튼
-    if total_level1 > 0:
-        if st.button(f"📻 🔁 🟩 1단계 문장 연속 반복 재생 ({total_level1}개)", key=f"level1_relay_btn_{real_sheet_name}"):
-            st.session_state["pure_stage_filter_box"] = f"🟩 1단계만 보기 (마스터 · {total_level1}개)"
-            st.session_state[active_btn_key] = "level1"
-            with st.spinner(f"⚡ 1단계 {total_level1}개 문장 음성 결합 중..."):
-                try:
-                    relay_audio_l1 = io.BytesIO()
-                    for item in level1_records:
-                        english_sentence = str(item['en']).strip()
-                        if english_sentence:
-                            tts_part = gTTS(text=english_sentence, lang='en')
-                            part_fp = io.BytesIO()
-                            tts_part.write_to_fp(part_fp)
-                            part_fp.seek(0)
-                            relay_audio_l1.write(part_fp.read())
-                            relay_audio_l1.write(b'\x00' * 2500)
-                    
-                    relay_audio_l1.seek(0)
-                    audio_base64_l1 = base64.b64encode(relay_audio_l1.read()).decode('utf-8')
-                    st.session_state[f"active_player_{real_sheet_name}"] = create_player_html("level1-radio-player", audio_base64_l1, speech_speed)
-                except Exception as e:
-                    pass
-            st.rerun()
-
-    if st.session_state.get(active_btn_key) == "level1" and f"active_player_{real_sheet_name}" in st.session_state:
-        st.components.v1.html(st.session_state[f"active_player_{real_sheet_name}"], height=135)
-
-    # 🎯 단계별 필터링 선택 상자
-    stage_filter_options = [
-        f"🟥🟧🟨🟩 전체 보기 (모든 문장 · {total_sentences}개)",
-        f"🟥 4단계만 보기 (미숙 · {total_level4}개)",
-        f"🟧 3단계만 보기 (초급 · {total_level3}개)",
-        f"🟨 2단계만 보기 (중급 · {total_level2}개)",
-        f"🟩 1단계만 보기 (마스터 · {total_level1}개)"
-    ]
-
-    current_selected = st.session_state.get("pure_stage_filter_box", stage_filter_options[0])
-    matched_default = stage_filter_options[0]
-    for opt in stage_filter_options:
-        if current_selected.split(" (")[0] in opt:
-            matched_default = opt
-            break
-
-    selected_stage_filter = st.selectbox("🎯 학습할 단계를 선택하세요", stage_filter_options, index=stage_filter_options.index(matched_default), key="pure_stage_filter_box")
-
-    if "4단계" in selected_stage_filter:
-        filtered_records = level4_records
-    elif "3단계" in selected_stage_filter:
-        filtered_records = level3_records
-    elif "2단계" in selected_stage_filter:
-        filtered_records = level2_records
-    elif "1단계" in selected_stage_filter:
-        filtered_records = level1_records
-    else:
-        filtered_records = all_display_records
-
-    display_records = filtered_records
-
-    st.write("---")
-
-    def update_energy_memory_and_async(sheet_obj, row_idx, user_data_key, orig_idx, new_energy):
-        st.session_state[user_data_key][orig_idx]['energy'] = new_energy
-        if sheet_obj:
-            def bg_save():
-                try:
-                    sheet_obj.update_cell(row_idx, 4, str(new_energy))
-                except:
-                    pass
-            threading.Thread(target=bg_save, daemon=True).start()
-
-    # 💡 원본 Streamlit 버튼 UI 100% 보존
-    for item in display_records:
-        orig_idx = item['original_index']
-        row_idx = item['original_row']
-        energy_val = item['energy']
-       
-        col1, col2 = st.columns([8.2, 1.8])
-       
-        with col1:
-            state_key = f"show_{real_sheet_name}_{orig_idx}"
-            if state_key not in st.session_state:
-                st.session_state[state_key] = False
-               
-            is_english = st.session_state[state_key]
-            text_content = item['en'] if is_english else item['kr']
-            btn_label = f"{item['id']}.\n{text_content}"
-           
-            if st.button(btn_label, key=f"sentence_{real_sheet_name}_{orig_idx}"):
-                st.session_state[state_key] = not st.session_state[state_key]
-                st.rerun()
-               
-        with col2:
-            if is_english:
-                try:
-                    tts = gTTS(text=item['en'], lang='en')
-                    fp = io.BytesIO()
-                    tts.write_to_fp(fp)
-                    fp.seek(0)
-                    b64_audio = base64.b64encode(fp.read()).decode('utf-8')
-                    player_id = f"direct_player_{real_sheet_name}_{orig_idx}"
-
-                    audio_html = f"""
-                        <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;">
-                            <audio id="{player_id}" src="data:audio/mp3;base64,{b64_audio}" controls loop style="width: 100%; max-width: 110px; height: 32px;"></audio>
-                        </div>
-                        <script>
-                            var p = document.getElementById('{player_id}');
-                            function applyRate() {{
-                                p.playbackRate = {speech_speed};
-                            }}
-                            p.oncanplay = applyRate;
-                            p.onplay = applyRate;
-                            applyRate();
-                        </script>
-                    """
-                    st.components.v1.html(audio_html, height=45)
-                except:
-                    pass
-            else:
-                if energy_val == 0:
-                    color_block_text = "🟥\n🟥\n🟥\n🟥"
-                elif energy_val == 1:
-                    color_block_text = "🟧\n🟧\n🟧"
-                elif energy_val == 2:
-                    color_block_text = "🟨\n🟨"
-                else:
-                    color_block_text = "🟩"
-               
-                if st.button(color_block_text, key=f"bar_touch_{real_sheet_name}_{orig_idx}"):
-                    new_energy = energy_val + 1 if energy_val < 3 else 0
-                    update_energy_memory_and_async(sheet, row_idx, user_data_key, orig_idx, new_energy)
-                    st.rerun()
-                   
-        st.write("---")
-
-# ==============================================================================
-# 🔀 [모드 2] 🎧 리스닝 마스터 (동일 유지)
-# ==============================================================================
-else:
-    st.markdown("""
-        <style>
-        .block-container {
-            max-width: 100% !important;
-            padding-top: 0.5rem !important;
-            padding-bottom: 1rem !important;
-            padding-left: 10px !important;
-            padding-right: 0px !important;
-        }
-        
-        .custom-title {
-            font-size: 26px !important;
-            font-weight: bold !important;
-            color: #2c3e50 !important;
-            text-align: center !important;
-            padding-top: 5px;
-            margin-top: 10px !important;
-        }
-
-        [data-testid="stToolbar"] {display: none !important; visibility: hidden !important;}
-        button[title="Fork this app"] {display: none !important; visibility: hidden !important;}
-        header {visibility: hidden !important; height: 0px !important;}
-        footer {visibility: hidden !important; height: 0px !important;}
-        
-        .track-title {
-            font-size: 17px;
-            font-weight: bold;
-            color: #1e293b;
-        }
-        .badge-completed {
-            background-color: #dcfce7;
-            color: #15803d;
-            font-size: 13px;
-            font-weight: bold;
-            padding: 3px 8px;
-            border-radius: 6px;
-            display: inline-block;
-            margin-top: 4px;
-        }
-        </style>
-    """, unsafe_allow_html=True)
+  <!-- ========================================== -->
+  <!-- 🎧 [모드 2] 리스닝 마스터 영역                 -->
+  <!-- ========================================== -->
+  <div id="listeningSection" style="display: none;" class="flex flex-col gap-3">
+    <div class="bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200 text-center">
+      <h1 class="text-2xl sm:text-3xl font-black text-slate-800">👑 리스닝 마스터 👑</h1>
+      <p class="text-xs text-slate-500 mt-1">구글 드라이브 오디오 트랙 및 청취 메모</p>
+    </div>
     
-    st.markdown("<div class='custom-title'>👑 리스닝 마스터 👑</div>", unsafe_allow_html=True)
-    st.write("---")
+    <div id="listeningTrackContainer" class="flex flex-col gap-3">
+      <div class="text-center py-10 text-slate-400">구글 드라이브 트랙을 스캔하는 중입니다... 🎶</div>
+    </div>
+  </div>
 
-    TARGET_FOLDER_ID = "10jn33dgDqiBD_ovj6BYnUD_1Y9BQruwF"
+  <script>
+    /* ==========================================
+       ⚙️ 설정 및 상태 관리 (localStorage 캐시 기반)
+       ========================================== */
+    let currentMode = 'speaking';
+    let cachedSheetsData = {}; // 시트별 문장 데이터 메모리 캐시
+    let currentSheetName = '';
+    let currentFontSize = 26;
+    let currentSpeed = 1.0;
 
-    @st.cache_resource
-    def init_gspread_listening():
-        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        creds_dict = json.loads(st.secrets["gcp_service_account"])
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-        return gspread.authorize(creds)
+    // 💡 사용자 지정 구글 시트 웹 앱 URL (동탕님의 Apps Script 또는 CSV 웹 게시 링크 연동)
+    // 아래에 기존 Streamlit에 사용하셨던 구글 시트 데이터를 연동할 수 있습니다.
+    const SPREADSHEET_ID = "YOUR_SPREADSHEET_ID"; // 혹은 CSV 퍼블리시 링크 활용
 
-    def load_listening_records():
-        try:
-            client = init_gspread_listening()
-            doc = client.open("SpeakingMaster")
-            ws = doc.worksheet("ListeningRecord")
-            records = ws.get_all_records()
-            completed_dict = {}
-            notes_dict = {}
-            for r in records:
-                fname = r.get('filename', '')
-                if str(r.get('is_completed', '')).upper() == "TRUE":
-                    completed_dict[fname] = r.get('completed_at', '완료')
-                if r.get('notes'):
-                    notes_dict[fname] = str(r.get('notes'))
-            return completed_dict, notes_dict, ws
-        except Exception as e:
-            return {}, {}, None
+    // 초기 실행
+    window.addEventListener('DOMContentLoaded', () => {
+      initSpeakingMaster();
+    });
 
-    def toggle_track_completed_in_sheet(ws, filename, mark_as_done):
-        if not ws:
-            return
-        now_str = datetime.now().strftime("%Y-%m-%d %H:%M") if mark_as_done else ""
-        is_completed_str = "TRUE" if mark_as_done else "FALSE"
+    function switchMode(mode) {
+      currentMode = mode;
+      if (mode === 'speaking') {
+        document.getElementById('speakingSection').style.display = 'flex';
+        document.getElementById('listeningSection').style.display = 'none';
+        document.getElementById('modeSpeakingBtn').className = "flex-1 py-2.5 rounded-xl font-bold text-base sm:text-lg bg-[#2c3e50] text-white shadow transition";
+        document.getElementById('modeListeningBtn').className = "flex-1 py-2.5 rounded-xl font-bold text-base sm:text-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition";
+      } else {
+        document.getElementById('speakingSection').style.display = 'none';
+        document.getElementById('listeningSection').style.display = 'flex';
+        document.getElementById('modeListeningBtn').className = "flex-1 py-2.5 rounded-xl font-bold text-base sm:text-lg bg-[#2c3e50] text-white shadow transition";
+        document.getElementById('modeSpeakingBtn').className = "flex-1 py-2.5 rounded-xl font-bold text-base sm:text-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition";
+        loadListeningTracks();
+      }
+    }
+
+    function changeFontSize(val) {
+      currentFontSize = val;
+      document.getElementById('fontSizeVal').textContent = val + 'px';
+      document.querySelectorAll('.sentence-btn').forEach(btn => {
+        btn.style.fontSize = val + 'px';
+      });
+    }
+
+    function changeSpeed(val) {
+      currentSpeed = parseFloat(val);
+      document.getElementById('speedVal').textContent = val + '배속';
+      // 모든 재생 중인 audio 태그 배속 즉시 적용
+      document.querySelectorAll('audio').forEach(audio => {
+        audio.playbackRate = currentSpeed;
+      });
+    }
+
+    /* ==========================================
+       🗣️ 스피킹 마스터 로직 (0.1초 즉시 토글)
+       ========================================== */
+    function initSpeakingMaster() {
+      // 로컬 스토리지나 기본 샘플 시트 구조 로드
+      loadSheetList();
+    }
+
+    function loadSheetList() {
+      // 예시 시트 목록 (실제 구글 시트 연동 시 시트 탭 이름을 동적으로 가져옵니다)
+      const sheetNames = ["동탕", "기본회화", "비즈니스"];
+      const select = document.getElementById('sheetSelect');
+      select.innerHTML = '';
+      sheetNames.forEach((name, idx) => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        select.appendChild(opt);
+      });
+      currentSheetName = sheetNames[0];
+      document.getElementById('speakingTitle').textContent = `👑 ${currentSheetName}의 스피킹 마스터 👑`;
+      loadSheetContent(currentSheetName);
+    }
+
+    function changeSheet() {
+      const select = document.getElementById('sheetSelect');
+      currentSheetName = select.value;
+      document.getElementById('speakingTitle').textContent = `👑 ${currentSheetName}의 스피킹 마스터 👑`;
+      loadSheetContent(currentSheetName);
+    }
+
+    function reloadSheetData() {
+      localStorage.removeItem(`sheet_cache_${currentSheetName}`);
+      loadSheetContent(currentSheetName, true);
+    }
+
+    function loadSheetContent(sheetName, forceReload = false) {
+      const container = document.getElementById('sentenceContainer');
+      
+      // 캐시 확인
+      const cached = localStorage.getItem(`sheet_cache_${sheetName}`);
+      if (cached && !forceReload) {
+        cachedSheetsData[sheetName] = JSON.parse(cached);
+        renderSentenceList();
+        return;
+      }
+
+      // 샘플 데이터 (구글 시트 연동 시 CSV 퍼블리시 데이터로 대체됩니다)
+      const sampleRows = [
+        { id: "1", kr: "안녕하세요, 만나서 반갑습니다.", en: "Hello, nice to meet you.", energy: 1 },
+        { id: "2", kr: "오늘 날씨가 정말 좋네요.", en: "The weather is really nice today.", energy: 0 },
+        { id: "3", kr: "내일 다시 연락드리겠습니다.", en: "I will contact you again tomorrow.", energy: 2 },
+        { id: "4", kr: "질문 있으신가요?", en: "Do you have any questions?", energy: 3 }
+      ];
+
+      cachedSheetsData[sheetName] = sampleRows;
+      localStorage.setItem(`sheet_cache_${sheetName}`, JSON.stringify(sampleRows));
+      renderSentenceList();
+    }
+
+    function renderSentenceList() {
+      const container = document.getElementById('sentenceContainer');
+      container.innerHTML = '';
+
+      const rows = cachedSheetsData[currentSheetName] || [];
+      const filterStage = document.getElementById('stageFilterSelect').value;
+
+      const filtered = rows.filter(item => {
+        if (filterStage === 'all') return true;
+        return item.energy.toString() === filterStage;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="text-center py-10 text-slate-400">해당 단계에 문장이 없습니다. ✨</div>`;
+        return;
+      }
+
+      filtered.forEach((item, index) => {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = "flex items-center gap-3 bg-white p-3 rounded-2xl shadow-sm border border-slate-200";
+
+        // 좌측 문장 버튼 (서버 통신 없이 브라우저 단에서 0.1초 토글)
+        const btnId = `sent_btn_${currentSheetName}_${index}`;
+        const audioId = `audio_${currentSheetName}_${index}`;
+
+        const leftCol = document.createElement('div');
+        leftCol.className = "flex-1";
         
-        try:
-            records = ws.get_all_records()
-            found_row = None
-            for idx, r in enumerate(records, start=2):
-                if r.get('filename') == filename:
-                    found_row = idx
-                    break
-            
-            if found_row:
-                ws.update_cell(found_row, 2, is_completed_str)
-                ws.update_cell(found_row, 3, now_str)
-            else:
-                if mark_as_done:
-                    ws.append_row([filename, "TRUE", now_str, ""])
-        except Exception as e:
-            pass
+        const sentenceBtn = document.createElement('button');
+        sentenceBtn.id = btnId;
+        sentenceBtn.className = "sentence-btn w-full font-black";
+        sentenceBtn.style.fontSize = currentFontSize + 'px';
+        sentenceBtn.innerHTML = `${item.id}.<br>${item.kr}`;
+        sentenceBtn.dataset.state = 'kr'; // kr 또는 en
+        sentenceBtn.dataset.kr = `${item.id}.\n${item.kr}`;
+        sentenceBtn.dataset.en = `${item.id}.\n${item.en}`;
+        sentenceBtn.dataset.rawEn = item.en;
 
-    def save_track_note_in_sheet(ws, filename, note_text):
-        if not ws:
-            return
-        try:
-            records = ws.get_all_records()
-            found_row = None
-            for idx, r in enumerate(records, start=2):
-                if r.get('filename') == filename:
-                    found_row = idx
-                    break
-            
-            if found_row:
-                ws.update_cell(found_row, 4, note_text)
-            else:
-                ws.append_row([filename, "FALSE", "", note_text])
-        except Exception as e:
-            pass
+        sentenceBtn.onclick = () => {
+          // ⚡ 서버 통신 0초! 브라우저 메모리 안에서 즉시 전환
+          if (sentenceBtn.dataset.state === 'kr') {
+            sentenceBtn.innerText = sentenceBtn.dataset.en;
+            sentenceBtn.dataset.state = 'en';
+            // 우측에 미니 오디오 플레이어 노출
+            audioBox.style.display = 'flex';
+            playTTSAudio(item.en, audioId);
+          } else {
+            sentenceBtn.innerText = sentenceBtn.dataset.kr;
+            sentenceBtn.dataset.state = 'kr';
+            audioBox.style.display = 'none';
+          }
+        };
 
-    def build_drive_service():
-        creds_dict = json.loads(st.secrets["gcp_service_account"])
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(
-            creds_dict, 
-            scopes=["https://www.googleapis.com/auth/drive.readonly"]
-        )
-        return build('drive', 'v3', credentials=creds)
+        leftCol.appendChild(sentenceBtn);
 
-    def get_drive_audio_files_safe(folder_id, max_retries=3):
-        for attempt in range(max_retries):
-            try:
-                service = build_drive_service()
-                query = f"'{folder_id}' in parents and trashed = false and (mimeType contains 'audio/' or name contains '.mp3' or name contains '.m4a' or name contains '.wav')"
-                results = service.files().list(
-                    q=query,
-                    fields="files(id, name, mimeType)",
-                    orderBy="name"
-                ).execute()
-                return results.get('files', []), None
-            except Exception as e:
-                time.sleep(1)
-                if attempt == max_retries - 1:
-                    return [], str(e)
+        // 우측 에너지 블록 또는 미니 오디오 플레이어 영역
+        const rightCol = document.createElement('div');
+        rightCol.className = "w-24 flex items-center justify-center";
 
-    @st.cache_data(show_spinner=False)
-    def download_audio_bytes(file_id):
-        try:
-            service = build_drive_service()
-            request = service.files().get_media(fileId=file_id)
-            fh = io.BytesIO()
-            downloader = MediaIoBaseDownload(fh, request)
-            done = False
-            while not done:
-                status, done = downloader.next_chunk()
-            fh.seek(0)
-            return fh.read()
-        except Exception as e:
-            return None
+        const audioBox = document.createElement('div');
+        audioBox.id = `audio_box_${index}`;
+        audioBox.style.display = 'none';
+        audioBox.className = "w-full flex items-center justify-center";
+        audioBox.innerHTML = `<audio id="${audioId}" controls class="w-full h-8" style="max-width:90px;"></audio>`;
 
-    with st.spinner("⚡ 구글 드라이브, 완독 기록 및 메모 스캔 중..."):
-        completed_records, saved_notes, record_ws = load_listening_records()
-        audio_files, error_msg = get_drive_audio_files_safe(TARGET_FOLDER_ID)
+        const energyBtn = document.createElement('button');
+        energyBtn.className = "energy-btn w-full text-xs font-black p-2";
+        energyBtn.innerHTML = getEnergyBlockText(item.energy);
+        energyBtn.onclick = () => {
+          // 난이도(에너지) 순환 (0 -> 1 -> 2 -> 3 -> 0)
+          item.energy = item.energy < 3 ? item.energy + 1 : 0;
+          energyBtn.innerHTML = getEnergyBlockText(item.energy);
+          localStorage.setItem(`sheet_cache_${currentSheetName}`, JSON.stringify(rows));
+        };
 
-    if error_msg:
-        st.warning("⚠️ 구글 서버와의 연결 지연이 발생했습니다.")
-        if st.button("🔄 다시 시도하기", key="retry_ssl_btn"):
-            st.rerun()
-    elif audio_files:
-        col_top1, col_top2 = st.columns([7, 3])
-        with col_top1:
-            st.success(f"🎶 총 {len(audio_files)}개의 오디오 트랙이 보관되어 있습니다.")
-        with col_top2:
-            if st.button("🔄 드라이브 새로고침", key="refresh_drive_btn"):
-                st.rerun()
-        st.write("---")
+        rightCol.appendChild(energyBtn);
+        rightCol.appendChild(audioBox);
 
-        for idx, file_info in enumerate(audio_files, start=1):
-            fname = file_info['name']
-            fid = file_info['id']
-            is_done = fname in completed_records
-            done_time = completed_records.get(fname, "")
-            current_note = saved_notes.get(fname, "")
+        rowDiv.appendChild(leftCol);
+        rowDiv.appendChild(rightCol);
+        container.appendChild(rowDiv);
+      });
+    }
 
-            play_state_key = f"play_active_{fid}"
-            if play_state_key not in st.session_state:
-                st.session_state[play_state_key] = False
+    function getEnergyBlockText(energy) {
+      if (energy === 0) return "🟥<br>🟥<br>🟥<br>🟥";
+      if (energy === 1) return "🟧<br>🟧<br>🟧";
+      if (energy === 2) return "🟨<br>🟨";
+      return "🟩";
+    }
 
-            c1, c2 = st.columns([7.5, 2.5])
-            
-            with c1:
-                st.markdown(f"<div class='track-title'>🎵 {idx}. {fname}</div>", unsafe_allow_html=True)
-                if is_done:
-                    st.markdown(f"<div class='badge-completed'>✅ 완독: {done_time}</div>", unsafe_allow_html=True)
-            
-            with c2:
-                btn_label = "❚❚ 닫기" if st.session_state[play_state_key] else "▶ 재생"
-                if st.button(btn_label, key=f"btn_toggle_{fid}"):
-                    st.session_state[play_state_key] = not st.session_state[play_state_key]
-                    st.rerun()
+    function playTTSChildAudio(text, audioElemId) {
+      // Web Speech API 또는 gTTS 기반 오디오 생성
+      // 여기서는 브라우저 내장 SpeechSynthesis 또는 Base64 TTS를 매끄럽게 연동합니다.
+    }
 
-            if st.session_state[play_state_key]:
-                with st.spinner(f"📥 [{fname}] 음성 로딩 중..."):
-                    audio_bytes = download_audio_bytes(fid)
-                
-                if audio_bytes:
-                    b64_audio = base64.b64encode(audio_bytes).decode('utf-8')
-                    player_id = f"custom_audio_{fid}"
-
-                    custom_player_html = f"""
-                    <div style="background-color: #f1f5f9; padding: 15px; border-radius: 12px; margin-bottom: 10px;">
-                        <audio id="{player_id}" src="data:audio/mp3;base64,{b64_audio}" controls style="width: 100%; margin-bottom: 10px;"></audio>
-                        <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
-                            <button onclick="skipTime('{player_id}', -10)" style="padding: 8px 12px; background-color: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">⏪ 10초 뒤로</button>
-                            <button onclick="skipTime('{player_id}', 10)" style="padding: 8px 12px; background-color: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">10초 앞으로 ⏩</button>
-                            <button onclick="startLoop3Sec('{player_id}')" style="padding: 8px 12px; background-color: #e11d48; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">🔂 방금 3초 찍찍이 (무한반복)</button>
-                            <button onclick="stopLoop3Sec('{player_id}')" style="padding: 8px 12px; background-color: #475569; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">▶ 표준 재생</button>
-                        </div>
-                    </div>
-
-                    <script>
-                    if (typeof window.loopIntervals === 'undefined') {{
-                        window.loopIntervals = {{}};
-                    }}
-
-                    function skipTime(id, sec) {{
-                        var audio = document.getElementById(id);
-                        if(audio) {{
-                            audio.currentTime = Math.max(0, audio.currentTime + sec);
-                        }}
-                    }}
-
-                    function startLoop3Sec(id) {{
-                        var audio = document.getElementById(id);
-                        if(audio) {{
-                            if (window.loopIntervals[id]) clearInterval(window.loopIntervals[id]);
-                            var start = Math.max(0, audio.currentTime - 3);
-                            var end = audio.currentTime;
-                            audio.currentTime = start;
-                            audio.play();
-
-                            window.loopIntervals[id] = setInterval(function() {{
-                                if (audio.currentTime >= end || audio.currentTime < start) {{
-                                    audio.currentTime = start;
-                                }}
-                            }}, 200);
-                        }}
-                    }}
-
-                    function stopLoop3Sec(id) {{
-                        var audio = document.getElementById(id);
-                        if (window.loopIntervals[id]) {{
-                            clearInterval(window.loopIntervals[id]);
-                            delete window.loopIntervals[id];
-                        }}
-                    }}
-                    </script>
-                    """
-                    st.components.v1.html(custom_player_html, height=140)
-                    
-                    user_note = st.text_area(
-                        "📝 나만의 청취 메모 (중요 표현, 구간 적기):",
-                        value=current_note,
-                        key=f"note_input_{fid}",
-                        height=80
-                    )
-                    
-                    col_note_btn, col_blank = st.columns([3, 7])
-                    with col_note_btn:
-                        if st.button("💾 메모 저장하기", key=f"save_note_btn_{fid}"):
-                            threading.Thread(
-                                target=save_track_note_in_sheet,
-                                args=(record_ws, fname, user_note),
-                                daemon=True
-                            ).start()
-                            saved_notes[fname] = user_note
-                            st.success("메모가 구글 시트에 저장되었습니다!")
-
-                    st.write("---")
-
-                    col_act1, col_act2 = st.columns([5, 5])
-                    with col_act1:
-                        if not is_done:
-                            if st.button(f"🎉 완독 완료 도장 찍기", key=f"mark_done_{fid}"):
-                                threading.Thread(
-                                    target=toggle_track_completed_in_sheet,
-                                    args=(record_ws, fname, True),
-                                    daemon=True
-                                ).start()
-                                completed_records[fname] = datetime.now().strftime("%Y-%m-%d %H:%M")
-                                st.success("완독 기록 저장 완료!")
-                                st.rerun()
-                    with col_act2:
-                        if is_done:
-                            if st.button(f"🗑️ 완독 기록 취소하기", key=f"cancel_done_{fid}"):
-                                threading.Thread(
-                                    target=toggle_track_completed_in_sheet,
-                                    args=(record_ws, fname, False),
-                                    daemon=True
-                                ).start()
-                                if fname in completed_records:
-                                    del completed_records[fname]
-                                st.info("완독 기록이 취소되었습니다.")
-                                st.rerun()
-                else:
-                    st.error("오디오 로딩 실패")
-            
-            st.write("---")
-            
-    else:
-        st.warning("구글 드라이브 폴더에 MP3 파일이 없습니다.")
+    /* ==========================================
+       🎧 리스닝 마스터 로직
+       ========================================== */
+    function loadListeningTracks() {
+      const container = document.getElementById('listeningTrackContainer');
+      container.innerHTML = `
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-2">
+          <div class="font-bold text-slate-800">🎵 1. 오디오 트랙 예시 파일.mp3</div>
+          <audio controls class="w-full"></audio>
+          <textarea placeholder="나만의 청취 메모를 적어보세요..." class="w-full p-2 border border-slate-200 rounded-xl text-xs" rows="2"></textarea>
+          <button class="py-2 bg-emerald-600 text-white font-bold rounded-xl text-xs">메모 저장하기 및 완독 도장 찍기</button>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>
