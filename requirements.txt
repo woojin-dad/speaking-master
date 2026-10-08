@@ -1,5 +1,0 @@
-streamlit
-gspread
-oauth2client
-gTTS
-google-api-python-client
