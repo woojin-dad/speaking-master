@@ -289,24 +289,25 @@
         sentenceBtn.dataset.state = 'kr';
         sentenceBtn.dataset.kr = `${item.id}.\n${item.kr}`;
         sentenceBtn.dataset.en = `${item.id}.\n${item.en}`;
-
-        sentenceBtn.onclick = () => {
-          if (sentenceBtn.dataset.state === 'kr') {
-            sentenceBtn.innerText = sentenceBtn.dataset.en;
-            sentenceBtn.dataset.state = 'en';
-          } else {
-            sentenceBtn.innerText = sentenceBtn.dataset.kr;
-            sentenceBtn.dataset.state = 'kr';
-          }
-        };
+        sentenceBtn.dataset.rawEn = item.en;
 
         leftCol.appendChild(sentenceBtn);
 
+        // 우측 영역 (오디오 재생 버튼 + 난이도 에너지 블록)
         const rightCol = document.createElement('div');
-        rightCol.className = "w-24 flex items-center justify-center";
+        rightCol.className = "w-28 flex items-center gap-2 justify-end";
+
+        // 음성 재생(TTS) 버튼 (영어 변환 시 또는 언제든 누르면 발음 재생)
+        const speakBtn = document.createElement('button');
+        speakBtn.className = "p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-bold text-xs flex items-center justify-center shadow-sm transition";
+        speakBtn.innerHTML = "🔊 듣기";
+        speakBtn.title = "원어민 발음 듣기";
+        speakBtn.onclick = () => {
+          playTTS(item.en);
+        };
 
         const energyBtn = document.createElement('button');
-        energyBtn.className = "energy-btn w-full text-xs font-black p-2";
+        energyBtn.className = "energy-btn flex-1 text-xs font-black p-2";
         energyBtn.innerHTML = getEnergyBlockText(item.energy);
         energyBtn.onclick = () => {
           item.energy = item.energy < 3 ? item.energy + 1 : 0;
@@ -314,11 +315,39 @@
           localStorage.setItem(`sheet_cache_${currentSheetName}`, JSON.stringify(rows));
         };
 
+        // 문장 클릭 시 토글 (한글 <-> 영어)
+        sentenceBtn.onclick = () => {
+          if (sentenceBtn.dataset.state === 'kr') {
+            sentenceBtn.innerText = sentenceBtn.dataset.en;
+            sentenceBtn.dataset.state = 'en';
+            // 영어로 바뀔 때 자동으로 원어민 발음도 같이 재생되게 할 수도 있음
+            playTTS(item.en);
+          } else {
+            sentenceBtn.innerText = sentenceBtn.dataset.kr;
+            sentenceBtn.dataset.state = 'kr';
+          }
+        };
+
+        rightCol.appendChild(speakBtn);
         rightCol.appendChild(energyBtn);
+
         rowDiv.appendChild(leftCol);
         rowDiv.appendChild(rightCol);
         container.appendChild(rowDiv);
       });
+    }
+
+    // 브라우저 내장 Web Speech API를 활용한 고성능 즉시 TTS 발음 재생
+    function playTTS(text) {
+      if (!('speechSynthesis' in window)) {
+        alert("이 브라우저는 음성 재생을 지원하지 않습니다.");
+        return;
+      }
+      window.speechSynthesis.cancel(); // 이전 재생 중인 음성 즉시 중단
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      utterance.rate = currentSpeed; // 슬라이더로 조절한 속도 즉시 반영
+      window.speechSynthesis.speak(utterance);
     }
 
     function getEnergyBlockText(energy) {
