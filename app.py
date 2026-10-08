@@ -51,7 +51,7 @@ app_mode = st.radio(
 st.write("---")
 
 # ==============================================================================
-# 🔀 [모드 1] 🗣️ 스피킹 마스터
+# 🔀 [모드 1] 🗣️ 스피킹 마스터 (브라우저 즉시 토글 최적화 버전)
 # ==============================================================================
 if app_mode == "🗣️ 스피킹 마스터":
 
@@ -87,10 +87,9 @@ if app_mode == "🗣️ 스피킹 마스터":
         st.selectbox("👤 학습 모드를 선택하세요", menu_options, key="pure_main_menu_box")
     
     with col_refresh_btn:
-        st.write("") # 정렬 맞춤용 공백
+        st.write("") 
         st.write("")
         if st.button("🔄 시트 문장 새로고침", key="manual_sheet_refresh_btn"):
-            # 캐시 및 세션 강제 초기화 후 새로고침
             keys_to_clear = [k for k in st.session_state.keys() if "records_cache_" in k or "sheet_" in k or "last_menu" in k]
             for k in keys_to_clear:
                 del st.session_state[k]
@@ -150,159 +149,42 @@ if app_mode == "🗣️ 스피킹 마스터":
             margin-top: 10px !important;
         }}
 
-        /* 📻 1. 최상단 전체 반복 재생 초록 버튼 */
-        div.stButton > button[key^="total_relay_btn_"] {{
-            background-color: #f0fdf4 !important;
-            border: 2px solid #2ecc71 !important;
-            border-radius: 12px !important;
-            padding: 14px 15px !important;
-            width: 100% !important;
-            text-align: center !important;
-            margin-bottom: 8px !important;
-        }}
-        div.stButton > button[key^="total_relay_btn_"] p,
-        div.stButton > button[key^="total_relay_btn_"] * {{
-            color: #15803d !important;
-            font-size: 17px !important;
-            font-weight: bold !important;
-        }}
-
-        /* 📻 2. 4단계(미숙) 전용 반복 재생 빨간 버튼 */
-        div.stButton > button[key^="level4_relay_btn_"] {{
-            background-color: #fef2f2 !important;
-            border: 2px solid #ef4444 !important;
-            border-radius: 12px !important;
-            padding: 14px 15px !important;
-            width: 100% !important;
-            text-align: center !important;
-            margin-bottom: 8px !important;
-        }}
-        div.stButton > button[key^="level4_relay_btn_"] p,
-        div.stButton > button[key^="level4_relay_btn_"] * {{
-            color: #b91c1c !important;
-            font-size: 17px !important;
-            font-weight: bold !important;
-        }}
-
-        /* 📻 3. 3단계(초급) 전용 반복 재생 주황 버튼 */
-        div.stButton > button[key^="level3_relay_btn_"] {{
-            background-color: #fff7ed !important;
-            border: 2px solid #f97316 !important;
-            border-radius: 12px !important;
-            padding: 14px 15px !important;
-            width: 100% !important;
-            text-align: center !important;
-            margin-bottom: 8px !important;
-        }}
-        div.stButton > button[key^="level3_relay_btn_"] p,
-        div.stButton > button[key^="level3_relay_btn_"] * {{
-            color: #c2410c !important;
-            font-size: 17px !important;
-            font-weight: bold !important;
-        }}
-
-        /* 📻 4. 2단계(중급) 전용 반복 재생 노란 버튼 */
-        div.stButton > button[key^="level2_relay_btn_"] {{
-            background-color: #fefce8 !important;
-            border: 2px solid #eab308 !important;
-            border-radius: 12px !important;
-            padding: 14px 15px !important;
-            width: 100% !important;
-            text-align: center !important;
-            margin-bottom: 8px !important;
-        }}
-        div.stButton > button[key^="level2_relay_btn_"] p,
-        div.stButton > button[key^="level2_relay_btn_"] * {{
-            color: #a16207 !important;
-            font-size: 17px !important;
-            font-weight: bold !important;
-        }}
-
-        /* 📻 5. 1단계(마스터) 전용 반복 재생 초록 버튼 */
+        /* 📻 반복 재생 버튼 스타일들 */
+        div.stButton > button[key^="total_relay_btn_"],
+        div.stButton > button[key^="level4_relay_btn_"],
+        div.stButton > button[key^="level3_relay_btn_"],
+        div.stButton > button[key^="level2_relay_btn_"],
         div.stButton > button[key^="level1_relay_btn_"] {{
-            background-color: #f0fdf4 !important;
-            border: 2px solid #22c55e !important;
             border-radius: 12px !important;
             padding: 14px 15px !important;
             width: 100% !important;
             text-align: center !important;
-            margin-bottom: 15px !important;
-        }}
-        div.stButton > button[key^="level1_relay_btn_"] p,
-        div.stButton > button[key^="level1_relay_btn_"] * {{
-            color: #15803d !important;
+            margin-bottom: 8px !important;
             font-size: 17px !important;
             font-weight: bold !important;
         }}
        
-        /* 🔤 원래 쓰시던 큼직하고 깔끔한 문장 버튼 스타일 */
-        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {{
+        /* 🔤 초고속 자바스크립트 토글 버튼 스타일러스 */
+        .instant-toggle-btn {{
             width: 100% !important;
-            height: auto !important;
-            text-align: left !important;
             background-color: #2c3e50 !important;
             border: none !important;
             border-radius: 8px !important;
-            padding: 10px 12px !important;
-            white-space: pre-line !important;
-        }}
-       
-        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button p,
-        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button div,
-        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button span,
-        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button * {{
+            padding: 12px 14px !important;
+            text-align: left !important;
+            cursor: pointer !important;
             font-size: {font_size}px !important;
             font-weight: 900 !important;
             color: #ffffff !important;
             line-height: 1.35 !important;
-            white-space: pre-line !important;
             word-break: keep-all !important;
-            overflow: visible !important;
-            text-overflow: clip !important;
+            white-space: pre-line !important;
+            transition: color 0.15s ease;
         }}
-       
-        div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button:hover * {{
+        .instant-toggle-btn:hover {{
             color: #f1c40f !important;
         }}
-       
-        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton {{
-            text-align: center !important;
-            width: 100% !important;
-            display: flex !important;
-            justify-content: center !important;
-            margin: 0px auto !important;
-        }}
-        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button {{
-            background-color: #ffffff !important;
-            border: none !important;
-            padding: 0px !important;
-            margin: 0px !important;
-            width: auto !important;
-            display: flex !important;
-            justify-content: center !important;
-            align-items: center !important;
-        }}
-       
-        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button p,
-        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button div,
-        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button span,
-        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button * {{
-            font-size: 16px !important;
-            white-space: pre-line !important;
-            line-height: 1.0 !important;
-            text-align: center !important;
-            padding: 0px !important;
-            margin: 0px !important;
-        }}
 
-        div[data-testid="stHorizontalBlock"] > div:nth-child(2) iframe {{
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            margin: 0px auto !important;
-            width: 100% !important;
-        }}
-       
         hr {{ margin: 6px 0px !important; padding: 0px !important; }}
         [data-testid="stStatusWidget"] {{display: none !important; visibility: hidden !important;}}
         footer {{visibility: hidden !important; height: 0px !important; padding: 0px !important;}}
@@ -319,7 +201,6 @@ if app_mode == "🗣️ 스피킹 마스터":
     if "last_menu" not in st.session_state:
         st.session_state["last_menu"] = selected_menu
 
-    # 💡 [핵심 최적화] 최초 로딩 또는 수동 새로고침 시에만 구글 시트에 접근하여 메모리에 캐싱
     if st.session_state["last_menu"] != selected_menu or user_data_key not in st.session_state:
         st.session_state["last_menu"] = selected_menu
         try:
@@ -676,7 +557,7 @@ if app_mode == "🗣️ 스피킹 마스터":
             except:
                 pass
 
-    # 💡 순수 시트 순서대로 문장 리스트 출력 루프 (메모리 캐시 기반 즉시 전환)
+    # 💡 [초고속 브라우저 토글 구조] 서버 새로고침 없이 자바스크립트로 즉시 텍스트 전환
     for item in display_records:
         orig_idx = item['original_index']
         row_idx = item['original_row']
@@ -685,66 +566,61 @@ if app_mode == "🗣️ 스피킹 마스터":
         col1, col2 = st.columns([8.2, 1.8])
        
         with col1:
-            state_key = f"show_{real_sheet_name}_{orig_idx}"
-            if state_key not in st.session_state:
-                st.session_state[state_key] = False
-               
-            is_english = st.session_state[state_key]
-            text_content = item['en'] if is_english else item['kr']
-            btn_label = f"{item['id']}.\n{text_content}"
-           
-            if st.button(btn_label, key=f"sentence_{real_sheet_name}_{orig_idx}"):
-                st.session_state[state_key] = not st.session_state[state_key]
-                st.rerun()
+            btn_id = f"inst_btn_{real_sheet_name}_{orig_idx}"
+            kr_text = f"{item['id']}.\n{item['kr']}"
+            en_text = f"{item['id']}.\n{item['en']}"
+            
+            # HTML 컴포넌트를 이용해 브라우저 안에서 0.1초만에 텍스트만 스위칭
+            instant_toggle_html = f"""
+            <button id="{btn_id}" class="instant-toggle-btn" onclick="toggleText('{btn_id}')">
+                {kr_text}
+            </button>
+            <script>
+            if (typeof window.textState === 'undefined') {{
+                window.textState = {{}};
+            }}
+            if (typeof window.textState['{btn_id}'] === 'undefined') {{
+                window.textState['{btn_id}'] = false; // false: 한글, true: 영어
+            }}
+
+            function toggleText(id) {{
+                var btn = document.getElementById(id);
+                if (!btn) return;
+                
+                var isEng = window.textState[id];
+                if (isEng) {{
+                    btn.innerText = `{kr_text}`;
+                    window.textState[id] = false;
+                }} else {{
+                    btn.innerText = `{en_text}`;
+                    window.textState[id] = true;
+                }}
+            }}
+            </script>
+            """
+            st.components.v1.html(instant_toggle_html, height=75)
                
         with col2:
-            if is_english:
-                try:
-                    tts = gTTS(text=item['en'], lang='en')
-                    fp = io.BytesIO()
-                    tts.write_to_fp(fp)
-                    fp.seek(0)
-                    b64_audio = base64.b64encode(fp.read()).decode('utf-8')
-                    player_id = f"direct_player_{real_sheet_name}_{orig_idx}"
-
-                    audio_html = f"""
-                        <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;">
-                            <audio id="{player_id}" src="data:audio/mp3;base64,{b64_audio}" controls loop style="width: 100%; max-width: 110px; height: 32px;"></audio>
-                        </div>
-                        <script>
-                            var p = document.getElementById('{player_id}');
-                            function applyRate() {{
-                                p.playbackRate = {speech_speed};
-                            }}
-                            p.oncanplay = applyRate;
-                            p.onplay = applyRate;
-                            applyRate();
-                        </script>
-                    """
-                    st.components.v1.html(audio_html, height=45)
-                except:
-                    pass
+            if energy_val == 0:
+                color_block_text = "🟥\n🟥\n🟥\n🟥"
+            elif energy_val == 1:
+                color_block_text = "🟧\n🟧\n🟧"
+            elif energy_val == 2:
+                color_block_text = "🟨\n🟨"
             else:
-                if energy_val == 0:
-                    color_block_text = "🟥\n🟥\n🟥\n🟥"
-                elif energy_val == 1:
-                    color_block_text = "🟧\n🟧\n🟧"
-                elif energy_val == 2:
-                    color_block_text = "🟨\n🟨"
-                else:
-                    color_block_text = "🟩"
+                color_block_text = "🟩"
+           
+            if st.button(color_block_text, key=f"bar_touch_{real_sheet_name}_{orig_idx}"):
+                new_energy = energy_val + 1 if energy_val < 3 else 0
+                st.session_state[user_data_key][orig_idx]['energy'] = new_energy
                
-                if st.button(color_block_text, key=f"bar_touch_{real_sheet_name}_{orig_idx}"):
-                    new_energy = energy_val + 1 if energy_val < 3 else 0
-                    st.session_state[user_data_key][orig_idx]['energy'] = new_energy
-                   
-                    threading.Thread(
-                        target=save_to_google_sheet,
-                        args=(sheet, row_idx, 4, new_energy),
-                        daemon=True
-                    ).start()
-                   
-                    st.rerun()
+                threading.Thread(
+                    target=save_to_google_sheet,
+                    args=(sheet, row_idx, 4, new_energy),
+                    daemon=True
+                ).start()
+               
+                st.rerun()
                    
         st.write("---")
 
