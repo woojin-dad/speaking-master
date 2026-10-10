@@ -291,9 +291,7 @@
         const rightCol = document.createElement('div');
         rightCol.className = "w-28 flex items-center gap-2 justify-end";
 
-        const actionSlot = document.createElement('div');
-        actionSlot.className = "flex items-center"; // 한글일 때는 비어있음
-
+        // 난이도 네모 버튼 생성
         const energyBtn = document.createElement('button');
         energyBtn.className = "energy-btn flex-1 text-xs font-black p-2";
         energyBtn.innerHTML = getEnergyBlockText(item.energy);
@@ -315,29 +313,31 @@
           }).catch(e => {});
         };
 
+        // 초기 상태(한글): 난이도 네모 버튼만 배치
+        rightCol.appendChild(energyBtn);
+
         sentenceBtn.onclick = () => {
           if (sentenceBtn.dataset.state === 'kr') {
-            // 영어로 전환될 때 플레이 버튼 표시
+            // 영어로 전환될 때: 난이도 버튼을 제거하고 플레이 버튼으로 교체
             sentenceBtn.innerText = sentenceBtn.dataset.en;
             sentenceBtn.dataset.state = 'en';
             
-            actionSlot.innerHTML = `
+            rightCol.innerHTML = `
               <button onclick="event.stopPropagation(); playTTS('${item.en.replace(/'/g, "\\'")}')" 
-                class="p-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-bold text-xs shadow-sm transition whitespace-nowrap">
+                class="w-full py-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-black text-sm shadow-sm transition flex items-center justify-center">
                 ▶
               </button>
             `;
             playTTS(item.en);
           } else {
-            // 한글로 돌아올 때 플레이 버튼 제거 (난이도 네모만 남김)
+            // 한글로 돌아올 때: 플레이 버튼을 제거하고 다시 난이도 네모 버튼으로 복구
             sentenceBtn.innerText = sentenceBtn.dataset.kr;
             sentenceBtn.dataset.state = 'kr';
-            actionSlot.innerHTML = '';
+            
+            rightCol.innerHTML = '';
+            rightCol.appendChild(energyBtn);
           }
         };
-
-        rightCol.appendChild(actionSlot);
-        rightCol.appendChild(energyBtn);
 
         rowDiv.appendChild(leftCol);
         rowDiv.appendChild(rightCol);
