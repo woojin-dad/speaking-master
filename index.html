@@ -147,7 +147,7 @@
 
     <!-- 문장 리스트 출력 영역 -->
     <div id="sentenceContainer" class="flex flex-col gap-2.5">
-      <div class="text-center py-10 text-slate-400">문장 로딩 중...</div>
+      <div class="text-center py-10 text-slate-400">구글 시트에서 문장 불러오는 중...</div>
     </div>
 
   </div>
@@ -167,6 +167,9 @@
   </div>
 
   <script>
+    // 아까 복사하신 구글 Apps Script 웹 앱 URL
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzkkXhkTBKb5-PSYHbU2S68M4gxNzXrXaq1RCCRJIjHtFtoOZmfwEH_vK_srz2WVWvmkQ/exec";
+
     let currentMode = 'speaking';
     let cachedSheetsData = {};
     let currentSheetName = '';
@@ -206,22 +209,27 @@
       document.getElementById('speedVal').textContent = val + '배속';
     }
 
-    function initSpeakingMaster() {
-      loadSheetList();
-    }
+    async function initSpeakingMaster() {
+      try {
+        const res = await fetch(`${GAS_URL}?action=getSheets`);
+        const sheetNames = await res.json();
+        const select = document.getElementById('sheetSelect');
+        select.innerHTML = '';
+        
+        sheetNames.forEach((name) => {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          select.appendChild(opt);
+        });
 
-    function loadSheetList() {
-      const sheetNames = ["Main", "Conversation", "Business"];
-      const select = document.getElementById('sheetSelect');
-      select.innerHTML = '';
-      sheetNames.forEach((name) => {
-        const opt = document.createElement('option');
-        opt.value = name;
-        opt.textContent = name;
-        select.appendChild(opt);
-      });
-      currentSheetName = sheetNames[0];
-      loadSheetContent(currentSheetName);
+        if (sheetNames.length > 0) {
+          currentSheetName = sheetNames[0];
+          loadSheetContent(currentSheetName);
+        }
+      } catch (err) {
+        document.getElementById('sentenceContainer').innerHTML = `<div class="text-center py-10 text-rose-500 font-bold">시트 목록을 불러오는 데 실패했습니다.</div>`;
+      }
     }
 
     function changeSheet() {
@@ -235,7 +243,7 @@
       loadSheetContent(currentSheetName, true);
     }
 
-    function loadSheetContent(sheetName, forceReload = false) {
+    async function loadSheetContent(sheetName, forceReload = false) {
       const cached = localStorage.getItem(`sheet_cache_${sheetName}`);
       if (cached && !forceReload) {
         cachedSheetsData[sheetName] = JSON.parse(cached);
@@ -243,16 +251,18 @@
         return;
       }
 
-      const sampleRows = [
-        { id: "1", kr: "안녕하세요, 만나서 반갑습니다.", en: "Hello, nice to meet you.", energy: 1 },
-        { id: "2", kr: "오늘 날씨가 정말 좋네요.", en: "The weather is really nice today.", energy: 0 },
-        { id: "3", kr: "내일 다시 연락드리겠습니다.", en: "I will contact you again tomorrow.", energy: 2 },
-        { id: "4", kr: "질문 있으신가요?", en: "Do you have any questions?", energy: 3 }
-      ];
+      document.getElementById('sentenceContainer').innerHTML = `<div class="text-center py-10 text-slate-400">구글 시트 데이터 로딩 중...</div>`;
 
-      cachedSheetsData[sheetName] = sampleRows;
-      localStorage.setItem(`sheet_cache_${sheetName}`, JSON.stringify(sampleRows));
-      renderSentenceList();
+      try {
+        const res = await fetch(`${GAS_URL}?action=getData&sheet=${encodeURIComponent(sheetName)}`);
+        const rows = await res.json();
+        
+        cachedSheetsData[sheetName] = rows;
+        localStorage.setItem(`sheet_cache_${sheetName}`, JSON.stringify(rows));
+        renderSentenceList();
+      } catch (err) {
+        document.getElementById('sentenceContainer').innerHTML = `<div class="text-center py-10 text-rose-500 font-bold">데이터를 불러오는 중 오류가 발생했습니다.</div>`;
+      }
     }
 
     function renderSentenceList() {
@@ -272,7 +282,7 @@
         return;
       }
 
-      filtered.forEach((item, index) => {
+      filtered.forEach((item) => {
         const rowDiv = document.createElement('div');
         rowDiv.className = "flex items-center gap-3 bg-white p-3 rounded-2xl shadow-sm border border-slate-200";
 
@@ -298,10 +308,24 @@
         const energyBtn = document.createElement('button');
         energyBtn.className = "energy-btn flex-1 text-xs font-black p-2";
         energyBtn.innerHTML = getEnergyBlockText(item.energy);
+        
+        // 에너지 블록 클릭 시 순환 및 구글 시트에 실시간 백그라운드 반영
         energyBtn.onclick = () => {
           item.energy = item.energy < 3 ? item.energy + 1 : 0;
           energyBtn.innerHTML = getEnergyBlockText(item.energy);
           localStorage.setItem(`sheet_cache_${currentSheetName}`, JSON.stringify(rows));
+
+          // 구글 시트로 백그라운드 POST 요청 전송
+          fetch(GAS_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sheet: currentSheetName,
+              rowIndex: item.rowIndex,
+              energy: item.energy
+            })
+          }).catch(e => {});
         };
 
         sentenceBtn.onclick = () => {
