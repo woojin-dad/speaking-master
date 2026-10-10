@@ -289,11 +289,11 @@
         leftCol.appendChild(sentenceBtn);
 
         const rightCol = document.createElement('div');
-        rightCol.className = "w-28 flex items-center gap-2 justify-end";
+        rightCol.className = "w-28 flex items-center justify-end";
 
         // 난이도 네모 버튼 생성
         const energyBtn = document.createElement('button');
-        energyBtn.className = "energy-btn flex-1 text-xs font-black p-2";
+        energyBtn.className = "energy-btn w-full text-xs font-black p-2";
         energyBtn.innerHTML = getEnergyBlockText(item.energy);
         
         energyBtn.onclick = () => {
@@ -313,24 +313,29 @@
           }).catch(e => {});
         };
 
-        // 초기 상태(한글): 난이도 네모 버튼만 배치
+        // 플레이 버튼 생성
+        const playBtn = document.createElement('button');
+        playBtn.className = "w-full py-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-black text-sm shadow-sm transition flex items-center justify-center";
+        playBtn.innerHTML = "▶";
+        playBtn.onclick = (e) => {
+          e.stopPropagation();
+          playTTS(item.en);
+        };
+
+        // 초기 상태(한글): 난이도 네모 버튼 장착
         rightCol.appendChild(energyBtn);
 
         sentenceBtn.onclick = () => {
           if (sentenceBtn.dataset.state === 'kr') {
-            // 영어로 전환될 때: 난이도 버튼을 제거하고 플레이 버튼으로 교체
+            // 영어로 전환: 난이도 버튼 제거 후 플레이 버튼 장착
             sentenceBtn.innerText = sentenceBtn.dataset.en;
             sentenceBtn.dataset.state = 'en';
             
-            rightCol.innerHTML = `
-              <button onclick="event.stopPropagation(); playTTS('${item.en.replace(/'/g, "\\'")}')" 
-                class="w-full py-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-black text-sm shadow-sm transition flex items-center justify-center">
-                ▶
-              </button>
-            `;
+            rightCol.innerHTML = '';
+            rightCol.appendChild(playBtn);
             playTTS(item.en);
           } else {
-            // 한글로 돌아올 때: 플레이 버튼을 제거하고 다시 난이도 네모 버튼으로 복구
+            // 한글로 복구: 플레이 버튼 제거 후 난이도 버튼 장착
             sentenceBtn.innerText = sentenceBtn.dataset.kr;
             sentenceBtn.dataset.state = 'kr';
             
