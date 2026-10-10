@@ -171,6 +171,9 @@
     let isRelayPlaying = false;
     let relayTimer = null;
 
+    // 개별 문장 무한 반복용 전역 변수
+    let activeSingleLoopText = null;
+
     window.addEventListener('DOMContentLoaded', () => {
       initSpeakingMaster();
     });
@@ -178,6 +181,7 @@
     function switchMode(mode) {
       currentMode = mode;
       stopRelay();
+      stopSingleLoop();
       if (mode === 'speaking') {
         document.getElementById('speakingSection').style.display = 'flex';
         document.getElementById('listeningSection').style.display = 'none';
@@ -231,6 +235,7 @@
 
     function changeSheet() {
       stopRelay();
+      stopSingleLoop();
       const select = document.getElementById('sheetSelect');
       currentSheetName = select.value;
       document.getElementById('speakingTitle').textContent = `👑 ${currentSheetName} 스피킹 마스터 👑`;
@@ -318,13 +323,14 @@
           }).catch(e => {});
         };
 
-        // 플레이 버튼 생성
+        // 개별 플레이 버튼 생성 (누르면 해당 문장 무한 반복 재생)
         const playBtn = document.createElement('button');
         playBtn.className = "w-full py-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-black text-sm shadow-sm transition flex items-center justify-center";
         playBtn.innerHTML = "▶";
         playBtn.onclick = (e) => {
           e.stopPropagation();
-          playTTS(item.en);
+          stopRelay(); // 전체 연속 재생 중이면 중지
+          playSingleLoop(item.en);
         };
 
         rightCol.appendChild(energyBtn);
@@ -336,11 +342,13 @@
             
             rightCol.innerHTML = '';
             rightCol.appendChild(playBtn);
-            playTTS(item.en);
+            stopRelay();
+            playSingleLoop(item.en); // 한글 문장을 눌러 영어로 바뀔 때도 바로 반복 재생 시작
           } else {
             sentenceBtn.innerText = sentenceBtn.dataset.kr;
             sentenceBtn.dataset.state = 'kr';
             
+            stopSingleLoop(); // 한글로 돌아올 때 반복 재생 중지
             rightCol.innerHTML = '';
             rightCol.appendChild(energyBtn);
           }
@@ -352,23 +360,58 @@
       });
     }
 
-    function playTTS(text) {
+    // 개별 문장 무한 반복 재생 함수
+    function playSingleLoop(text) {
       if (!('speechSynthesis' in window)) return;
+      stopSingleLoop(); // 기존 반복 중이던 것 중지
+      
+      activeSingleLoopText = text;
+
+      function speakLoop() {
+        if (activeSingleLoopText !== text) return; // 다른 문장이나 정지로 바뀌었으면 중단
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = currentSpeed;
+
+        utterance.onend = () => {
+          if (activeSingleLoopText === text) {
+            relayTimer = setTimeout(speakLoop, 600); // 0.6초 쉬고 다시 반복
+          }
+        };
+
+        utterance.onerror = () => {
+          if (activeSingleLoopText === text) {
+            relayTimer = setTimeout(speakLoop, 600);
+          }
+        };
+
+        window.speechSynthesis.speak(utterance);
+      }
+
       window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'en-US';
-      utterance.rate = currentSpeed;
-      window.speechSynthesis.speak(utterance);
+      speakLoop();
+    }
+
+    function stopSingleLoop() {
+      activeSingleLoopText = null;
+      if (relayTimer) {
+        clearTimeout(relayTimer);
+        relayTimer = null;
+      }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
     }
 
     function playRelay(level) {
+      stopSingleLoop(); // 개별 반복 재생 중이면 중지
       stopRelay();
 
-      // [추가된 핵심 기능] 연속 재생 버튼을 누르면 아래 학습 단계 선택 셀렉트박스도 자동으로 일치시킴
       const filterSelect = document.getElementById('stageFilterSelect');
       if (filterSelect) {
         filterSelect.value = level;
-        renderSentenceList(); // 화면 리스트도 해당 단계만 보이도록 즉시 갱신
+        renderSentenceList();
       }
 
       const rows = cachedSheetsData[currentSheetName] || [];
