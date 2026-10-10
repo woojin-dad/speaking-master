@@ -281,7 +281,7 @@
         rowDiv.className = "flex items-center gap-2 bg-white p-2.5 sm:p-3 rounded-2xl shadow-sm border border-slate-200";
 
         const leftCol = document.createElement('div');
-        leftCol.className = "flex-1 min-w-0"; // 문장 영역이 남는 공간을 최대한 활용하도록 설정
+        leftCol.className = "flex-1 min-w-0";
         
         const sentenceBtn = document.createElement('button');
         sentenceBtn.className = "sentence-btn w-full font-black";
@@ -293,7 +293,6 @@
 
         leftCol.appendChild(sentenceBtn);
 
-        // 우측 영역 폭을 좁게(w-14) 줄여서 문장 공간을 극대화
         const rightCol = document.createElement('div');
         rightCol.className = "w-14 shrink-0 flex items-center justify-end";
 
@@ -328,12 +327,10 @@
           playTTS(item.en);
         };
 
-        // 초기 상태(한글): 난이도 네모 버튼 장착
         rightCol.appendChild(energyBtn);
 
         sentenceBtn.onclick = () => {
           if (sentenceBtn.dataset.state === 'kr') {
-            // 영어로 전환: 난이도 버튼 제거 후 플레이 버튼 장착
             sentenceBtn.innerText = sentenceBtn.dataset.en;
             sentenceBtn.dataset.state = 'en';
             
@@ -341,7 +338,6 @@
             rightCol.appendChild(playBtn);
             playTTS(item.en);
           } else {
-            // 한글로 복구: 플레이 버튼 제거 후 난이도 버튼 장착
             sentenceBtn.innerText = sentenceBtn.dataset.kr;
             sentenceBtn.dataset.state = 'kr';
             
@@ -366,7 +362,14 @@
     }
 
     function playRelay(level) {
-      stopRef = stopRelay();
+      stopRelay();
+
+      // [추가된 핵심 기능] 연속 재생 버튼을 누르면 아래 학습 단계 선택 셀렉트박스도 자동으로 일치시킴
+      const filterSelect = document.getElementById('stageFilterSelect');
+      if (filterSelect) {
+        filterSelect.value = level;
+        renderSentenceList(); // 화면 리스트도 해당 단계만 보이도록 즉시 갱신
+      }
 
       const rows = cachedSheetsData[currentSheetName] || [];
       const targetRows = level === 'all' ? rows : rows.filter(item => Number(item.energy) === Number(level));
