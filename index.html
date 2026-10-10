@@ -292,7 +292,7 @@
         rightCol.className = "w-28 flex items-center gap-2 justify-end";
 
         const actionSlot = document.createElement('div');
-        actionSlot.className = "flex items-center";
+        actionSlot.className = "flex items-center"; // 한글일 때는 비어있음
 
         const energyBtn = document.createElement('button');
         energyBtn.className = "energy-btn flex-1 text-xs font-black p-2";
@@ -317,6 +317,7 @@
 
         sentenceBtn.onclick = () => {
           if (sentenceBtn.dataset.state === 'kr') {
+            // 영어로 전환될 때 플레이 버튼 표시
             sentenceBtn.innerText = sentenceBtn.dataset.en;
             sentenceBtn.dataset.state = 'en';
             
@@ -328,6 +329,7 @@
             `;
             playTTS(item.en);
           } else {
+            // 한글로 돌아올 때 플레이 버튼 제거 (난이도 네모만 남김)
             sentenceBtn.innerText = sentenceBtn.dataset.kr;
             sentenceBtn.dataset.state = 'kr';
             actionSlot.innerHTML = '';
