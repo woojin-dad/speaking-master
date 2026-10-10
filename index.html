@@ -27,14 +27,6 @@
     .font-eng {
       font-family: 'Fredoka', cursive, sans-serif;
     }
-    .toy-btn {
-      transition: all 0.1s ease-in-out;
-      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.15);
-    }
-    .toy-btn:active {
-      transform: translateY(2px);
-      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
-    }
     .sentence-btn {
       transition: all 0.1s ease;
       background-color: #2c3e50 !important;
@@ -69,10 +61,10 @@
   <!-- 상단 모드 전환 탭 -->
   <div class="flex items-center justify-center gap-3 bg-white p-2 rounded-2xl shadow-sm border border-slate-200 mb-4">
     <button id="modeSpeakingBtn" onclick="switchMode('speaking')" class="flex-1 py-2.5 rounded-xl font-bold text-base sm:text-lg bg-[#2c3e50] text-white shadow transition">
-      Speaking Master
+      🗣️ 스피킹 마스터
     </button>
     <button id="modeListeningBtn" onclick="switchMode('listening')" class="flex-1 py-2.5 rounded-xl font-bold text-base sm:text-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition">
-      Listening Master
+      🎧 리스닝 마스터
     </button>
   </div>
 
@@ -83,18 +75,18 @@
     
     <!-- 타이틀 및 시트 선택 -->
     <div class="bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200 flex flex-col gap-3">
-      <h1 id="speakingTitle" class="text-2xl sm:text-3xl font-black text-slate-800 text-center">Speaking Master</h1>
+      <h1 id="speakingTitle" class="text-2xl sm:text-3xl font-black text-slate-800 text-center">👑 스피킹 마스터 👑</h1>
       
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
         <div>
-          <label class="text-xs font-bold text-slate-500 mb-1 block">Sheet Selection</label>
+          <label class="text-xs font-bold text-slate-500 mb-1 block">학습 모드(시트) 선택</label>
           <select id="sheetSelect" onchange="changeSheet()" class="w-full p-2.5 rounded-xl border border-slate-300 font-bold bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500">
-            <option value="">Loading sheets...</option>
+            <option value="">시트 로딩 중...</option>
           </select>
         </div>
         <div class="flex items-end justify-end">
           <button onclick="reloadSheetData()" class="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow transition flex items-center justify-center gap-1.5 text-sm">
-            <span>Refresh Sentences</span>
+            <span>🔄 문장 새로고침</span>
           </button>
         </div>
       </div>
@@ -103,47 +95,59 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
         <div>
           <div class="flex justify-between text-xs font-bold text-slate-600 mb-1">
-            <span>Font Size</span>
+            <span>🔤 글자 크기 조절</span>
             <span id="fontSizeVal">26px</span>
           </div>
           <input type="range" id="fontSizeSlider" min="20" max="42" value="26" class="w-full accent-slate-700" oninput="changeFontSize(this.value)">
         </div>
         <div>
           <div class="flex justify-between text-xs font-bold text-slate-600 mb-1">
-            <span>Speech Speed</span>
-            <span id="speedVal">1.0x</span>
+            <span>⚡ 재생 속도 조절</span>
+            <span id="speedVal">1.0배속</span>
           </div>
           <input type="range" id="speedSlider" min="0.6" max="1.3" step="0.05" value="1.0" class="w-full accent-slate-700" oninput="changeSpeed(this.value)">
         </div>
       </div>
     </div>
 
-    <!-- 단계별 필터 및 전체 재생 버튼들 -->
+    <!-- 단계별 일괄 반복 재생 버튼들 (원래 쓰시던 스타일 복원) -->
     <div class="bg-white rounded-3xl p-4 shadow-sm border border-slate-200 flex flex-col gap-2">
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <button onclick="playRelay('all')" class="toy-btn p-3 bg-emerald-50 border-2 border-emerald-500 rounded-xl text-emerald-800 font-black text-sm sm:text-base flex items-center justify-center gap-2">
-          <span>Play All Sentences</span>
+      <button onclick="playRelay('all')" class="p-3 bg-[#f0fdf4] border-2 border-[#2ecc71] rounded-xl text-[#15803d] font-black text-sm sm:text-base text-center shadow-sm hover:bg-emerald-100 transition">
+        📻 🔁 🟥🟧🟨🟩 전체 문장 연속 반복 재생
+      </button>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <button onclick="playRelay('4')" class="p-2.5 bg-[#fef2f2] border-2 border-[#ef4444] rounded-xl text-[#b91c1c] font-black text-xs text-center shadow-sm hover:bg-rose-100 transition">
+          📻 🔁 🟥 4단계 (미숙)
         </button>
-        <button onclick="playRelay('level4')" class="toy-btn p-3 bg-rose-50 border-2 border-rose-500 rounded-xl text-rose-800 font-black text-sm sm:text-base flex items-center justify-center gap-2">
-          <span>Play Level 4 (Unfamiliar)</span>
+        <button onclick="playRelay('3')" class="p-2.5 bg-[#fff7ed] border-2 border-[#f97316] rounded-xl text-[#c2410c] font-black text-xs text-center shadow-sm hover:bg-orange-100 transition">
+          📻 🔁 🟧 3단계 (초급)
+        </button>
+        <button onclick="playRelay('2')" class="p-2.5 bg-[#fefce8] border-2 border-[#eab308] rounded-xl text-[#a16207] font-black text-xs text-center shadow-sm hover:bg-yellow-100 transition">
+          📻 🔁 🟨 2단계 (중급)
+        </button>
+        <button onclick="playRelay('1')" class="p-2.5 bg-[#f0fdf4] border-2 border-[#22c55e] rounded-xl text-[#15803d] font-black text-xs text-center shadow-sm hover:bg-emerald-100 transition">
+          📻 🔁 🟩 1단계 (마스터)
         </button>
       </div>
       
-      <div>
-        <label class="text-xs font-bold text-slate-500 mb-1 block">Level Filter</label>
+      <div class="mt-2">
+        <label class="text-xs font-bold text-slate-500 mb-1 block">🎯 학습할 단계 선택</label>
         <select id="stageFilterSelect" onchange="renderSentenceList()" class="w-full p-2.5 rounded-xl border border-slate-300 font-bold bg-slate-50 text-slate-800">
-          <option value="all">View All Levels</option>
-          <option value="4">Level 4 (Unfamiliar)</option>
-          <option value="3">Level 3 (Beginner)</option>
-          <option value="2">Level 2 (Intermediate)</option>
-          <option value="1">Level 1 (Master)</option>
+          <option value="all">🟥🟧🟨🟩 전체 보기 (모든 문장)</option>
+          <option value="4">🟥 4단계만 보기 (미숙)</option>
+          <option value="3">🟧 3단계만 보기 (초급)</option>
+          <option value="2">🟨 2단계만 보기 (중급)</option>
+          <option value="1">🟩 1단계만 보기 (마스터)</option>
         </select>
       </div>
     </div>
 
+    <!-- 전체 재생 중일 때 나타나는 오디오 플레이어 바 -->
+    <div id="relayPlayerContainer"></div>
+
     <!-- 문장 리스트 출력 영역 -->
     <div id="sentenceContainer" class="flex flex-col gap-2.5">
-      <div class="text-center py-10 text-slate-400">Loading sentences...</div>
+      <div class="text-center py-10 text-slate-400">문장 로딩 중...</div>
     </div>
 
   </div>
@@ -153,12 +157,12 @@
   <!-- ========================================== -->
   <div id="listeningSection" style="display: none;" class="flex flex-col gap-3">
     <div class="bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200 text-center">
-      <h1 class="text-2xl sm:text-3xl font-black text-slate-800">Listening Master</h1>
-      <p class="text-xs text-slate-500 mt-1">Google Drive Audio Tracks & Notes</p>
+      <h1 class="text-2xl sm:text-3xl font-black text-slate-800">👑 리스닝 마스터 👑</h1>
+      <p class="text-xs text-slate-500 mt-1">구글 드라이브 오디오 트랙 & 나만의 청취 메모</p>
     </div>
     
     <div id="listeningTrackContainer" class="flex flex-col gap-3">
-      <div class="text-center py-10 text-slate-400">Scanning audio tracks...</div>
+      <div class="text-center py-10 text-slate-400">오디오 트랙 스캔 중...</div>
     </div>
   </div>
 
@@ -199,7 +203,7 @@
 
     function changeSpeed(val) {
       currentSpeed = parseFloat(val);
-      document.getElementById('speedVal').textContent = val + 'x';
+      document.getElementById('speedVal').textContent = val + '배속';
     }
 
     function initSpeakingMaster() {
@@ -217,14 +221,12 @@
         select.appendChild(opt);
       });
       currentSheetName = sheetNames[0];
-      document.getElementById('speakingTitle').textContent = `${currentSheetName} Speaking Master`;
       loadSheetContent(currentSheetName);
     }
 
     function changeSheet() {
       const select = document.getElementById('sheetSelect');
       currentSheetName = select.value;
-      document.getElementById('speakingTitle').textContent = `${currentSheetName} Speaking Master`;
       loadSheetContent(currentSheetName);
     }
 
@@ -241,6 +243,7 @@
         return;
       }
 
+      // 기본 샘플 데이터 (추후 구글 시트 API 연동으로 확장 가능)
       const sampleRows = [
         { id: "1", kr: "안녕하세요, 만나서 반갑습니다.", en: "Hello, nice to meet you.", energy: 1 },
         { id: "2", kr: "오늘 날씨가 정말 좋네요.", en: "The weather is really nice today.", energy: 0 },
@@ -266,7 +269,7 @@
       });
 
       if (filtered.length === 0) {
-        container.innerHTML = `<div class="text-center py-10 text-slate-400">No sentences found in this level.</div>`;
+        container.innerHTML = `<div class="text-center py-10 text-slate-400">해당 단계에 등록된 문장이 없습니다.</div>`;
         return;
       }
 
@@ -307,24 +310,19 @@
         // 문장 클릭 시 토글 (한글 <-> 영어) 및 듣기 버튼 동적 생성
         sentenceBtn.onclick = () => {
           if (sentenceBtn.dataset.state === 'kr') {
-            // 영어로 전환
             sentenceBtn.innerText = sentenceBtn.dataset.en;
             sentenceBtn.dataset.state = 'en';
             
-            // 영어로 바뀔 때만 [🔊 듣기] 버튼 생성해서 보여주기
             actionSlot.innerHTML = `
               <button onclick="event.stopPropagation(); playTTS('${item.en.replace(/'/g, "\\'")}')" 
                 class="p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-bold text-xs shadow-sm transition whitespace-nowrap">
                 🔊 듣기
               </button>
             `;
-            // 자동 음성 재생
             playTTS(item.en);
           } else {
-            // 한글로 복원
             sentenceBtn.innerText = sentenceBtn.dataset.kr;
             sentenceBtn.dataset.state = 'kr';
-            // 한글 상태일 때는 듣기 버튼 숨기기
             actionSlot.innerHTML = '';
           }
         };
@@ -347,6 +345,50 @@
       window.speechSynthesis.speak(utterance);
     }
 
+    // 전체 문장 또는 단계별 연속 재생 시뮬레이션
+    function playRelay(level) {
+      const rows = cachedSheetsData[currentSheetName] || [];
+      const targetRows = level === 'all' ? rows : rows.filter(item => item.energy.toString() === level);
+      
+      if (targetRows.length === 0) {
+        alert("재생할 문장이 없습니다!");
+        return;
+      }
+
+      let texts = targetRows.map(r => r.en);
+      let idx = 0;
+
+      const playerContainer = document.getElementById('relayPlayerContainer');
+      playerContainer.innerHTML = `
+        <div class="bg-emerald-50 border-2 border-emerald-500 p-3 rounded-2xl flex items-center justify-between shadow-sm">
+          <div class="font-bold text-emerald-800 text-sm">▶ 연속 재생 중 (${targetRows.length개 문장})</div>
+          <button onclick="stopRelay()" class="px-3 py-1 bg-rose-600 text-white font-bold rounded-xl text-xs">정지</button>
+        </div>
+      `;
+
+      function playNext() {
+        if (idx >= texts.length) {
+          idx = 0; // 반복 재생
+        }
+        const utterance = new SpeechSynthesisUtterance(texts[idx]);
+        utterance.lang = 'en-US';
+        utterance.rate = currentSpeed;
+        utterance.onend = () => {
+          idx++;
+          setTimeout(playNext, 600); // 문장 사이 0.6초 텀
+        };
+        window.speechSynthesis.speak(utterance);
+      }
+
+      window.speechSynthesis.cancel();
+      playNext();
+    }
+
+    function stopRelay() {
+      window.speechSynthesis.cancel();
+      document.getElementById('relayPlayerContainer').innerHTML = '';
+    }
+
     function getEnergyBlockText(energy) {
       if (energy === 0) return "🟥<br>🟥<br>🟥<br>🟥";
       if (energy === 1) return "🟧<br>🟧<br>🟧";
@@ -360,8 +402,8 @@
         <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-2">
           <div class="font-bold text-slate-800">🎵 1. Audio Track Sample.mp3</div>
           <audio controls class="w-full"></audio>
-          <textarea placeholder="Write your listening notes here..." class="w-full p-2 border border-slate-200 rounded-xl text-xs" rows="2"></textarea>
-          <button class="py-2 bg-emerald-600 text-white font-bold rounded-xl text-xs">Save Note & Mark as Complete</button>
+          <textarea placeholder="나만의 청취 메모를 입력하세요..." class="w-full p-2 border border-slate-200 rounded-xl text-xs" rows="2"></textarea>
+          <button class="py-2 bg-emerald-600 text-white font-bold rounded-xl text-xs">💾 메모 저장하기</button>
         </div>
       `;
     }
