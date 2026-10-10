@@ -47,7 +47,7 @@
       font-weight: bold;
       text-align: center;
       cursor: pointer;
-      padding: 6px;
+      padding: 6px 10px;
       line-height: 1.2;
       transition: background 0.1s;
     }
@@ -168,7 +168,6 @@
     let currentFontSize = 26;
     let currentSpeed = 1.0;
     
-    // 연속 재생 제어용 전역 변수
     let isRelayPlaying = false;
     let relayTimer = null;
 
@@ -178,7 +177,7 @@
 
     function switchMode(mode) {
       currentMode = mode;
-      stopRelay(); // 모드 전환 시 재생 중인 오디오 강제 중지
+      stopRelay();
       if (mode === 'speaking') {
         document.getElementById('speakingSection').style.display = 'flex';
         document.getElementById('listeningSection').style.display = 'none';
@@ -279,10 +278,10 @@
 
       filtered.forEach((item) => {
         const rowDiv = document.createElement('div');
-        rowDiv.className = "flex items-center gap-3 bg-white p-3 rounded-2xl shadow-sm border border-slate-200";
+        rowDiv.className = "flex items-center gap-2 bg-white p-2.5 sm:p-3 rounded-2xl shadow-sm border border-slate-200";
 
         const leftCol = document.createElement('div');
-        leftCol.className = "flex-1";
+        leftCol.className = "flex-1 min-w-0"; // 문장 영역이 남는 공간을 최대한 활용하도록 설정
         
         const sentenceBtn = document.createElement('button');
         sentenceBtn.className = "sentence-btn w-full font-black";
@@ -294,12 +293,13 @@
 
         leftCol.appendChild(sentenceBtn);
 
+        // 우측 영역 폭을 좁게(w-14) 줄여서 문장 공간을 극대화
         const rightCol = document.createElement('div');
-        rightCol.className = "w-28 flex items-center justify-end";
+        rightCol.className = "w-14 shrink-0 flex items-center justify-end";
 
         // 난이도 네모 버튼 생성
         const energyBtn = document.createElement('button');
-        energyBtn.className = "energy-btn w-full text-xs font-black p-2";
+        energyBtn.className = "energy-btn w-full text-xs font-black p-1.5";
         energyBtn.innerHTML = getEnergyBlockText(Number(item.energy));
         
         energyBtn.onclick = () => {
@@ -366,7 +366,7 @@
     }
 
     function playRelay(level) {
-      stopRelay(); // 기존 재생 중이던 것이 있다면 먼저 깔끔하게 차단
+      stopRef = stopRelay();
 
       const rows = cachedSheetsData[currentSheetName] || [];
       const targetRows = level === 'all' ? rows : rows.filter(item => Number(item.energy) === Number(level));
@@ -389,10 +389,10 @@
       `;
 
       function playNext() {
-        if (!isRelayPlaying) return; // 중간에 정지되면 실행 중단
+        if (!isRelayPlaying) return;
 
         if (idx >= texts.length) {
-          idx = 0; // 무한 반복
+          idx = 0;
         }
 
         const utterance = new SpeechSynthesisUtterance(texts[idx]);
