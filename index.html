@@ -167,7 +167,6 @@
   </div>
 
   <script>
-    // 아까 복사하신 구글 Apps Script 웹 앱 URL
     const GAS_URL = "https://script.google.com/macros/s/AKfycbzkkXhkTBKb5-PSYHbU2S68M4gxNzXrXaq1RCCRJIjHtFtoOZmfwEH_vK_srz2WVWvmkQ/exec";
 
     let currentMode = 'speaking';
@@ -225,6 +224,7 @@
 
         if (sheetNames.length > 0) {
           currentSheetName = sheetNames[0];
+          document.getElementById('speakingTitle').textContent = `👑 ${currentSheetName} 스피킹 마스터 👑`;
           loadSheetContent(currentSheetName);
         }
       } catch (err) {
@@ -235,6 +235,7 @@
     function changeSheet() {
       const select = document.getElementById('sheetSelect');
       currentSheetName = select.value;
+      document.getElementById('speakingTitle').textContent = `👑 ${currentSheetName} 스피킹 마스터 👑`;
       loadSheetContent(currentSheetName);
     }
 
@@ -309,13 +310,11 @@
         energyBtn.className = "energy-btn flex-1 text-xs font-black p-2";
         energyBtn.innerHTML = getEnergyBlockText(item.energy);
         
-        // 에너지 블록 클릭 시 순환 및 구글 시트에 실시간 백그라운드 반영
         energyBtn.onclick = () => {
           item.energy = item.energy < 3 ? item.energy + 1 : 0;
           energyBtn.innerHTML = getEnergyBlockText(item.energy);
           localStorage.setItem(`sheet_cache_${currentSheetName}`, JSON.stringify(rows));
 
-          // 구글 시트로 백그라운드 POST 요청 전송
           fetch(GAS_URL, {
             method: 'POST',
             mode: 'no-cors',
