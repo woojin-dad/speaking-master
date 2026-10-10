@@ -167,6 +167,10 @@
     let currentSheetName = '';
     let currentFontSize = 26;
     let currentSpeed = 1.0;
+    
+    // 연속 재생 제어용 전역 변수
+    let isRelayPlaying = false;
+    let relayTimer = null;
 
     window.addEventListener('DOMContentLoaded', () => {
       initSpeakingMaster();
@@ -174,6 +178,7 @@
 
     function switchMode(mode) {
       currentMode = mode;
+      stopRelay(); // 모드 전환 시 재생 중인 오디오 강제 중지
       if (mode === 'speaking') {
         document.getElementById('speakingSection').style.display = 'flex';
         document.getElementById('listeningSection').style.display = 'none';
@@ -226,6 +231,7 @@
     }
 
     function changeSheet() {
+      stopRelay();
       const select = document.getElementById('sheetSelect');
       currentSheetName = select.value;
       document.getElementById('speakingTitle').textContent = `👑 ${currentSheetName} 스피킹 마스터 👑`;
@@ -360,6 +366,8 @@
     }
 
     function playRelay(level) {
+      stopRelay(); // 기존 재생 중이던 것이 있다면 먼저 깔끔하게 차단
+
       const rows = cachedSheetsData[currentSheetName] || [];
       const targetRows = level === 'all' ? rows : rows.filter(item => Number(item.energy) === Number(level));
       
@@ -368,6 +376,7 @@
         return;
       }
 
+      isRelayPlaying = true;
       let texts = targetRows.map(r => r.en);
       let idx = 0;
 
@@ -380,16 +389,28 @@
       `;
 
       function playNext() {
+        if (!isRelayPlaying) return; // 중간에 정지되면 실행 중단
+
         if (idx >= texts.length) {
-          idx = 0;
+          idx = 0; // 무한 반복
         }
+
         const utterance = new SpeechSynthesisUtterance(texts[idx]);
         utterance.lang = 'en-US';
         utterance.rate = currentSpeed;
+
         utterance.onend = () => {
+          if (!isRelayPlaying) return;
           idx++;
-          setTimeout(playNext, 600);
+          relayTimer = setTimeout(playNext, 600);
         };
+
+        utterance.onerror = () => {
+          if (!isRelayPlaying) return;
+          idx++;
+          relayTimer = setTimeout(playNext, 600);
+        };
+
         window.speechSynthesis.speak(utterance);
       }
 
@@ -398,8 +419,18 @@
     }
 
     function stopRelay() {
-      window.speechSynthesis.cancel();
-      document.getElementById('relayPlayerContainer').innerHTML = '';
+      isRelayPlaying = false;
+      if (relayTimer) {
+        clearTimeout(relayTimer);
+        relayTimer = null;
+      }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      const playerContainer = document.getElementById('relayPlayerContainer');
+      if (playerContainer) {
+        playerContainer.innerHTML = '';
+      }
     }
 
     function getEnergyBlockText(energy) {
