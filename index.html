@@ -170,8 +170,6 @@
     
     let isRelayPlaying = false;
     let relayTimer = null;
-
-    // 개별 문장 무한 반복용 전역 변수
     let activeSingleLoopText = null;
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -323,18 +321,19 @@
           }).catch(e => {});
         };
 
-        // 개별 플레이 버튼 생성 (누르면 해당 문장 무한 반복 재생)
+        // 플레이 버튼 생성 (누르면 해당 문장 무한 반복 재생)
         const playBtn = document.createElement('button');
         playBtn.className = "w-full py-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-black text-sm shadow-sm transition flex items-center justify-center";
         playBtn.innerHTML = "▶";
         playBtn.onclick = (e) => {
           e.stopPropagation();
-          stopRelay(); // 전체 연속 재생 중이면 중지
+          stopRelay();
           playSingleLoop(item.en);
         };
 
         rightCol.appendChild(energyBtn);
 
+        // [수정된 부분] 문장 터치 시 오디오 재생 없이 텍스트만 전환
         sentenceBtn.onclick = () => {
           if (sentenceBtn.dataset.state === 'kr') {
             sentenceBtn.innerText = sentenceBtn.dataset.en;
@@ -342,13 +341,12 @@
             
             rightCol.innerHTML = '';
             rightCol.appendChild(playBtn);
-            stopRelay();
-            playSingleLoop(item.en); // 한글 문장을 눌러 영어로 바뀔 때도 바로 반복 재생 시작
+            // 오디오 재생 코드는 제거하여 터치 시 글자만 바뀌도록 함
           } else {
             sentenceBtn.innerText = sentenceBtn.dataset.kr;
             sentenceBtn.dataset.state = 'kr';
             
-            stopSingleLoop(); // 한글로 돌아올 때 반복 재생 중지
+            stopSingleLoop(); // 한글로 돌아올 때 혹시 재생 중이던 반복 음성 중지
             rightCol.innerHTML = '';
             rightCol.appendChild(energyBtn);
           }
@@ -363,12 +361,12 @@
     // 개별 문장 무한 반복 재생 함수
     function playSingleLoop(text) {
       if (!('speechSynthesis' in window)) return;
-      stopSingleLoop(); // 기존 반복 중이던 것 중지
+      stopSingleLoop();
       
       activeSingleLoopText = text;
 
       function speakLoop() {
-        if (activeSingleLoopText !== text) return; // 다른 문장이나 정지로 바뀌었으면 중단
+        if (activeSingleLoopText !== text) return;
 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'en-US';
@@ -376,7 +374,7 @@
 
         utterance.onend = () => {
           if (activeSingleLoopText === text) {
-            relayTimer = setTimeout(speakLoop, 600); // 0.6초 쉬고 다시 반복
+            relayTimer = setTimeout(speakLoop, 600);
           }
         };
 
@@ -405,7 +403,7 @@
     }
 
     function playRelay(level) {
-      stopSingleLoop(); // 개별 반복 재생 중이면 중지
+      stopSingleLoop();
       stopRelay();
 
       const filterSelect = document.getElementById('stageFilterSelect');
