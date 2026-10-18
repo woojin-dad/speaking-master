@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
 
-  <title>스피킹 & 리스닝 마스터</title>
+  <title>스피닝 & 리스닝 마스터 (백그라운드 재생)</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.gstatic.com">
@@ -56,7 +56,7 @@
     }
   </style>
 </head>
-<body class="flex flex-col text-slate-800 p-2 sm:p-4 md:p-6 max-w-4xl mx-auto">
+<body class="flex flex-col text-slate-800 p-2 sm:p-4 md:p-6 max-w-4xl mx-auto pb-32">
 
   <!-- 상단 모드 전환 탭 -->
   <div class="flex items-center justify-center gap-3 bg-white p-2 rounded-2xl shadow-sm border border-slate-200 mb-4">
@@ -135,9 +135,6 @@
       </div>
     </div>
 
-    <!-- 전체 재생 중일 때 나타나는 플레이어 바 -->
-    <div id="relayPlayerContainer"></div>
-
     <!-- 문장 리스트 출력 영역 -->
     <div id="sentenceContainer" class="flex flex-col gap-2.5">
       <div class="text-center py-10 text-slate-400">구글 시트에서 문장 불러오는 중...</div>
@@ -145,69 +142,50 @@
 
   </div>
 
-  <!-- ========================================== -->
-  <!-- 🎧 [모드 2] 리스닝 마스터 영역                 -->
-  <!-- ========================================== -->
-  <div id="listeningSection" style="display: none;" class="flex flex-col gap-3">
-    <div class="bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200 text-center">
-      <h1 class="text-2xl sm:text-3xl font-black text-slate-800">👑 리스닝 마스터 👑</h1>
-      <p class="text-xs text-slate-500 mt-1">구글 드라이브 오디오 트랙 & 나만의 청취 메모</p>
+  <!-- 하단 고정 오디오 플레이어 바 (백그라운드 유지용) -->
+  <div id="persistentPlayerBar" class="fixed bottom-0 left-0 right-0 bg-slate-900 text-white p-3 shadow-lg border-t border-slate-700 max-w-4xl mx-auto z-50 flex flex-col gap-2" style="display: none;">
+    <div class="flex items-center justify-between text-xs">
+      <span id="playerStatusText" class="font-bold text-emerald-400">▶ 대기 중</span>
+      <button onclick="stopAudioEngine()" class="px-2.5 py-1 bg-rose-600 font-bold rounded-lg text-white">끄기</button>
     </div>
-    
-    <div id="listeningTrackContainer" class="flex flex-col gap-3">
-      <div class="text-center py-10 text-slate-400">오디오 트랙 스캔 중...</div>
+    <audio id="mainAudioPlayer" controls class="w-full h-10 accent-emerald-500"></audio>
+    <div class="flex gap-2">
+      <button onclick="seekAudio(-5)" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-lg border border-slate-600">⏪ 5초 뒤로</button>
+      <button onclick="toggleJjikJjik()" id="jjikBtn" class="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-xs font-bold rounded-lg">🔁 3초 찍찍이</button>
     </div>
   </div>
 
   <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbzkkXhkTBKb5-PSYHbU2S68M4gxNzXrXaq1RCCRJIjHtFtoOZmfwEH_vK_srz2WVWvmkQ/exec";
 
-    let currentMode = 'speaking';
-    let cachedSheetsData = {};
     let currentSheetName = '';
+    let cachedSheetsData = {};
     let currentFontSize = 26;
     let currentSpeed = 1.0;
     
-    let isRelayPlaying = false;
-    let relayTexts = [];
-    let relayIdx = 0;
-    let currentUtterance = null;
-    let relayTimer = null;
-    let activeSingleLoopText = null;
+    let audioQueue = [];
+    let audioQueueIdx = 0;
+    let isJjikActive = false;
+    let jjikTimer = null;
+
+    const audioPlayer = document.getElementById('mainAudioPlayer');
+    const playerBar = document.getElementById('persistentPlayerBar');
 
     window.addEventListener('DOMContentLoaded', () => {
       initSpeakingMaster();
+      audioPlayer.onended = handleAudioEnded;
     });
-
-    function switchMode(mode) {
-      currentMode = mode;
-      stopRelay();
-      stopSingleLoop();
-      if (mode === 'speaking') {
-        document.getElementById('speakingSection').style.display = 'flex';
-        document.getElementById('listeningSection').style.display = 'none';
-        document.getElementById('modeSpeakingBtn').className = "flex-1 py-2.5 rounded-xl font-bold text-base sm:text-lg bg-[#2c3e50] text-white shadow transition";
-        document.getElementById('modeListeningBtn').className = "flex-1 py-2.5 rounded-xl font-bold text-base sm:text-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition";
-      } else {
-        document.getElementById('speakingSection').style.display = 'none';
-        document.getElementById('listeningSection').style.display = 'flex';
-        document.getElementById('modeListeningBtn').className = "flex-1 py-2.5 rounded-xl font-bold text-base sm:text-lg bg-[#2c3e50] text-white shadow transition";
-        document.getElementById('modeSpeakingBtn').className = "flex-1 py-2.5 rounded-xl font-bold text-base sm:text-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition";
-        loadListeningTracks();
-      }
-    }
 
     function changeFontSize(val) {
       currentFontSize = val;
       document.getElementById('fontSizeVal').textContent = val + 'px';
-      document.querySelectorAll('.sentence-btn').forEach(btn => {
-        btn.style.fontSize = val + 'px';
-      });
+      document.querySelectorAll('.sentence-btn').forEach(btn => btn.style.fontSize = val + 'px');
     }
 
     function changeSpeed(val) {
       currentSpeed = parseFloat(val);
       document.getElementById('speedVal').textContent = val + '배속';
+      audioPlayer.playbackRate = currentSpeed;
     }
 
     async function initSpeakingMaster() {
@@ -230,13 +208,12 @@
           loadSheetContent(currentSheetName);
         }
       } catch (err) {
-        document.getElementById('sentenceContainer').innerHTML = `<div class="text-center py-10 text-rose-500 font-bold">시트 목록을 불러오는 데 실패했습니다.</div>`;
+        document.getElementById('sentenceContainer').innerHTML = `<div class="text-center py-10 text-rose-500 font-bold">시트 목록 로드 실패</div>`;
       }
     }
 
     function changeSheet() {
-      stopRelay();
-      stopSingleLoop();
+      stopAudioEngine();
       const select = document.getElementById('sheetSelect');
       currentSheetName = select.value;
       document.getElementById('speakingTitle').textContent = `👑 ${currentSheetName} 스피킹 마스터 👑`;
@@ -251,17 +228,16 @@
         return;
       }
 
-      document.getElementById('sentenceContainer').innerHTML = `<div class="text-center py-10 text-slate-400">구글 시트 데이터 로딩 중...</div>`;
+      document.getElementById('sentenceContainer').innerHTML = `<div class="text-center py-10 text-slate-400">데이터 로딩 중...</div>`;
 
       try {
         const res = await fetch(`${GAS_URL}?action=getData&sheet=${encodeURIComponent(sheetName)}`);
         const rows = await res.json();
-        
         cachedSheetsData[sheetName] = rows;
         localStorage.setItem(`sheet_cache_${sheetName}`, JSON.stringify(rows));
         renderSentenceList();
       } catch (err) {
-        document.getElementById('sentenceContainer').innerHTML = `<div class="text-center py-10 text-rose-500 font-bold">데이터를 불러오는 중 오류가 발생했습니다.</div>`;
+        document.getElementById('sentenceContainer').innerHTML = `<div class="text-center py-10 text-rose-500 font-bold">데이터 로딩 오류</div>`;
       }
     }
 
@@ -272,13 +248,10 @@
       const rows = cachedSheetsData[currentSheetName] || [];
       const filterStage = document.getElementById('stageFilterSelect').value;
 
-      const filtered = rows.filter(item => {
-        if (filterStage === 'all') return true;
-        return Number(item.energy) === Number(filterStage);
-      });
+      const filtered = rows.filter(item => filterStage === 'all' || Number(item.energy) === Number(filterStage));
 
       if (filtered.length === 0) {
-        container.innerHTML = `<div class="text-center py-10 text-slate-400">해당 단계에 등록된 문장이 없습니다.</div>`;
+        container.innerHTML = `<div class="text-center py-10 text-slate-400">등록된 문장이 없습니다.</div>`;
         return;
       }
 
@@ -302,7 +275,6 @@
         const rightCol = document.createElement('div');
         rightCol.className = "w-14 shrink-0 flex items-center justify-end";
 
-        // 난이도 네모 버튼 생성
         const energyBtn = document.createElement('button');
         energyBtn.className = "energy-btn w-full text-xs font-black p-1.5";
         energyBtn.innerHTML = getEnergyBlockText(Number(item.energy));
@@ -316,39 +288,29 @@
             method: 'POST',
             mode: 'no-cors',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              sheet: currentSheetName,
-              rowIndex: item.rowIndex,
-              energy: item.energy
-            })
+            body: JSON.stringify({ sheet: currentSheetName, rowIndex: item.rowIndex, energy: item.energy })
           }).catch(e => {});
         };
 
-        // 개별 플레이 버튼 생성 (누르면 해당 문장 무한 반복 재생)
         const playBtn = document.createElement('button');
         playBtn.className = "w-full py-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-black text-sm shadow-sm transition flex items-center justify-center";
         playBtn.innerHTML = "▶";
         playBtn.onclick = (e) => {
           e.stopPropagation();
-          stopRelay();
-          playSingleLoop(item.en);
+          playSingleSentence(item.en);
         };
 
         rightCol.appendChild(energyBtn);
 
-        // 문장 터치 시 오디오 재생 없이 텍스트만 전환
         sentenceBtn.onclick = () => {
           if (sentenceBtn.dataset.state === 'kr') {
             sentenceBtn.innerText = sentenceBtn.dataset.en;
             sentenceBtn.dataset.state = 'en';
-            
             rightCol.innerHTML = '';
             rightCol.appendChild(playBtn);
           } else {
             sentenceBtn.innerText = sentenceBtn.dataset.kr;
             sentenceBtn.dataset.state = 'kr';
-            
-            stopSingleLoop();
             rightCol.innerHTML = '';
             rightCol.appendChild(energyBtn);
           }
@@ -360,54 +322,16 @@
       });
     }
 
-    // 개별 문장 무한 반복 재생 함수
-    function playSingleLoop(text) {
-      if (!('speechSynthesis' in window)) return;
-      stopSingleLoop();
-      
-      activeSingleLoopText = text;
-
-      function speakLoop() {
-        if (activeSingleLoopText !== text) return;
-
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'en-US';
-        utterance.rate = currentSpeed;
-
-        utterance.onend = () => {
-          if (activeSingleLoopText === text) {
-            relayTimer = setTimeout(speakLoop, 600);
-          }
-        };
-
-        utterance.onerror = () => {
-          if (activeSingleLoopText === text) {
-            relayTimer = setTimeout(speakLoop, 600);
-          }
-        };
-
-        window.speechSynthesis.speak(utterance);
-      }
-
-      window.speechSynthesis.cancel();
-      speakLoop();
-    }
-
-    function stopSingleLoop() {
-      activeSingleLoopText = null;
-      if (relayTimer) {
-        clearTimeout(relayTimer);
-        relayTimer = null;
-      }
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
+    function playSingleSentence(text) {
+      audioQueue = [text];
+      audioQueueIdx = 0;
+      isJjikActive = true; // 개별 재생은 기본적으로 찍찍이(반복) 활성화
+      document.getElementById('jjikBtn').className = "flex-1 py-1.5 bg-emerald-600 text-xs font-bold rounded-lg";
+      document.getElementById('jjikBtn').textContent = "🔁 3초 찍찍이 (ON)";
+      playQueueAudio();
     }
 
     function playRelay(level) {
-      stopSingleLoop();
-      stopRelay();
-
       const filterSelect = document.getElementById('stageFilterSelect');
       if (filterSelect) {
         filterSelect.value = level;
@@ -422,83 +346,71 @@
         return;
       }
 
-      isRelayPlaying = true;
-      relayTexts = targetRows.map(r => r.en);
-      relayIdx = 0;
-
-      updateRelayPlayerUI(targetRows.length);
-      playNextRelay();
+      audioQueue = targetRows.map(r => r.en);
+      audioQueueIdx = 0;
+      isJjikActive = false; // 전체 연속 재생은 순차 진행
+      document.getElementById('jjikBtn').className = "flex-1 py-1.5 bg-indigo-600 text-xs font-bold rounded-lg";
+      document.getElementById('jjikBtn').textContent = "🔁 3초 찍찍이 (OFF)";
+      playQueueAudio();
     }
 
-    function updateRelayPlayerUI(totalCount) {
-      const playerContainer = document.getElementById('relayPlayerContainer');
-      playerContainer.innerHTML = `
-        <div class="bg-emerald-50 border-2 border-emerald-500 p-3 rounded-2xl flex flex-col gap-2 shadow-sm">
-          <div class="flex items-center justify-between">
-            <div class="font-bold text-emerald-800 text-sm">▶ 연속 재생 중 (${totalCount}개 문장 중 <span id="currentRelayIdx">1</span>번째)</div>
-            <button onclick="stopRelay()" class="px-3 py-1 bg-rose-600 text-white font-bold rounded-xl text-xs">정지</button>
-          </div>
-          <div class="flex gap-2">
-            <button onclick="toggleRelayPause()" id="relayPauseBtn" class="flex-1 py-2 bg-slate-700 text-white font-bold rounded-xl text-xs">일시정지</button>
-          </div>
-        </div>
-      `;
-    }
-
-    function playNextRelay() {
-      if (!isRelayPlaying) return;
-
-      if (relayIdx >= relayTexts.length) {
-        relayIdx = 0; // 끝까지 가면 처음부터 반복
+    function playQueueAudio() {
+      if (audioQueueIdx >= audioQueue.length) {
+        audioQueueIdx = 0; // 전체 반복
       }
 
-      const idxSpan = document.getElementById('currentRelayIdx');
-      if (idxSpan) idxSpan.textContent = relayIdx + 1;
+      const text = audioQueue[audioQueueIdx];
+      const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=en&client=tw-ob`;
 
-      currentUtterance = new SpeechSynthesisUtterance(relayTexts[relayIdx]);
-      currentUtterance.lang = 'en-US';
-      currentUtterance.rate = currentSpeed;
-
-      currentUtterance.onend = () => {
-        if (!isRelayPlaying) return;
-        relayIdx++;
-        relayTimer = setTimeout(playNextRelay, 600); // 0.6초 쉬고 다음 문장
-      };
-
-      currentUtterance.onerror = () => {
-        if (!isRelayPlaying) return;
-        relayIdx++;
-        relayTimer = setTimeout(playNextRelay, 600);
-      };
-
-      window.speechSynthesis.speak(currentUtterance);
+      playerBar.style.display = 'flex';
+      document.getElementById('playerStatusText').textContent = `▶ 재생 중 (${audioQueueIdx + 1}/${audioQueue.length})`;
+      
+      audioPlayer.src = ttsUrl;
+      audioPlayer.playbackRate = currentSpeed;
+      audioPlayer.play().catch(e => {
+        console.log("Audio play blocked or error:", e);
+      });
     }
 
-    function toggleRelayPause() {
-      if (!('speechSynthesis' in window)) return;
-      const pauseBtn = document.getElementById('relayPauseBtn');
-      if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
-        window.speechSynthesis.pause();
-        if (pauseBtn) pauseBtn.textContent = "재생하기";
-      } else if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
-        if (pauseBtn) pauseBtn.textContent = "일시정지";
+    function handleAudioEnded() {
+      if (jjikTimer) clearTimeout(jjikTimer);
+
+      if (isJjikActive && audioQueue.length === 1) {
+        // 3초 찍찍이 활성화 상태 (0.6초 쉬고 다시 반복)
+        jjikTimer = setTimeout(() => {
+          audioPlayer.currentTime = 0;
+          audioPlayer.play();
+        }, 600);
+      } else {
+        // 다음 문장으로 순차 이동
+        audioQueueIdx++;
+        jjikTimer = setTimeout(() => {
+          playQueueAudio();
+        }, 600);
       }
     }
 
-    function stopRelay() {
-      isRelayPlaying = false;
-      if (relayTimer) {
-        clearTimeout(relayTimer);
-        relayTimer = null;
+    function toggleJjikJjik() {
+      isJjikActive = !isJjikActive;
+      const btn = document.getElementById('jjikBtn');
+      if (isJjikActive) {
+        btn.className = "flex-1 py-1.5 bg-emerald-600 text-xs font-bold rounded-lg";
+        btn.textContent = "🔁 3초 찍찍이 (ON)";
+      } else {
+        btn.className = "flex-1 py-1.5 bg-indigo-600 text-xs font-bold rounded-lg";
+        btn.textContent = "🔁 3초 찍찍이 (OFF)";
       }
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
-      const playerContainer = document.getElementById('relayPlayerContainer');
-      if (playerContainer) {
-        playerContainer.innerHTML = '';
-      }
+    }
+
+    function seekAudio(sec) {
+      audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime + sec);
+    }
+
+    function stopAudioEngine() {
+      audioPlayer.pause();
+      audioPlayer.src = '';
+      playerBar.style.display = 'none';
+      if (jjikTimer) clearTimeout(jjikTimer);
     }
 
     function getEnergyBlockText(energy) {
@@ -510,14 +422,7 @@
 
     function loadListeningTracks() {
       const container = document.getElementById('listeningTrackContainer');
-      container.innerHTML = `
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-2">
-          <div class="font-bold text-slate-800">🎵 1. 오디오 트랙 샘플.mp3</div>
-          <audio controls class="w-full"></audio>
-          <textarea placeholder="나만의 청취 메모를 입력하세요..." class="w-full p-2 border border-slate-200 rounded-xl text-xs" rows="2"></textarea>
-          <button class="py-2 bg-emerald-600 text-white font-bold rounded-xl text-xs">💾 메모 저장하기</button>
-        </div>
-      `;
+      container.innerHTML = `<div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">리스닝 마스터 영역</div>`;
     }
   </script>
 </body>
