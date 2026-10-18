@@ -106,7 +106,7 @@
     <!-- 단계별 일괄 반복 재생 버튼들 -->
     <div class="bg-white rounded-3xl p-4 shadow-sm border border-slate-200 flex flex-col gap-2">
       <button onclick="playRelay('all')" class="p-3 bg-[#f0fdf4] border-2 border-[#2ecc71] rounded-xl text-[#15803d] font-black text-sm sm:text-base text-center shadow-sm hover:bg-emerald-100 transition">
-        📻 🔁 🟥🟧🟨🟩 전체 문장 연속 반복 재생
+        📻 🔁 🟥🟧🟨🟩 전체 문장 연속 반복 재생 (gTTS 음성)
       </button>
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <button onclick="playRelay('0')" class="p-2.5 bg-[#fef2f2] border-2 border-[#ef4444] rounded-xl text-[#b91c1c] font-black text-xs text-center shadow-sm hover:bg-rose-100 transition">
@@ -135,7 +135,7 @@
       </div>
     </div>
 
-    <!-- 전체 재생 중일 때 나타나는 플레이어 바 -->
+    <!-- 전체 재생 중일 때 나타나는 통합 플레이어 바 (3초 찍찍이 및 속도 지원) -->
     <div id="relayPlayerContainer"></div>
 
     <!-- 문장 리스트 출력 영역 -->
@@ -168,9 +168,8 @@
     let currentFontSize = 26;
     let currentSpeed = 1.0;
     
-    let isRelayPlaying = false;
-    let relayTimer = null;
-    let activeSingleLoopText = null;
+    let activeAudioPlayer = null;
+    let activeLoopTimer = null;
 
     window.addEventListener('DOMContentLoaded', () => {
       initSpeakingMaster();
@@ -178,8 +177,7 @@
 
     function switchMode(mode) {
       currentMode = mode;
-      stopRelay();
-      stopSingleLoop();
+      stopAllAudio();
       if (mode === 'speaking') {
         document.getElementById('speakingSection').style.display = 'flex';
         document.getElementById('listeningSection').style.display = 'none';
@@ -205,6 +203,9 @@
     function changeSpeed(val) {
       currentSpeed = parseFloat(val);
       document.getElementById('speedVal').textContent = val + '배속';
+      if (activeAudioPlayer) {
+        activeAudioPlayer.playbackRate = currentSpeed;
+      }
     }
 
     async function initSpeakingMaster() {
@@ -232,8 +233,7 @@
     }
 
     function changeSheet() {
-      stopRelay();
-      stopSingleLoop();
+      stopAllAudio();
       const select = document.getElementById('sheetSelect');
       currentSheetName = select.value;
       document.getElementById('speakingTitle').textContent = `👑 ${currentSheetName} 스피킹 마스터 👑`;
@@ -321,19 +321,19 @@
           }).catch(e => {});
         };
 
-        // 플레이 버튼 생성 (누르면 해당 문장 무한 반복 재생)
+        // 개별 플레이 버튼 (gTTS 음성으로 해당 문장 무한 반복 재생)
         const playBtn = document.createElement('button');
         playBtn.className = "w-full py-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-black text-sm shadow-sm transition flex items-center justify-center";
         playBtn.innerHTML = "▶";
         playBtn.onclick = (e) => {
           e.stopPropagation();
-          stopRelay();
-          playSingleLoop(item.en);
+          stopAllAudio();
+          playGTTSLoop(item.en);
         };
 
         rightCol.appendChild(energyBtn);
 
-        // [수정된 부분] 문장 터치 시 오디오 재생 없이 텍스트만 전환
+        // 문장 터치 시 텍스트만 부드럽게 전환
         sentenceBtn.onclick = () => {
           if (sentenceBtn.dataset.state === 'kr') {
             sentenceBtn.innerText = sentenceBtn.dataset.en;
@@ -341,12 +341,11 @@
             
             rightCol.innerHTML = '';
             rightCol.appendChild(playBtn);
-            // 오디오 재생 코드는 제거하여 터치 시 글자만 바뀌도록 함
           } else {
             sentenceBtn.innerText = sentenceBtn.dataset.kr;
             sentenceBtn.dataset.state = 'kr';
             
-            stopSingleLoop(); // 한글로 돌아올 때 혹시 재생 중이던 반복 음성 중지
+            stopAllAudio();
             rightCol.innerHTML = '';
             rightCol.appendChild(energyBtn);
           }
@@ -358,53 +357,26 @@
       });
     }
 
-    // 개별 문장 무한 반복 재생 함수
-    function playSingleLoop(text) {
-      if (!('speechSynthesis' in window)) return;
-      stopSingleLoop();
+    // gTTS URL 생성기 (Google Translate TTS API 활용)
+    function getGttsUrl(text) {
+      return `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=en&client=tw-ob`;
+    }
+
+    // 개별 문장 gTTS 무한 반복 재생
+    function playGTTSLoop(text) {
+      stopAllAudio();
+      const audioUrl = getGttsUrl(text);
+      const audio = new Audio(audioUrl);
+      activeAudioPlayer = audio;
+      audio.playbackRate = currentSpeed;
       
-      activeSingleLoopText = text;
-
-      function speakLoop() {
-        if (activeSingleLoopText !== text) return;
-
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'en-US';
-        utterance.rate = currentSpeed;
-
-        utterance.onend = () => {
-          if (activeSingleLoopText === text) {
-            relayTimer = setTimeout(speakLoop, 600);
-          }
-        };
-
-        utterance.onerror = () => {
-          if (activeSingleLoopText === text) {
-            relayTimer = setTimeout(speakLoop, 600);
-          }
-        };
-
-        window.speechSynthesis.speak(utterance);
-      }
-
-      window.speechSynthesis.cancel();
-      speakLoop();
+      audio.loop = true; // 개별 문장 무한 반복
+      audio.play().catch(e => console.log(e));
     }
 
-    function stopSingleLoop() {
-      activeSingleLoopText = null;
-      if (relayTimer) {
-        clearTimeout(relayTimer);
-        relayTimer = null;
-      }
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
-    }
-
+    // 단계별 / 전체 연속 반복 재생 (gTTS 음성 스트림 순차 연결)
     function playRelay(level) {
-      stopSingleLoop();
-      stopRelay();
+      stopAllAudio();
 
       const filterSelect = document.getElementById('stageFilterSelect');
       if (filterSelect) {
@@ -420,56 +392,107 @@
         return;
       }
 
-      isRelayPlaying = true;
       let texts = targetRows.map(r => r.en);
       let idx = 0;
 
+      // Streamlit 코드에 있던 통합 오디오 플레이어 바 UI 구성
       const playerContainer = document.getElementById('relayPlayerContainer');
       playerContainer.innerHTML = `
-        <div class="bg-emerald-50 border-2 border-emerald-500 p-3 rounded-2xl flex items-center justify-between shadow-sm">
-          <div class="font-bold text-emerald-800 text-sm">▶ 연속 재생 중 (${targetRows.length}개 문장)</div>
-          <button onclick="stopRelay()" class="px-3 py-1 bg-rose-600 text-white font-bold rounded-xl text-xs">정지</button>
+        <div style="background-color: #f8fafc; padding: 12px; border-radius: 12px; border: 2px solid #2ecc71; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+          <div class="font-bold text-emerald-800 text-sm mb-2 flex justify-between items-center">
+            <span>📻 gTTS 연속 반복 재생 중 (${targetRows.length}개 문장)</span>
+            <button onclick="stopAllAudio()" class="px-2.5 py-1 bg-rose-600 text-white font-bold rounded-lg text-xs">정지</button>
+          </div>
+          <audio id="relayAudioElem" controls style="width: 100%; margin-bottom: 8px;"></audio>
+          <div style="display: flex; gap: 8px;">
+            <button id="relayToggleBtn" onclick="toggleRelayPlayPause()" style="flex: 1; padding: 8px; background-color: #475569; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer;">❚❚ 일시정지</button>
+            <button onclick="startRelay3SecLoop()" style="flex: 1; padding: 8px; background-color: #e11d48; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer;">🔂 3초 찍찍이</button>
+            <button onclick="skipRelayTime(-5)" style="flex: 1; padding: 8px; background-color: #3b82f6; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer;">⏪ 5초 뒤로</button>
+          </div>
         </div>
       `;
 
-      function playNext() {
-        if (!isRelayPlaying) return;
+      const audio = document.getElementById('relayAudioElem');
+      activeAudioPlayer = audio;
 
+      function playCurrentIndex() {
         if (idx >= texts.length) {
-          idx = 0;
+          idx = 0; // 리스트 끝 도달 시 처음부터 반복
         }
-
-        const utterance = new SpeechSynthesisUtterance(texts[idx]);
-        utterance.lang = 'en-US';
-        utterance.rate = currentSpeed;
-
-        utterance.onend = () => {
-          if (!isRelayPlaying) return;
-          idx++;
-          relayTimer = setTimeout(playNext, 600);
-        };
-
-        utterance.onerror = () => {
-          if (!isRelayPlaying) return;
-          idx++;
-          relayTimer = setTimeout(playNext, 600);
-        };
-
-        window.speechSynthesis.speak(utterance);
+        audio.src = getGttsUrl(texts[idx]);
+        audio.playbackRate = currentSpeed;
+        audio.play().catch(e => {});
       }
 
-      window.speechSynthesis.cancel();
-      playNext();
+      audio.onended = () => {
+        if (activeLoopTimer) return; // 3초 찍찍이 중이면 넘어가지 않음
+        idx++;
+        setTimeout(playCurrentIndex, 500); // 문장 사이 0.5초 여유
+      };
+
+      playCurrentIndex();
     }
 
-    function stopRelay() {
-      isRelayPlaying = false;
-      if (relayTimer) {
-        clearTimeout(relayTimer);
-        relayTimer = null;
+    // 통합 플레이어 제어 함수들 (3초 찍찍이 및 일시정지 지원)
+    function toggleRelayPlayPause() {
+      if (!activeAudioPlayer) return;
+      const btn = document.getElementById('relayToggleBtn');
+      if (activeAudioPlayer.paused) {
+        activeAudioPlayer.play();
+        if(btn) btn.innerText = "❚❚ 일시정지";
+      } else {
+        activeAudioPlayer.pause();
+        stopRelay3SecLoop();
+        if(btn) btn.innerText = "▶ 재생";
       }
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
+    }
+
+    function skipRelayTime(sec) {
+      if (activeAudioPlayer) {
+        activeAudioPlayer.currentTime = Math.max(0, activeAudioPlayer.currentTime + sec);
+      }
+    }
+
+    function startRelay3SecLoop() {
+      if (!activeAudioPlayer) return;
+      stopRelay3SecLoop();
+      
+      const btn = document.getElementById('relayToggleBtn');
+      if(btn) {
+        btn.innerText = "🔂 찍찍이 중";
+        btn.style.backgroundColor = "#e11d48";
+      }
+
+      const start = Math.max(0, activeAudioPlayer.currentTime - 3);
+      const end = activeAudioPlayer.currentTime;
+      activeAudioPlayer.currentTime = start;
+      activeAudioPlayer.play();
+
+      activeLoopTimer = setInterval(() => {
+        if (activeAudioPlayer.currentTime >= end || activeAudioPlayer.currentTime < start) {
+          activeAudioPlayer.currentTime = start;
+        }
+      }, 200);
+    }
+
+    function stopRelay3SecLoop() {
+      if (activeLoopTimer) {
+        clearInterval(activeLoopTimer);
+        activeLoopTimer = null;
+      }
+      const btn = document.getElementById('relayToggleBtn');
+      if(btn && activeAudioPlayer) {
+        btn.innerText = activeAudioPlayer.paused ? "▶ 재생" : "❚❚ 일시정지";
+        btn.style.backgroundColor = "#475569";
+      }
+    }
+
+    function stopAllAudio() {
+      stopRelay3SecLoop();
+      if (activeAudioPlayer) {
+        activeAudioPlayer.pause();
+        activeAudioPlayer.src = "";
+        activeAudioPlayer = null;
       }
       const playerContainer = document.getElementById('relayPlayerContainer');
       if (playerContainer) {
