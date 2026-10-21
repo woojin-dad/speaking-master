@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
- 
+  
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
 
   <title>스피킹 & 리스닝 마스터</title>
- 
+  
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Jua&display=swap" rel="stylesheet">
- 
+  
   <style>
     body {
       font-family: 'Jua', 'Fredoka', cursive, sans-serif;
@@ -72,13 +72,18 @@
   <!-- 🗣️ [모드 1] 스피킹 마스터 영역                 -->
   <!-- ========================================== -->
   <div id="speakingSection" class="flex flex-col gap-3">
-   
+    
     <!-- 타이틀 및 시트 선택 -->
     <div class="bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200 flex flex-col gap-3">
       <h1 id="speakingTitle" class="text-2xl sm:text-3xl font-black text-slate-800 text-center">👑 스피킹 마스터 👑</h1>
-     
+      
       <div>
-        <label class="text-xs font-bold text-slate-500 mb-1 block">학습 시트 선택</label>
+        <div class="flex justify-between items-center mb-1">
+          <label class="text-xs font-bold text-slate-500">학습 시트 선택</label>
+          <button onclick="refreshCurrentSheet()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-1 rounded-lg transition border border-indigo-100 shadow-sm">
+            🔄 최신 시트 불러오기
+          </button>
+        </div>
         <select id="sheetSelect" onchange="changeSheet()" class="w-full p-2.5 rounded-xl border border-slate-300 font-bold bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500">
           <option value="">시트 목록 불러오는 중...</option>
         </select>
@@ -122,7 +127,7 @@
           📻 🔁 🟩 1단계
         </button>
       </div>
-     
+      
       <div class="mt-2">
         <label class="text-xs font-bold text-slate-500 mb-1 block">🎯 학습할 단계 선택</label>
         <select id="stageFilterSelect" onchange="renderSentenceList()" class="w-full p-2.5 rounded-xl border border-slate-300 font-bold bg-slate-50 text-slate-800">
@@ -153,7 +158,7 @@
       <h1 class="text-2xl sm:text-3xl font-black text-slate-800">👑 리스닝 마스터 👑</h1>
       <p class="text-xs text-slate-500 mt-1">구글 드라이브 오디오 트랙 & 나만의 청취 메모</p>
     </div>
-   
+    
     <div id="listeningTrackContainer" class="flex flex-col gap-3">
       <div class="text-center py-10 text-slate-400">오디오 트랙 스캔 중...</div>
     </div>
@@ -167,7 +172,7 @@
     let currentSheetName = '';
     let currentFontSize = 26;
     let currentSpeed = 1.0;
-   
+    
     let isRelayPlaying = false;
     let relayTimer = null;
     let activeSingleLoopText = null;
@@ -213,7 +218,7 @@
         const sheetNames = await res.json();
         const select = document.getElementById('sheetSelect');
         select.innerHTML = '';
-       
+        
         sheetNames.forEach((name) => {
           const opt = document.createElement('option');
           opt.value = name;
@@ -240,6 +245,13 @@
       loadSheetContent(currentSheetName);
     }
 
+    // 🔄 구글 시트 변경사항을 즉시 반영하기 위해 캐시를 지우고 새로 불러오는 함수
+    function refreshCurrentSheet() {
+      if (!currentSheetName) return;
+      localStorage.removeItem(`sheet_cache_${currentSheetName}`);
+      loadSheetContent(currentSheetName);
+    }
+
     async function loadSheetContent(sheetName) {
       const cached = localStorage.getItem(`sheet_cache_${sheetName}`);
       if (cached) {
@@ -253,7 +265,7 @@
       try {
         const res = await fetch(`${GAS_URL}?action=getData&sheet=${encodeURIComponent(sheetName)}`);
         const rows = await res.json();
-       
+        
         cachedSheetsData[sheetName] = rows;
         localStorage.setItem(`sheet_cache_${sheetName}`, JSON.stringify(rows));
         renderSentenceList();
@@ -285,7 +297,7 @@
 
         const leftCol = document.createElement('div');
         leftCol.className = "flex-1 min-w-0";
-       
+        
         const sentenceBtn = document.createElement('button');
         sentenceBtn.className = "sentence-btn w-full font-black";
         sentenceBtn.style.fontSize = currentFontSize + 'px';
@@ -303,7 +315,7 @@
         const energyBtn = document.createElement('button');
         energyBtn.className = "energy-btn w-full text-xs font-black p-1.5";
         energyBtn.innerHTML = getEnergyBlockText(Number(item.energy));
-       
+        
         energyBtn.onclick = () => {
           item.energy = Number(item.energy) < 3 ? Number(item.energy) + 1 : 0;
           energyBtn.innerHTML = getEnergyBlockText(item.energy);
@@ -333,20 +345,18 @@
 
         rightCol.appendChild(energyBtn);
 
-        // [수정된 부분] 문장 터치 시 오디오 재생 없이 텍스트만 전환
         sentenceBtn.onclick = () => {
           if (sentenceBtn.dataset.state === 'kr') {
             sentenceBtn.innerText = sentenceBtn.dataset.en;
             sentenceBtn.dataset.state = 'en';
-           
+            
             rightCol.innerHTML = '';
             rightCol.appendChild(playBtn);
-            // 오디오 재생 코드는 제거하여 터치 시 글자만 바뀌도록 함
           } else {
             sentenceBtn.innerText = sentenceBtn.dataset.kr;
             sentenceBtn.dataset.state = 'kr';
-           
-            stopSingleLoop(); // 한글로 돌아올 때 혹시 재생 중이던 반복 음성 중지
+            
+            stopSingleLoop();
             rightCol.innerHTML = '';
             rightCol.appendChild(energyBtn);
           }
@@ -362,7 +372,7 @@
     function playSingleLoop(text) {
       if (!('speechSynthesis' in window)) return;
       stopSingleLoop();
-     
+      
       activeSingleLoopText = text;
 
       function speakLoop() {
@@ -414,7 +424,7 @@
 
       const rows = cachedSheetsData[currentSheetName] || [];
       const targetRows = level === 'all' ? rows : rows.filter(item => Number(item.energy) === Number(level));
-     
+      
       if (targetRows.length === 0) {
         alert("재생할 문장이 없습니다!");
         return;
