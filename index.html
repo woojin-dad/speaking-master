@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
-  
+ 
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
 
   <title>스피킹 & 리스닝 마스터</title>
-  
+ 
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Jua&display=swap" rel="stylesheet">
-  
+ 
   <style>
     body {
       font-family: 'Jua', 'Fredoka', cursive, sans-serif;
@@ -72,11 +72,11 @@
   <!-- 🗣️ [모드 1] 스피킹 마스터 영역                 -->
   <!-- ========================================== -->
   <div id="speakingSection" class="flex flex-col gap-3">
-    
+   
     <!-- 타이틀 및 시트 선택 -->
     <div class="bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200 flex flex-col gap-3">
       <h1 id="speakingTitle" class="text-2xl sm:text-3xl font-black text-slate-800 text-center">👑 스피킹 마스터 👑</h1>
-      
+     
       <div>
         <div class="flex justify-between items-center mb-1">
           <label class="text-xs font-bold text-slate-500">학습 시트 선택</label>
@@ -127,7 +127,7 @@
           📻 🔁 🟩 1단계
         </button>
       </div>
-      
+     
       <div class="mt-2">
         <label class="text-xs font-bold text-slate-500 mb-1 block">🎯 학습할 단계 선택</label>
         <select id="stageFilterSelect" onchange="renderSentenceList()" class="w-full p-2.5 rounded-xl border border-slate-300 font-bold bg-slate-50 text-slate-800">
@@ -158,7 +158,7 @@
       <h1 class="text-2xl sm:text-3xl font-black text-slate-800">👑 리스닝 마스터 👑</h1>
       <p class="text-xs text-slate-500 mt-1">구글 드라이브 오디오 트랙 & 나만의 청취 메모</p>
     </div>
-    
+   
     <div id="listeningTrackContainer" class="flex flex-col gap-3">
       <div class="text-center py-10 text-slate-400">오디오 트랙 스캔 중...</div>
     </div>
@@ -172,99 +172,19 @@
     let currentSheetName = '';
     let currentFontSize = 26;
     let currentSpeed = 1.0;
-    
+   
     let isRelayPlaying = false;
     let relayTimer = null;
     let activeSingleLoopText = null;
 
-    // 재생 세션 번호: 새 재생을 시작하거나 정지할 때마다 올라가서
-    // 이전 재생의 늦게 도착한 콜백이 새 재생에 끼어드는 것을 막아 줍니다.
-    let playSession = 0;
-
-    // ==========================================
-    // 🔊 맑은 여성 목소리 자동 선택 (선택 메뉴 없음)
-    // ==========================================
-    let selectedVoice = null;
-
-    // 음질 점수 (이름에 포함된 키워드 기준)
-    const QUALITY_SCORES = [
-      ['Natural', 100],   // Microsoft Aria/Jenny/Michelle Online (Natural) - 크롬/엣지
-      ['Premium', 90],    // iOS/맥 프리미엄
-      ['Enhanced', 80],   // iOS/맥 향상된 보이스
-      ['Neural', 80],
-      ['Google US English', 70],
-    ];
-    // 여성 목소리로 알려진 이름 (브라우저는 성별을 알려주지 않아서 이름으로 판단)
-    const FEMALE_NAMES = ['Aria', 'Jenny', 'Michelle', 'Ana', 'Emma', 'Sonia', 'Libby', 'Zira', 'Hazel', 'Susan',
-      'Samantha', 'Ava', 'Zoe', 'Allison', 'Nicky', 'Karen', 'Moira', 'Tessa', 'Serena', 'Victoria', 'Kate',
-      'Fiona', 'Joanna', 'Salli', 'Kendra', 'Kimberly', 'Ivy', 'Amy', 'Female', 'Google US English'];
-    const MALE_NAMES = ['Guy', 'Davis', 'Tony', 'Jason', 'Ryan', 'Eric', 'Roger', 'Steffan', 'Christopher', 'Brian',
-      'Mark', 'David', 'George', 'James', 'Richard', 'Daniel', 'Alex', 'Fred', 'Evan', 'Aaron', 'Gordon',
-      'Oliver', 'Arthur', 'Tom', 'Rishi', 'Thomas', 'Male'];
-    // 맥/iOS의 장난스러운 보이스 제외
-    const NOVELTY_VOICES = ['Albert', 'Bad News', 'Bahh', 'Bells', 'Boing', 'Bubbles', 'Cellos', 'Good News',
-      'Jester', 'Organ', 'Superstar', 'Trinoids', 'Whisper', 'Wobble', 'Zarvox', 'Junior', 'Kathy', 'Ralph',
-      'Eddy', 'Flo', 'Grandma', 'Grandpa', 'Reed', 'Rocko', 'Sandy', 'Shelley'];
-
-    function hasName(v, list) {
-      return list.some(n => new RegExp('\\b' + n + '\\b', 'i').test(v.name));
-    }
-
-    function scoreVoice(v) {
-      let quality = 30;
-      for (const [key, pts] of QUALITY_SCORES) {
-        if (v.name.includes(key)) quality = Math.max(quality, pts);
-      }
-      const female = hasName(v, FEMALE_NAMES) ? 60 : 0;
-      const enUS = v.lang.replace('_', '-').toLowerCase() === 'en-us' ? 5 : 0;
-      // Aria/Jenny는 특히 또렷해서 가산점
-      const clear = /Aria|Jenny/i.test(v.name) ? 10 : 0;
-      // 내가 고른 목소리: Zoe가 있으면 무조건 1순위
-      const favorite = /\bZoe\b/i.test(v.name) ? 100 : 0;
-      return quality + female + enUS + clear + favorite;
-    }
-
-    function loadVoices() {
-      if (!('speechSynthesis' in window)) return;
-      const all = speechSynthesis.getVoices();
-      if (!all.length) return;
-
-      const candidates = all
-        .filter(v => v.lang.toLowerCase().startsWith('en'))
-        .filter(v => !hasName(v, NOVELTY_VOICES) && !hasName(v, MALE_NAMES))
-        .sort((a, b) => scoreVoice(b) - scoreVoice(a));
-
-      selectedVoice = candidates[0] || null;
-    }
-
-    function makeUtterance(text) {
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'en-US';
-      if (selectedVoice) {
-        u.voice = selectedVoice;
-        u.lang = selectedVoice.lang;
-      }
-      u.rate = currentSpeed;
-      return u;
-    }
-
-    if ('speechSynthesis' in window) {
-      speechSynthesis.onvoiceschanged = loadVoices;
-    }
-
-    // ==========================================
-
     window.addEventListener('DOMContentLoaded', () => {
       initSpeakingMaster();
-      // 일부 브라우저는 보이스 목록이 늦게 준비되므로 몇 번 더 시도
-      loadVoices();
-      setTimeout(loadVoices, 300);
-      setTimeout(loadVoices, 1000);
     });
 
     function switchMode(mode) {
       currentMode = mode;
-      stopAllAudio();
+      stopRelay();
+      stopSingleLoop();
       if (mode === 'speaking') {
         document.getElementById('speakingSection').style.display = 'flex';
         document.getElementById('listeningSection').style.display = 'none';
@@ -298,7 +218,7 @@
         const sheetNames = await res.json();
         const select = document.getElementById('sheetSelect');
         select.innerHTML = '';
-        
+       
         sheetNames.forEach((name) => {
           const opt = document.createElement('option');
           opt.value = name;
@@ -317,7 +237,8 @@
     }
 
     function changeSheet() {
-      stopAllAudio();
+      stopRelay();
+      stopSingleLoop();
       const select = document.getElementById('sheetSelect');
       currentSheetName = select.value;
       document.getElementById('speakingTitle').textContent = `👑 ${currentSheetName} 스피킹 마스터 👑`;
@@ -344,7 +265,7 @@
       try {
         const res = await fetch(`${GAS_URL}?action=getData&sheet=${encodeURIComponent(sheetName)}`);
         const rows = await res.json();
-        
+       
         cachedSheetsData[sheetName] = rows;
         localStorage.setItem(`sheet_cache_${sheetName}`, JSON.stringify(rows));
         renderSentenceList();
@@ -376,15 +297,14 @@
 
         const leftCol = document.createElement('div');
         leftCol.className = "flex-1 min-w-0";
-        
+       
         const sentenceBtn = document.createElement('button');
         sentenceBtn.className = "sentence-btn w-full font-black";
         sentenceBtn.style.fontSize = currentFontSize + 'px';
+        sentenceBtn.innerHTML = `${item.id}.<br>${item.kr}`;
         sentenceBtn.dataset.state = 'kr';
         sentenceBtn.dataset.kr = `${item.id}.\n${item.kr}`;
         sentenceBtn.dataset.en = `${item.id}.\n${item.en}`;
-        // textContent 사용: 시트 내용에 < > 가 있어도 안전하고, white-space: pre-line 으로 줄바꿈 표시
-        sentenceBtn.textContent = sentenceBtn.dataset.kr;
 
         leftCol.appendChild(sentenceBtn);
 
@@ -395,7 +315,7 @@
         const energyBtn = document.createElement('button');
         energyBtn.className = "energy-btn w-full text-xs font-black p-1.5";
         energyBtn.innerHTML = getEnergyBlockText(Number(item.energy));
-        
+       
         energyBtn.onclick = () => {
           item.energy = Number(item.energy) < 3 ? Number(item.energy) + 1 : 0;
           energyBtn.innerHTML = getEnergyBlockText(item.energy);
@@ -419,6 +339,7 @@
         playBtn.innerHTML = "▶";
         playBtn.onclick = (e) => {
           e.stopPropagation();
+          stopRelay();
           playSingleLoop(item.en);
         };
 
@@ -426,17 +347,16 @@
 
         sentenceBtn.onclick = () => {
           if (sentenceBtn.dataset.state === 'kr') {
-            sentenceBtn.textContent = sentenceBtn.dataset.en;
+            sentenceBtn.innerText = sentenceBtn.dataset.en;
             sentenceBtn.dataset.state = 'en';
-            
+           
             rightCol.innerHTML = '';
             rightCol.appendChild(playBtn);
           } else {
-            sentenceBtn.textContent = sentenceBtn.dataset.kr;
+            sentenceBtn.innerText = sentenceBtn.dataset.kr;
             sentenceBtn.dataset.state = 'kr';
-            
-            // 한 문장 반복 중일 때만 멈춤 (연속 재생은 그대로 유지)
-            if (activeSingleLoopText) stopAllAudio();
+           
+            stopSingleLoop();
             rightCol.innerHTML = '';
             rightCol.appendChild(energyBtn);
           }
@@ -448,59 +368,53 @@
       });
     }
 
-    // ==========================================
-    // 🔁 재생 제어 (세션 번호로 겹침 방지)
-    // ==========================================
-    function stopAllAudio() {
-      playSession++;               // 이전 재생의 콜백을 전부 무효화
-      isRelayPlaying = false;
+    // 개별 문장 무한 반복 재생 함수
+    function playSingleLoop(text) {
+      if (!('speechSynthesis' in window)) return;
+      stopSingleLoop();
+     
+      activeSingleLoopText = text;
+
+      function speakLoop() {
+        if (activeSingleLoopText !== text) return;
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = currentSpeed;
+
+        utterance.onend = () => {
+          if (activeSingleLoopText === text) {
+            relayTimer = setTimeout(speakLoop, 600);
+          }
+        };
+
+        utterance.onerror = () => {
+          if (activeSingleLoopText === text) {
+            relayTimer = setTimeout(speakLoop, 600);
+          }
+        };
+
+        window.speechSynthesis.speak(utterance);
+      }
+
+      window.speechSynthesis.cancel();
+      speakLoop();
+    }
+
+    function stopSingleLoop() {
       activeSingleLoopText = null;
       if (relayTimer) {
         clearTimeout(relayTimer);
         relayTimer = null;
       }
       if ('speechSynthesis' in window) {
-        speechSynthesis.cancel();
+        window.speechSynthesis.cancel();
       }
-      const playerContainer = document.getElementById('relayPlayerContainer');
-      if (playerContainer) {
-        playerContainer.innerHTML = '';
-      }
-    }
-
-    // 개별 문장 무한 반복 재생 함수
-    function playSingleLoop(text) {
-      if (!('speechSynthesis' in window)) return;
-      stopAllAudio();
-
-      const session = playSession;
-      activeSingleLoopText = text;
-
-      function speakLoop() {
-        if (session !== playSession) return;
-
-        const utterance = makeUtterance(text);
-        const next = () => {
-          if (session === playSession) {
-            relayTimer = setTimeout(speakLoop, 600);
-          }
-        };
-        utterance.onend = next;
-        utterance.onerror = next;
-
-        speechSynthesis.speak(utterance);
-      }
-
-      speakLoop();
-    }
-
-    function stopSingleLoop() {
-      if (activeSingleLoopText) stopAllAudio();
     }
 
     function playRelay(level) {
-      if (!('speechSynthesis' in window)) return;
-      stopAllAudio();
+      stopSingleLoop();
+      stopRelay();
 
       const filterSelect = document.getElementById('stageFilterSelect');
       if (filterSelect) {
@@ -510,15 +424,14 @@
 
       const rows = cachedSheetsData[currentSheetName] || [];
       const targetRows = level === 'all' ? rows : rows.filter(item => Number(item.energy) === Number(level));
-      
+     
       if (targetRows.length === 0) {
         alert("재생할 문장이 없습니다!");
         return;
       }
 
-      const session = playSession;
       isRelayPlaying = true;
-      const texts = targetRows.map(r => r.en);
+      let texts = targetRows.map(r => r.en);
       let idx = 0;
 
       const playerContainer = document.getElementById('relayPlayerContainer');
@@ -530,29 +443,48 @@
       `;
 
       function playNext() {
-        if (session !== playSession) return;
+        if (!isRelayPlaying) return;
 
         if (idx >= texts.length) {
           idx = 0;
         }
 
-        const utterance = makeUtterance(texts[idx]);
-        const next = () => {
-          if (session !== playSession) return;
+        const utterance = new SpeechSynthesisUtterance(texts[idx]);
+        utterance.lang = 'en-US';
+        utterance.rate = currentSpeed;
+
+        utterance.onend = () => {
+          if (!isRelayPlaying) return;
           idx++;
           relayTimer = setTimeout(playNext, 600);
         };
-        utterance.onend = next;
-        utterance.onerror = next;
 
-        speechSynthesis.speak(utterance);
+        utterance.onerror = () => {
+          if (!isRelayPlaying) return;
+          idx++;
+          relayTimer = setTimeout(playNext, 600);
+        };
+
+        window.speechSynthesis.speak(utterance);
       }
 
+      window.speechSynthesis.cancel();
       playNext();
     }
 
     function stopRelay() {
-      stopAllAudio();
+      isRelayPlaying = false;
+      if (relayTimer) {
+        clearTimeout(relayTimer);
+        relayTimer = null;
+      }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      const playerContainer = document.getElementById('relayPlayerContainer');
+      if (playerContainer) {
+        playerContainer.innerHTML = '';
+      }
     }
 
     function getEnergyBlockText(energy) {
