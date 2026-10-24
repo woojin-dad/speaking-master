@@ -219,7 +219,9 @@
       const enUS = v.lang.replace('_', '-').toLowerCase() === 'en-us' ? 5 : 0;
       // Aria/Jenny는 특히 또렷해서 가산점
       const clear = /Aria|Jenny/i.test(v.name) ? 10 : 0;
-      return quality + female + enUS + clear;
+      // 내가 고른 목소리: Zoe가 있으면 무조건 1순위
+      const favorite = /\bZoe\b/i.test(v.name) ? 100 : 0;
+      return quality + female + enUS + clear + favorite;
     }
 
     function loadVoices() {
