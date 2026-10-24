@@ -89,6 +89,20 @@
         </select>
       </div>
 
+      <!-- 🔊 영어 목소리 선택 -->
+      <div>
+        <div class="flex justify-between items-center mb-1">
+          <label class="text-xs font-bold text-slate-500">🔊 영어 목소리 선택</label>
+          <button onclick="previewVoice()" class="text-xs font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-50 px-2 py-1 rounded-lg transition border border-emerald-100 shadow-sm">
+            ▶ 미리듣기
+          </button>
+        </div>
+        <select id="voiceSelect" onchange="changeVoice()" class="w-full p-2.5 rounded-xl border border-slate-300 font-bold bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500">
+          <option value="auto">자동 (가장 자연스러운 목소리)</option>
+        </select>
+        <div id="voiceHint" class="text-[11px] text-slate-400 mt-1"></div>
+      </div>
+
       <!-- 슬라이더 조절바 (글자 크기 & 속도) -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
         <div>
@@ -177,14 +191,130 @@
     let relayTimer = null;
     let activeSingleLoopText = null;
 
+    // 재생 세션 번호: 새 재생을 시작하거나 정지할 때마다 올라가서
+    // 이전 재생의 늦게 도착한 콜백이 새 재생에 끼어드는 것을 막아 줍니다.
+    let playSession = 0;
+
+    // ==========================================
+    // 🔊 목소리 선택 (자연스러운 보이스 자동 선택)
+    // ==========================================
+    let availableVoices = [];
+    let selectedVoice = null;
+
+    // 점수가 높을수록 자연스러운 보이스. 이름에 포함된 키워드로 판단합니다.
+    const VOICE_SCORES = [
+      ['Natural', 100],            // Microsoft Aria/Jenny/Guy Online (Natural) - 크롬/엣지
+      ['Premium', 90],             // iOS/맥 프리미엄 보이스
+      ['Enhanced', 80],            // iOS/맥 향상된 보이스
+      ['Neural', 80],
+      ['Google US English', 70],   // 크롬/안드로이드
+      ['Google UK English', 60],
+      ['Ava', 55], ['Zoe', 55], ['Allison', 50], ['Evan', 50], ['Nicky', 45],
+      ['Samantha', 40], ['Daniel', 35], ['Karen', 35], ['Moira', 35],
+    ];
+    // 맥/iOS에 들어 있는 장난스러운 보이스는 제외
+    const NOVELTY_VOICES = ['Albert', 'Bad News', 'Bahh', 'Bells', 'Boing', 'Bubbles', 'Cellos', 'Good News',
+      'Jester', 'Organ', 'Superstar', 'Trinoids', 'Whisper', 'Wobble', 'Zarvox', 'Fred', 'Junior', 'Kathy', 'Ralph', 'Eddy', 'Flo', 'Grandma', 'Grandpa', 'Reed', 'Rocko', 'Sandy', 'Shelley'];
+
+    function scoreVoice(v) {
+      let score = 0;
+      for (const [key, pts] of VOICE_SCORES) {
+        if (v.name.includes(key)) { score = Math.max(score, pts); }
+      }
+      if (v.lang.replace('_', '-').toLowerCase() === 'en-us') score += 5;
+      return score;
+    }
+
+    function loadVoices() {
+      if (!('speechSynthesis' in window)) return;
+      const all = speechSynthesis.getVoices();
+      if (!all.length) return;
+
+      availableVoices = all
+        .filter(v => v.lang.toLowerCase().startsWith('en'))
+        .filter(v => !NOVELTY_VOICES.some(n => v.name.includes(n)))
+        .sort((a, b) => scoreVoice(b) - scoreVoice(a));
+
+      const select = document.getElementById('voiceSelect');
+      const saved = localStorage.getItem('voice_uri') || 'auto';
+
+      select.innerHTML = '';
+      const autoOpt = document.createElement('option');
+      autoOpt.value = 'auto';
+      autoOpt.textContent = '자동 (가장 자연스러운 목소리)';
+      select.appendChild(autoOpt);
+
+      availableVoices.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.voiceURI;
+        opt.textContent = `${v.name} (${v.lang})`;
+        select.appendChild(opt);
+      });
+
+      select.value = availableVoices.some(v => v.voiceURI === saved) ? saved : 'auto';
+      applyVoiceChoice();
+    }
+
+    function applyVoiceChoice() {
+      const choice = document.getElementById('voiceSelect').value;
+      if (choice === 'auto') {
+        selectedVoice = availableVoices[0] || null;
+      } else {
+        selectedVoice = availableVoices.find(v => v.voiceURI === choice) || availableVoices[0] || null;
+      }
+
+      const hint = document.getElementById('voiceHint');
+      if (!selectedVoice) {
+        hint.textContent = '사용 가능한 영어 보이스를 찾지 못했어요. 기기 기본 음성이 사용됩니다.';
+      } else if (scoreVoice(selectedVoice) < 50) {
+        hint.textContent = `현재: ${selectedVoice.name} · 더 자연스러운 보이스가 기기에 없어요. 기기 설정에서 고품질 영어 음성을 설치해 보세요.`;
+      } else {
+        hint.textContent = `현재: ${selectedVoice.name}`;
+      }
+    }
+
+    function changeVoice() {
+      const choice = document.getElementById('voiceSelect').value;
+      localStorage.setItem('voice_uri', choice);
+      applyVoiceChoice();
+      previewVoice();
+    }
+
+    function previewVoice() {
+      stopAllAudio();
+      if (!('speechSynthesis' in window)) return;
+      const u = makeUtterance("Hello! This is how I sound. Let's practice speaking English together.");
+      speechSynthesis.speak(u);
+    }
+
+    function makeUtterance(text) {
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US';
+      if (selectedVoice) {
+        u.voice = selectedVoice;
+        u.lang = selectedVoice.lang;
+      }
+      u.rate = currentSpeed;
+      return u;
+    }
+
+    if ('speechSynthesis' in window) {
+      speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    // ==========================================
+
     window.addEventListener('DOMContentLoaded', () => {
       initSpeakingMaster();
+      // 일부 브라우저는 보이스 목록이 늦게 준비되므로 몇 번 더 시도
+      loadVoices();
+      setTimeout(loadVoices, 300);
+      setTimeout(loadVoices, 1000);
     });
 
     function switchMode(mode) {
       currentMode = mode;
-      stopRelay();
-      stopSingleLoop();
+      stopAllAudio();
       if (mode === 'speaking') {
         document.getElementById('speakingSection').style.display = 'flex';
         document.getElementById('listeningSection').style.display = 'none';
@@ -237,8 +367,7 @@
     }
 
     function changeSheet() {
-      stopRelay();
-      stopSingleLoop();
+      stopAllAudio();
       const select = document.getElementById('sheetSelect');
       currentSheetName = select.value;
       document.getElementById('speakingTitle').textContent = `👑 ${currentSheetName} 스피킹 마스터 👑`;
@@ -301,10 +430,11 @@
         const sentenceBtn = document.createElement('button');
         sentenceBtn.className = "sentence-btn w-full font-black";
         sentenceBtn.style.fontSize = currentFontSize + 'px';
-        sentenceBtn.innerHTML = `${item.id}.<br>${item.kr}`;
         sentenceBtn.dataset.state = 'kr';
         sentenceBtn.dataset.kr = `${item.id}.\n${item.kr}`;
         sentenceBtn.dataset.en = `${item.id}.\n${item.en}`;
+        // textContent 사용: 시트 내용에 < > 가 있어도 안전하고, white-space: pre-line 으로 줄바꿈 표시
+        sentenceBtn.textContent = sentenceBtn.dataset.kr;
 
         leftCol.appendChild(sentenceBtn);
 
@@ -339,7 +469,6 @@
         playBtn.innerHTML = "▶";
         playBtn.onclick = (e) => {
           e.stopPropagation();
-          stopRelay();
           playSingleLoop(item.en);
         };
 
@@ -347,16 +476,17 @@
 
         sentenceBtn.onclick = () => {
           if (sentenceBtn.dataset.state === 'kr') {
-            sentenceBtn.innerText = sentenceBtn.dataset.en;
+            sentenceBtn.textContent = sentenceBtn.dataset.en;
             sentenceBtn.dataset.state = 'en';
             
             rightCol.innerHTML = '';
             rightCol.appendChild(playBtn);
           } else {
-            sentenceBtn.innerText = sentenceBtn.dataset.kr;
+            sentenceBtn.textContent = sentenceBtn.dataset.kr;
             sentenceBtn.dataset.state = 'kr';
             
-            stopSingleLoop();
+            // 한 문장 반복 중일 때만 멈춤 (연속 재생은 그대로 유지)
+            if (activeSingleLoopText) stopAllAudio();
             rightCol.innerHTML = '';
             rightCol.appendChild(energyBtn);
           }
@@ -368,53 +498,59 @@
       });
     }
 
-    // 개별 문장 무한 반복 재생 함수
-    function playSingleLoop(text) {
-      if (!('speechSynthesis' in window)) return;
-      stopSingleLoop();
-      
-      activeSingleLoopText = text;
-
-      function speakLoop() {
-        if (activeSingleLoopText !== text) return;
-
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'en-US';
-        utterance.rate = currentSpeed;
-
-        utterance.onend = () => {
-          if (activeSingleLoopText === text) {
-            relayTimer = setTimeout(speakLoop, 600);
-          }
-        };
-
-        utterance.onerror = () => {
-          if (activeSingleLoopText === text) {
-            relayTimer = setTimeout(speakLoop, 600);
-          }
-        };
-
-        window.speechSynthesis.speak(utterance);
-      }
-
-      window.speechSynthesis.cancel();
-      speakLoop();
-    }
-
-    function stopSingleLoop() {
+    // ==========================================
+    // 🔁 재생 제어 (세션 번호로 겹침 방지)
+    // ==========================================
+    function stopAllAudio() {
+      playSession++;               // 이전 재생의 콜백을 전부 무효화
+      isRelayPlaying = false;
       activeSingleLoopText = null;
       if (relayTimer) {
         clearTimeout(relayTimer);
         relayTimer = null;
       }
       if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
+        speechSynthesis.cancel();
+      }
+      const playerContainer = document.getElementById('relayPlayerContainer');
+      if (playerContainer) {
+        playerContainer.innerHTML = '';
       }
     }
 
+    // 개별 문장 무한 반복 재생 함수
+    function playSingleLoop(text) {
+      if (!('speechSynthesis' in window)) return;
+      stopAllAudio();
+
+      const session = playSession;
+      activeSingleLoopText = text;
+
+      function speakLoop() {
+        if (session !== playSession) return;
+
+        const utterance = makeUtterance(text);
+        const next = () => {
+          if (session === playSession) {
+            relayTimer = setTimeout(speakLoop, 600);
+          }
+        };
+        utterance.onend = next;
+        utterance.onerror = next;
+
+        speechSynthesis.speak(utterance);
+      }
+
+      speakLoop();
+    }
+
+    function stopSingleLoop() {
+      if (activeSingleLoopText) stopAllAudio();
+    }
+
     function playRelay(level) {
-      stopSingleLoop();
-      stopRelay();
+      if (!('speechSynthesis' in window)) return;
+      stopAllAudio();
 
       const filterSelect = document.getElementById('stageFilterSelect');
       if (filterSelect) {
@@ -430,8 +566,9 @@
         return;
       }
 
+      const session = playSession;
       isRelayPlaying = true;
-      let texts = targetRows.map(r => r.en);
+      const texts = targetRows.map(r => r.en);
       let idx = 0;
 
       const playerContainer = document.getElementById('relayPlayerContainer');
@@ -443,48 +580,29 @@
       `;
 
       function playNext() {
-        if (!isRelayPlaying) return;
+        if (session !== playSession) return;
 
         if (idx >= texts.length) {
           idx = 0;
         }
 
-        const utterance = new SpeechSynthesisUtterance(texts[idx]);
-        utterance.lang = 'en-US';
-        utterance.rate = currentSpeed;
-
-        utterance.onend = () => {
-          if (!isRelayPlaying) return;
+        const utterance = makeUtterance(texts[idx]);
+        const next = () => {
+          if (session !== playSession) return;
           idx++;
           relayTimer = setTimeout(playNext, 600);
         };
+        utterance.onend = next;
+        utterance.onerror = next;
 
-        utterance.onerror = () => {
-          if (!isRelayPlaying) return;
-          idx++;
-          relayTimer = setTimeout(playNext, 600);
-        };
-
-        window.speechSynthesis.speak(utterance);
+        speechSynthesis.speak(utterance);
       }
 
-      window.speechSynthesis.cancel();
       playNext();
     }
 
     function stopRelay() {
-      isRelayPlaying = false;
-      if (relayTimer) {
-        clearTimeout(relayTimer);
-        relayTimer = null;
-      }
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
-      const playerContainer = document.getElementById('relayPlayerContainer');
-      if (playerContainer) {
-        playerContainer.innerHTML = '';
-      }
+      stopAllAudio();
     }
 
     function getEnergyBlockText(energy) {
