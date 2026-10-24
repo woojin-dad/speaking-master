@@ -89,20 +89,6 @@
         </select>
       </div>
 
-      <!-- 🔊 영어 목소리 선택 -->
-      <div>
-        <div class="flex justify-between items-center mb-1">
-          <label class="text-xs font-bold text-slate-500">🔊 영어 목소리 선택</label>
-          <button onclick="previewVoice()" class="text-xs font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-50 px-2 py-1 rounded-lg transition border border-emerald-100 shadow-sm">
-            ▶ 미리듣기
-          </button>
-        </div>
-        <select id="voiceSelect" onchange="changeVoice()" class="w-full p-2.5 rounded-xl border border-slate-300 font-bold bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500">
-          <option value="auto">자동 (가장 자연스러운 목소리)</option>
-        </select>
-        <div id="voiceHint" class="text-[11px] text-slate-400 mt-1"></div>
-      </div>
-
       <!-- 슬라이더 조절바 (글자 크기 & 속도) -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
         <div>
@@ -196,33 +182,44 @@
     let playSession = 0;
 
     // ==========================================
-    // 🔊 목소리 선택 (자연스러운 보이스 자동 선택)
+    // 🔊 맑은 여성 목소리 자동 선택 (선택 메뉴 없음)
     // ==========================================
-    let availableVoices = [];
     let selectedVoice = null;
 
-    // 점수가 높을수록 자연스러운 보이스. 이름에 포함된 키워드로 판단합니다.
-    const VOICE_SCORES = [
-      ['Natural', 100],            // Microsoft Aria/Jenny/Guy Online (Natural) - 크롬/엣지
-      ['Premium', 90],             // iOS/맥 프리미엄 보이스
-      ['Enhanced', 80],            // iOS/맥 향상된 보이스
+    // 음질 점수 (이름에 포함된 키워드 기준)
+    const QUALITY_SCORES = [
+      ['Natural', 100],   // Microsoft Aria/Jenny/Michelle Online (Natural) - 크롬/엣지
+      ['Premium', 90],    // iOS/맥 프리미엄
+      ['Enhanced', 80],   // iOS/맥 향상된 보이스
       ['Neural', 80],
-      ['Google US English', 70],   // 크롬/안드로이드
-      ['Google UK English', 60],
-      ['Ava', 55], ['Zoe', 55], ['Allison', 50], ['Evan', 50], ['Nicky', 45],
-      ['Samantha', 40], ['Daniel', 35], ['Karen', 35], ['Moira', 35],
+      ['Google US English', 70],
     ];
-    // 맥/iOS에 들어 있는 장난스러운 보이스는 제외
+    // 여성 목소리로 알려진 이름 (브라우저는 성별을 알려주지 않아서 이름으로 판단)
+    const FEMALE_NAMES = ['Aria', 'Jenny', 'Michelle', 'Ana', 'Emma', 'Sonia', 'Libby', 'Zira', 'Hazel', 'Susan',
+      'Samantha', 'Ava', 'Zoe', 'Allison', 'Nicky', 'Karen', 'Moira', 'Tessa', 'Serena', 'Victoria', 'Kate',
+      'Fiona', 'Joanna', 'Salli', 'Kendra', 'Kimberly', 'Ivy', 'Amy', 'Female', 'Google US English'];
+    const MALE_NAMES = ['Guy', 'Davis', 'Tony', 'Jason', 'Ryan', 'Eric', 'Roger', 'Steffan', 'Christopher', 'Brian',
+      'Mark', 'David', 'George', 'James', 'Richard', 'Daniel', 'Alex', 'Fred', 'Evan', 'Aaron', 'Gordon',
+      'Oliver', 'Arthur', 'Tom', 'Rishi', 'Thomas', 'Male'];
+    // 맥/iOS의 장난스러운 보이스 제외
     const NOVELTY_VOICES = ['Albert', 'Bad News', 'Bahh', 'Bells', 'Boing', 'Bubbles', 'Cellos', 'Good News',
-      'Jester', 'Organ', 'Superstar', 'Trinoids', 'Whisper', 'Wobble', 'Zarvox', 'Fred', 'Junior', 'Kathy', 'Ralph', 'Eddy', 'Flo', 'Grandma', 'Grandpa', 'Reed', 'Rocko', 'Sandy', 'Shelley'];
+      'Jester', 'Organ', 'Superstar', 'Trinoids', 'Whisper', 'Wobble', 'Zarvox', 'Junior', 'Kathy', 'Ralph',
+      'Eddy', 'Flo', 'Grandma', 'Grandpa', 'Reed', 'Rocko', 'Sandy', 'Shelley'];
+
+    function hasName(v, list) {
+      return list.some(n => new RegExp('\\b' + n + '\\b', 'i').test(v.name));
+    }
 
     function scoreVoice(v) {
-      let score = 0;
-      for (const [key, pts] of VOICE_SCORES) {
-        if (v.name.includes(key)) { score = Math.max(score, pts); }
+      let quality = 30;
+      for (const [key, pts] of QUALITY_SCORES) {
+        if (v.name.includes(key)) quality = Math.max(quality, pts);
       }
-      if (v.lang.replace('_', '-').toLowerCase() === 'en-us') score += 5;
-      return score;
+      const female = hasName(v, FEMALE_NAMES) ? 60 : 0;
+      const enUS = v.lang.replace('_', '-').toLowerCase() === 'en-us' ? 5 : 0;
+      // Aria/Jenny는 특히 또렷해서 가산점
+      const clear = /Aria|Jenny/i.test(v.name) ? 10 : 0;
+      return quality + female + enUS + clear;
     }
 
     function loadVoices() {
@@ -230,61 +227,12 @@
       const all = speechSynthesis.getVoices();
       if (!all.length) return;
 
-      availableVoices = all
+      const candidates = all
         .filter(v => v.lang.toLowerCase().startsWith('en'))
-        .filter(v => !NOVELTY_VOICES.some(n => v.name.includes(n)))
+        .filter(v => !hasName(v, NOVELTY_VOICES) && !hasName(v, MALE_NAMES))
         .sort((a, b) => scoreVoice(b) - scoreVoice(a));
 
-      const select = document.getElementById('voiceSelect');
-      const saved = localStorage.getItem('voice_uri') || 'auto';
-
-      select.innerHTML = '';
-      const autoOpt = document.createElement('option');
-      autoOpt.value = 'auto';
-      autoOpt.textContent = '자동 (가장 자연스러운 목소리)';
-      select.appendChild(autoOpt);
-
-      availableVoices.forEach(v => {
-        const opt = document.createElement('option');
-        opt.value = v.voiceURI;
-        opt.textContent = `${v.name} (${v.lang})`;
-        select.appendChild(opt);
-      });
-
-      select.value = availableVoices.some(v => v.voiceURI === saved) ? saved : 'auto';
-      applyVoiceChoice();
-    }
-
-    function applyVoiceChoice() {
-      const choice = document.getElementById('voiceSelect').value;
-      if (choice === 'auto') {
-        selectedVoice = availableVoices[0] || null;
-      } else {
-        selectedVoice = availableVoices.find(v => v.voiceURI === choice) || availableVoices[0] || null;
-      }
-
-      const hint = document.getElementById('voiceHint');
-      if (!selectedVoice) {
-        hint.textContent = '사용 가능한 영어 보이스를 찾지 못했어요. 기기 기본 음성이 사용됩니다.';
-      } else if (scoreVoice(selectedVoice) < 50) {
-        hint.textContent = `현재: ${selectedVoice.name} · 더 자연스러운 보이스가 기기에 없어요. 기기 설정에서 고품질 영어 음성을 설치해 보세요.`;
-      } else {
-        hint.textContent = `현재: ${selectedVoice.name}`;
-      }
-    }
-
-    function changeVoice() {
-      const choice = document.getElementById('voiceSelect').value;
-      localStorage.setItem('voice_uri', choice);
-      applyVoiceChoice();
-      previewVoice();
-    }
-
-    function previewVoice() {
-      stopAllAudio();
-      if (!('speechSynthesis' in window)) return;
-      const u = makeUtterance("Hello! This is how I sound. Let's practice speaking English together.");
-      speechSynthesis.speak(u);
+      selectedVoice = candidates[0] || null;
     }
 
     function makeUtterance(text) {
