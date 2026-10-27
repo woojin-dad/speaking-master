@@ -409,12 +409,8 @@
         currentUtterance.onend = next;
         currentUtterance.onerror = next;
 
-        // 💡 아이폰 사파리 충돌 방지: 아주 짧은 딜레이(50ms) 후 재생
-        setTimeout(() => {
-          if (session === playSession) {
-            speechSynthesis.speak(currentUtterance);
-          }
-        }, 50);
+        // 💡 지연 시간(setTimeout) 제거: 사용자 터치 즉시 실행하여 아이폰 보안 제스처 충돌 방지
+        speechSynthesis.speak(currentUtterance);
       }
 
       speakLoop();
@@ -471,12 +467,8 @@
         currentUtterance.onend = next;
         currentUtterance.onerror = next;
 
-        // 💡 아이폰 사파리 충돌 방지: 아주 짧은 딜레이(50ms) 후 재생
-        setTimeout(() => {
-          if (session === playSession) {
-            speechSynthesis.speak(currentUtterance);
-          }
-        }, 50);
+        // 💡 지연 시간(setTimeout) 제거: 사용자 터치 즉시 실행하여 아이폰 보안 제스처 충돌 방지
+        speechSynthesis.speak(currentUtterance);
       }
 
       playNext();
