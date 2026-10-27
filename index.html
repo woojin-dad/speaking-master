@@ -178,83 +178,17 @@
     let activeSingleLoopText = null;
 
     let playSession = 0;
-    let currentUtterance = null; // 가비지 컬렉션 방지용 전역 참조
-
-    // ==========================================
-    // 🔊 맑은 여성 목소리 자동 선택
-    // ==========================================
-    let selectedVoice = null;
-
-    const QUALITY_SCORES = [
-      ['Natural', 100], 
-      ['Premium', 90],  
-      ['Enhanced', 80], 
-      ['Neural', 80],
-      ['Google US English', 70],
-    ];
-    const FEMALE_NAMES = ['Aria', 'Jenny', 'Michelle', 'Ana', 'Emma', 'Sonia', 'Libby', 'Zira', 'Hazel', 'Susan',
-      'Samantha', 'Ava', 'Zoe', 'Allison', 'Nicky', 'Karen', 'Moira', 'Tessa', 'Serena', 'Victoria', 'Kate',
-      'Fiona', 'Joanna', 'Salli', 'Kendra', 'Kimberly', 'Ivy', 'Amy', 'Female', 'Google US English'];
-    const MALE_NAMES = ['Guy', 'Davis', 'Tony', 'Jason', 'Ryan', 'Eric', 'Roger', 'Steffan', 'Christopher', 'Brian',
-      'Mark', 'David', 'George', 'James', 'Richard', 'Daniel', 'Alex', 'Fred', 'Evan', 'Aaron', 'Gordon',
-      'Oliver', 'Arthur', 'Tom', 'Rishi', 'Thomas', 'Male'];
-    const NOVELTY_VOICES = ['Albert', 'Bad News', 'Bahh', 'Bells', 'Boing', 'Bubbles', 'Cellos', 'Good News',
-      'Jester', 'Organ', 'Superstar', 'Trinoids', 'Whisper', 'Wobble', 'Zarvox', 'Junior', 'Kathy', 'Ralph',
-      'Eddy', 'Flo', 'Grandma', 'Grandpa', 'Reed', 'Rocko', 'Sandy', 'Shelley'];
-
-    function hasName(v, list) {
-      return list.some(n => new RegExp('\\b' + n + '\\b', 'i').test(v.name));
-    }
-
-    function scoreVoice(v) {
-      let quality = 30;
-      for (const [key, pts] of QUALITY_SCORES) {
-        if (v.name.includes(key)) quality = Math.max(quality, pts);
-      }
-      const female = hasName(v, FEMALE_NAMES) ? 60 : 0;
-      const enUS = v.lang.replace('_', '-').toLowerCase() === 'en-us' ? 5 : 0;
-      const clear = /Aria|Jenny/i.test(v.name) ? 10 : 0;
-      const favorite = /\bZoe\b/i.test(v.name) ? 100 : 0;
-      return quality + female + enUS + clear + favorite;
-    }
-
-    function loadVoices() {
-      if (!('speechSynthesis' in window)) return;
-      const all = speechSynthesis.getVoices();
-      if (!all.length) return;
-
-      const candidates = all
-        .filter(v => v.lang.toLowerCase().startsWith('en'))
-        .filter(v => !hasName(v, NOVELTY_VOICES) && !hasName(v, MALE_NAMES))
-        .sort((a, b) => scoreVoice(b) - scoreVoice(a));
-
-      selectedVoice = candidates[0] || null;
-    }
+    let currentUtterance = null;
 
     function makeUtterance(text) {
       const u = new SpeechSynthesisUtterance(text);
       u.lang = 'en-US';
-      /* 아이폰 사파리 충돌(무음) 방지를 위해 보이스 강제 지정 해제
-      if (selectedVoice) {
-        u.voice = selectedVoice;
-        u.lang = selectedVoice.lang;
-      }
-      */
       u.rate = currentSpeed;
       return u;
     }
 
-    if ('speechSynthesis' in window) {
-      speechSynthesis.onvoiceschanged = loadVoices;
-    }
-
-    // ==========================================
-
     window.addEventListener('DOMContentLoaded', () => {
       initSpeakingMaster();
-      loadVoices();
-      setTimeout(loadVoices, 300);
-      setTimeout(loadVoices, 1000);
     });
 
     function switchMode(mode) {
@@ -475,7 +409,12 @@
         currentUtterance.onend = next;
         currentUtterance.onerror = next;
 
-        speechSynthesis.speak(currentUtterance);
+        // 💡 아이폰 사파리 충돌 방지: 아주 짧은 딜레이(50ms) 후 재생
+        setTimeout(() => {
+          if (session === playSession) {
+            speechSynthesis.speak(currentUtterance);
+          }
+        }, 50);
       }
 
       speakLoop();
@@ -532,7 +471,12 @@
         currentUtterance.onend = next;
         currentUtterance.onerror = next;
 
-        speechSynthesis.speak(currentUtterance);
+        // 💡 아이폰 사파리 충돌 방지: 아주 짧은 딜레이(50ms) 후 재생
+        setTimeout(() => {
+          if (session === playSession) {
+            speechSynthesis.speak(currentUtterance);
+          }
+        }, 50);
       }
 
       playNext();
