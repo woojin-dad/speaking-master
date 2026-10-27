@@ -234,10 +234,12 @@
     function makeUtterance(text) {
       const u = new SpeechSynthesisUtterance(text);
       u.lang = 'en-US';
+      /* 아이폰 사파리 충돌(무음) 방지를 위해 보이스 강제 지정 해제
       if (selectedVoice) {
         u.voice = selectedVoice;
         u.lang = selectedVoice.lang;
       }
+      */
       u.rate = currentSpeed;
       return u;
     }
