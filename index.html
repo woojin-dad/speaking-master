@@ -140,7 +140,7 @@
     const audio = (() => {
       const synth = window.speechSynthesis;
       const GAP_MS = 600;
-      let session = 0, timer = null, list = [], idx = 0;
+      let session = 0, timer = null, list = [], idx = 0, playingIdx = 0;
       let playing = null, utter = null, listener = () => {}, errorListener = () => {};
 
       // 진행 중인 재생·타이머를 모두 무효화
@@ -155,6 +155,7 @@
         const s = session;
         const item = list[idx];
         playing = item;
+        playingIdx = idx;
         listener(item);
 
         const u = new SpeechSynthesisUtterance(item.en);
@@ -199,12 +200,15 @@
           utter = null;
           listener(null);
         },
-        // 속도를 바꿨을 때 지금 문장을 새 속도로 다시 재생
-        restart() {
+        // 지금 읽는 문장 기준으로 delta만큼 이동해서 처음부터 재생 (-1 이전, 0 다시, +1 다음)
+        jump(delta) {
           if (!synth || !playing) return;
           halt();
+          idx = (playingIdx + delta + list.length) % list.length;
           speakCurrent();
         },
+        // 속도를 바꿨을 때 지금 문장을 새 속도로 다시 재생
+        restart() { api.jump(0); },
       };
       return api;
     })();
@@ -225,9 +229,14 @@
       if (relayList) {
         const n = relayList.indexOf(item) + 1;
         bar.innerHTML = `
-          <div class="bg-emerald-50 border-2 border-emerald-500 p-3 rounded-2xl flex items-center justify-between shadow-md">
-            <div class="font-bold text-emerald-800 text-sm">▶ 연속 재생 중 (${n} / ${relayList.length})</div>
-            <button data-stop class="px-3 py-1 bg-rose-600 text-white font-bold rounded-xl text-xs">정지</button>
+          <div class="bg-emerald-50 border-2 border-emerald-500 p-2.5 rounded-2xl flex items-center justify-between gap-2 shadow-md">
+            <div class="font-bold text-emerald-800 text-sm leading-tight">▶ 연속 재생 중<br>(${n} / ${relayList.length})</div>
+            <div class="flex gap-1.5">
+              <button data-jump="-1" aria-label="이전 문장" class="w-11 h-11 bg-white border border-emerald-300 text-emerald-800 font-black rounded-xl text-lg active:bg-emerald-100">◀</button>
+              <button data-jump="0" aria-label="현재 문장 다시" class="w-11 h-11 bg-white border border-emerald-300 text-emerald-800 font-black rounded-xl text-lg active:bg-emerald-100">🔁</button>
+              <button data-jump="1" aria-label="다음 문장" class="w-11 h-11 bg-white border border-emerald-300 text-emerald-800 font-black rounded-xl text-lg active:bg-emerald-100">▶</button>
+              <button data-stop aria-label="정지" class="w-11 h-11 bg-rose-600 text-white font-black rounded-xl text-lg">⏹</button>
+            </div>
           </div>`;
         cards.get(item)?.row.scrollIntoView({ block: 'center', behavior: 'smooth' });
       } else {
@@ -426,7 +435,9 @@
       btn.addEventListener('click', () => playRelay(btn.dataset.relay));
     });
     $('relayBar').addEventListener('click', (e) => {
-      if (e.target.closest('[data-stop]')) audio.stop();
+      if (e.target.closest('[data-stop]')) { audio.stop(); return; }
+      const jumpBtn = e.target.closest('[data-jump]');
+      if (jumpBtn) audio.jump(Number(jumpBtn.dataset.jump));
     });
 
     $('fontSizeSlider').addEventListener('input', (e) => {
