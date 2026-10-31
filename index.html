@@ -3,29 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
-  
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
+  <title>스피킹 마스터</title>
 
-  <title>스피킹 & 리스닝 마스터</title>
-  
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.gstatic.com">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Jua&display=swap" rel="stylesheet">
-  
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+
   <style>
+    :root { --fs: 26px; }
+
     body {
-      font-family: 'Jua', 'Fredoka', cursive, sans-serif;
+      font-family: 'Jua', sans-serif;
       user-select: none;
       -webkit-user-select: none;
       touch-action: manipulation;
       background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%) !important;
       min-height: 100vh;
-    }
-    .font-eng {
-      font-family: 'Fredoka', cursive, sans-serif;
     }
     .sentence-btn {
       transition: all 0.1s ease;
@@ -36,10 +30,9 @@
       padding: 12px 14px !important;
       word-break: keep-all !important;
       white-space: pre-line !important;
+      font-size: var(--fs);
     }
-    .sentence-btn:hover {
-      color: #f1c40f !important;
-    }
+    .sentence-btn:hover { color: #f1c40f !important; }
     .energy-btn {
       background-color: #ffffff !important;
       border: 1px solid #cbd5e1 !important;
@@ -51,86 +44,65 @@
       line-height: 1.2;
       transition: background 0.1s;
     }
-    .energy-btn:hover {
-      background-color: #f1f5f9 !important;
-    }
+    .energy-btn:hover { background-color: #f1f5f9 !important; }
+
+    /* 지금 재생 중인 문장 카드 */
+    .playing { box-shadow: 0 0 0 3px #f1c40f; }
   </style>
 </head>
-<body class="flex flex-col text-slate-800 p-2 sm:p-4 md:p-6 max-w-4xl mx-auto">
 
-  <!-- 상단 모드 전환 탭 -->
-  <div class="flex items-center justify-center gap-3 bg-white p-2 rounded-2xl shadow-sm border border-slate-200 mb-4">
-    <button id="modeSpeakingBtn" onclick="switchMode('speaking')" class="flex-1 py-2.5 rounded-xl font-bold text-base sm:text-lg bg-[#2c3e50] text-white shadow transition">
-      🗣️ 스피킹 마스터
-    </button>
-    <button id="modeListeningBtn" onclick="switchMode('listening')" class="flex-1 py-2.5 rounded-xl font-bold text-base sm:text-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition">
-      🎧 리스닝 마스터
-    </button>
-  </div>
+<body class="text-slate-800 p-2 sm:p-4 md:p-6 max-w-4xl mx-auto">
+  <main class="flex flex-col gap-3">
 
-  <!-- ========================================== -->
-  <!-- 🗣️ [모드 1] 스피킹 마스터 영역                 -->
-  <!-- ========================================== -->
-  <div id="speakingSection" class="flex flex-col gap-3">
-    
-    <!-- 타이틀 및 시트 선택 -->
-    <div class="bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200 flex flex-col gap-3">
-      <h1 id="speakingTitle" class="text-2xl sm:text-3xl font-black text-slate-800 text-center">👑 스피킹 마스터 👑</h1>
-      
+    <!-- 타이틀 · 시트 선택 · 슬라이더 -->
+    <section class="bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200 flex flex-col gap-3">
+      <h1 id="title" class="text-2xl sm:text-3xl font-black text-slate-800 text-center">👑 스피킹 마스터 👑</h1>
+
       <div>
         <div class="flex justify-between items-center mb-1">
           <label class="text-xs font-bold text-slate-500">학습 시트 선택</label>
-          <button onclick="refreshCurrentSheet()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-1 rounded-lg transition border border-indigo-100 shadow-sm">
+          <button id="refreshBtn" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-1 rounded-lg transition border border-indigo-100 shadow-sm">
             🔄 최신 시트 불러오기
           </button>
         </div>
-        <select id="sheetSelect" onchange="changeSheet()" class="w-full p-2.5 rounded-xl border border-slate-300 font-bold bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500">
+        <select id="sheetSelect" class="w-full p-2.5 rounded-xl border border-slate-300 font-bold bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500">
           <option value="">시트 목록 불러오는 중...</option>
         </select>
       </div>
 
-      <!-- 슬라이더 조절바 (글자 크기 & 속도) -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
         <div>
           <div class="flex justify-between text-xs font-bold text-slate-600 mb-1">
             <span>🔤 문장 글자 크기 조절</span>
             <span id="fontSizeVal">26px</span>
           </div>
-          <input type="range" id="fontSizeSlider" min="26" max="50" value="26" class="w-full accent-slate-700" oninput="changeFontSize(this.value)">
+          <input type="range" id="fontSizeSlider" min="26" max="50" value="26" class="w-full accent-slate-700">
         </div>
         <div>
           <div class="flex justify-between text-xs font-bold text-slate-600 mb-1">
             <span>⚡ 문장 재생 속도 조절</span>
             <span id="speedVal">1.0배속</span>
           </div>
-          <input type="range" id="speedSlider" min="0.4" max="1.3" step="0.05" value="1.0" class="w-full accent-slate-700" oninput="changeSpeed(this.value)">
+          <input type="range" id="speedSlider" min="0.4" max="1.3" step="0.05" value="1.0" class="w-full accent-slate-700">
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- 단계별 일괄 반복 재생 버튼들 -->
-    <div class="bg-white rounded-3xl p-4 shadow-sm border border-slate-200 flex flex-col gap-2">
-      <button onclick="playRelay('all')" class="p-3 bg-[#f0fdf4] border-2 border-[#2ecc71] rounded-xl text-[#15803d] font-black text-sm sm:text-base text-center shadow-sm hover:bg-emerald-100 transition">
+    <!-- 단계별 연속 재생 · 단계 필터 -->
+    <section class="bg-white rounded-3xl p-4 shadow-sm border border-slate-200 flex flex-col gap-2">
+      <button data-relay="all" class="p-3 bg-[#f0fdf4] border-2 border-[#2ecc71] rounded-xl text-[#15803d] font-black text-sm sm:text-base text-center shadow-sm hover:bg-emerald-100 transition">
         📻 🔁 🟥🟧🟨🟩 전체 문장 연속 반복 재생
       </button>
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <button onclick="playRelay('0')" class="p-2.5 bg-[#fef2f2] border-2 border-[#ef4444] rounded-xl text-[#b91c1c] font-black text-xs text-center shadow-sm hover:bg-rose-100 transition">
-          📻 🔁 🟥 4단계
-        </button>
-        <button onclick="playRelay('1')" class="p-2.5 bg-[#fff7ed] border-2 border-[#f97316] rounded-xl text-[#c2410c] font-black text-xs text-center shadow-sm hover:bg-orange-100 transition">
-          📻 🔁 🟧 3단계
-        </button>
-        <button onclick="playRelay('2')" class="p-2.5 bg-[#fefce8] border-2 border-[#eab308] rounded-xl text-[#a16207] font-black text-xs text-center shadow-sm hover:bg-yellow-100 transition">
-          📻 🔁 🟨 2단계
-        </button>
-        <button onclick="playRelay('3')" class="p-2.5 bg-[#f0fdf4] border-2 border-[#22c55e] rounded-xl text-[#15803d] font-black text-xs text-center shadow-sm hover:bg-emerald-100 transition">
-          📻 🔁 🟩 1단계
-        </button>
+        <button data-relay="0" class="p-2.5 bg-[#fef2f2] border-2 border-[#ef4444] rounded-xl text-[#b91c1c] font-black text-xs text-center shadow-sm hover:bg-rose-100 transition">📻 🔁 🟥 4단계</button>
+        <button data-relay="1" class="p-2.5 bg-[#fff7ed] border-2 border-[#f97316] rounded-xl text-[#c2410c] font-black text-xs text-center shadow-sm hover:bg-orange-100 transition">📻 🔁 🟧 3단계</button>
+        <button data-relay="2" class="p-2.5 bg-[#fefce8] border-2 border-[#eab308] rounded-xl text-[#a16207] font-black text-xs text-center shadow-sm hover:bg-yellow-100 transition">📻 🔁 🟨 2단계</button>
+        <button data-relay="3" class="p-2.5 bg-[#f0fdf4] border-2 border-[#22c55e] rounded-xl text-[#15803d] font-black text-xs text-center shadow-sm hover:bg-emerald-100 transition">📻 🔁 🟩 1단계</button>
       </div>
-      
+
       <div class="mt-2">
         <label class="text-xs font-bold text-slate-500 mb-1 block">🎯 학습할 단계 선택</label>
-        <select id="stageFilterSelect" onchange="renderSentenceList()" class="w-full p-2.5 rounded-xl border border-slate-300 font-bold bg-slate-50 text-slate-800">
+        <select id="stageFilter" class="w-full p-2.5 rounded-xl border border-slate-300 font-bold bg-slate-50 text-slate-800">
           <option value="all">🟥🟧🟨🟩 전체 보기</option>
           <option value="0">🟥 4단계만 보기</option>
           <option value="1">🟧 3단계만 보기</option>
@@ -138,364 +110,340 @@
           <option value="3">🟩 1단계만 보기</option>
         </select>
       </div>
-    </div>
+    </section>
 
-    <!-- 전체 재생 중일 때 나타나는 플레이어 바 -->
-    <div id="relayPlayerContainer"></div>
+    <!-- 연속 재생 중에만 나타나는 바 (스크롤해도 따라다님) -->
+    <div id="relayBar" class="sticky top-2 z-10"></div>
 
-    <!-- 문장 리스트 출력 영역 -->
-    <div id="sentenceContainer" class="flex flex-col gap-2.5">
-      <div class="text-center py-10 text-slate-400">구글 시트에서 문장 불러오는 중...</div>
-    </div>
+    <!-- 문장 목록 -->
+    <div id="sentenceContainer" class="flex flex-col gap-2.5"></div>
 
-  </div>
-
-  <!-- ========================================== -->
-  <!-- 🎧 [모드 2] 리스닝 마스터 영역                 -->
-  <!-- ========================================== -->
-  <div id="listeningSection" style="display: none;" class="flex flex-col gap-3">
-    <div class="bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200 text-center">
-      <h1 class="text-2xl sm:text-3xl font-black text-slate-800">👑 리스닝 마스터 👑</h1>
-      <p class="text-xs text-slate-500 mt-1">구글 드라이브 오디오 트랙 & 나만의 청취 메모</p>
-    </div>
-    
-    <div id="listeningTrackContainer" class="flex flex-col gap-3">
-      <div class="text-center py-10 text-slate-400">오디오 트랙 스캔 중...</div>
-    </div>
-  </div>
+  </main>
 
   <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbzkkXhkTBKb5-PSYHbU2S68M4gxNzXrXaq1RCCRJIjHtFtoOZmfwEH_vK_srz2WVWvmkQ/exec";
+    const ENERGY_BLOCKS = ["🟥<br>🟥<br>🟥<br>🟥", "🟧<br>🟧<br>🟧", "🟨<br>🟨", "🟩"];
 
-    let currentMode = 'speaking';
-    let cachedSheetsData = {};
-    let currentSheetName = '';
-    let currentFontSize = 26;
-    let currentSpeed = 1.0;
-    
-    let isRelayPlaying = false;
-    let relayTimer = null;
-    let activeSingleLoopText = null;
+    const $ = (id) => document.getElementById(id);
+    const cacheKey = (sheet) => `sheet_cache_${sheet}`;
 
-    let playSession = 0;
-    let currentUtterance = null;
+    const state = { sheet: '', data: {} };
+    const cards = new Map();   // 문장(item) -> { row, playBtn }
+    let relayList = null;      // 연속 재생 중인 문장 목록 (단일 재생이면 null)
 
-    function makeUtterance(text) {
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'en-US';
-      u.rate = currentSpeed;
-      return u;
-    }
+    /* =========================================================
+       음성 재생 엔진
+       - 단일 반복 / 연속 반복을 하나의 큐로 처리
+       - session 번호로 "이미 취소된 재생"의 콜백을 무시
+       - 사용자 터치 직후 speak()는 지연 없이 동기 호출 (iOS 제스처 정책)
+       ========================================================= */
+    const audio = (() => {
+      const synth = window.speechSynthesis;
+      const GAP_MS = 600;
+      const PREFERRED_VOICES = ['Samantha', 'Google US English', 'Microsoft Aria', 'Microsoft Jenny', 'Ava', 'Allison'];
 
-    window.addEventListener('DOMContentLoaded', () => {
-      initSpeakingMaster();
-    });
+      let session = 0, timer = null, list = [], idx = 0;
+      let playing = null, utter = null, voice = null, listener = () => {};
 
-    function switchMode(mode) {
-      currentMode = mode;
-      stopAllAudio();
-      if (mode === 'speaking') {
-        document.getElementById('speakingSection').style.display = 'flex';
-        document.getElementById('listeningSection').style.display = 'none';
-        document.getElementById('modeSpeakingBtn').className = "flex-1 py-2.5 rounded-xl font-bold text-base sm:text-lg bg-[#2c3e50] text-white shadow transition";
-        document.getElementById('modeListeningBtn').className = "flex-1 py-2.5 rounded-xl font-bold text-base sm:text-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition";
-      } else {
-        document.getElementById('speakingSection').style.display = 'none';
-        document.getElementById('listeningSection').style.display = 'flex';
-        document.getElementById('modeListeningBtn').className = "flex-1 py-2.5 rounded-xl font-bold text-base sm:text-lg bg-[#2c3e50] text-white shadow transition";
-        document.getElementById('modeSpeakingBtn').className = "flex-1 py-2.5 rounded-xl font-bold text-base sm:text-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition";
-        loadListeningTracks();
-      }
-    }
-
-    function changeFontSize(val) {
-      currentFontSize = val;
-      document.getElementById('fontSizeVal').textContent = val + 'px';
-      document.querySelectorAll('.sentence-btn').forEach(btn => {
-        btn.style.fontSize = val + 'px';
-      });
-    }
-
-    function changeSpeed(val) {
-      currentSpeed = parseFloat(val);
-      document.getElementById('speedVal').textContent = val + '배속';
-    }
-
-    async function initSpeakingMaster() {
-      try {
-        const res = await fetch(`${GAS_URL}?action=getSheets`);
-        const sheetNames = await res.json();
-        const select = document.getElementById('sheetSelect');
-        select.innerHTML = '';
-        
-        sheetNames.forEach((name) => {
-          const opt = document.createElement('option');
-          opt.value = name;
-          opt.textContent = name;
-          select.appendChild(opt);
-        });
-
-        if (sheetNames.length > 0) {
-          currentSheetName = sheetNames[0];
-          document.getElementById('speakingTitle').textContent = `👑 ${currentSheetName} 스피킹 마스터 👑`;
-          loadSheetContent(currentSheetName);
+      function pickVoice() {
+        const en = synth.getVoices().filter((v) => /^en[-_]US$/i.test(v.lang));
+        voice = null;
+        for (const name of PREFERRED_VOICES) {
+          const found = en.find((v) => v.name.includes(name));
+          if (found) { voice = found; break; }
         }
-      } catch (err) {
-        document.getElementById('sentenceContainer').innerHTML = `<div class="text-center py-10 text-rose-500 font-bold">시트 목록을 불러오는 데 실패했습니다.</div>`;
       }
-    }
-
-    function changeSheet() {
-      stopAllAudio();
-      const select = document.getElementById('sheetSelect');
-      currentSheetName = select.value;
-      document.getElementById('speakingTitle').textContent = `👑 ${currentSheetName} 스피킹 마스터 👑`;
-      loadSheetContent(currentSheetName);
-    }
-
-    function refreshCurrentSheet() {
-      if (!currentSheetName) return;
-      localStorage.removeItem(`sheet_cache_${currentSheetName}`);
-      loadSheetContent(currentSheetName);
-    }
-
-    async function loadSheetContent(sheetName) {
-      const cached = localStorage.getItem(`sheet_cache_${sheetName}`);
-      if (cached) {
-        cachedSheetsData[sheetName] = JSON.parse(cached);
-        renderSentenceList();
-        return;
+      if (synth) {
+        pickVoice();
+        synth.addEventListener('voiceschanged', pickVoice); // 음성 목록은 비동기로 로드됨
       }
 
-      document.getElementById('sentenceContainer').innerHTML = `<div class="text-center py-10 text-slate-400">구글 시트 데이터 로딩 중...</div>`;
-
-      try {
-        const res = await fetch(`${GAS_URL}?action=getData&sheet=${encodeURIComponent(sheetName)}`);
-        const rows = await res.json();
-        
-        cachedSheetsData[sheetName] = rows;
-        localStorage.setItem(`sheet_cache_${sheetName}`, JSON.stringify(rows));
-        renderSentenceList();
-      } catch (err) {
-        document.getElementById('sentenceContainer').innerHTML = `<div class="text-center py-10 text-rose-500 font-bold">데이터를 불러오는 중 오류가 발생했습니다.</div>`;
+      // 진행 중인 재생·타이머를 모두 무효화
+      function halt() {
+        session++;
+        clearTimeout(timer);
+        timer = null;
+        if (synth.speaking || synth.pending) synth.cancel();
       }
-    }
 
-    function renderSentenceList() {
-      const container = document.getElementById('sentenceContainer');
-      container.innerHTML = '';
+      function speakCurrent() {
+        const s = session;
+        const item = list[idx];
+        playing = item;
+        listener(item);
 
-      const rows = cachedSheetsData[currentSheetName] || [];
-      const filterStage = document.getElementById('stageFilterSelect').value;
+        const u = new SpeechSynthesisUtterance(item.en);
+        u.lang = 'en-US';
+        u.rate = api.rate;
+        if (voice) u.voice = voice;
+        u.onend = () => {
+          if (s !== session) return;
+          idx = (idx + 1) % list.length;
+          timer = setTimeout(() => { if (s === session) speakCurrent(); }, GAP_MS);
+        };
+        // 우리가 취소한 경우는 session이 달라 무시됨. 그 외 오류면 멈춤 (무한 오류 루프 방지)
+        u.onerror = () => { if (s === session) api.stop(); };
 
-      const filtered = rows.filter(item => {
-        if (filterStage === 'all') return true;
-        return Number(item.energy) === Number(filterStage);
+        utter = u; // 가비지 컬렉션으로 onend가 사라지는 브라우저 버그 방지
+        synth.speak(u);
+      }
+
+      const api = {
+        rate: 1.0,
+        current: () => playing,
+        onChange: (fn) => { listener = fn; },
+
+        play(items) {
+          if (!synth) { alert('이 브라우저는 음성 재생을 지원하지 않아요.'); return; }
+          halt();
+          list = items;
+          idx = 0;
+          speakCurrent();
+        },
+        stop() {
+          if (!synth) return;
+          halt();
+          list = [];
+          playing = null;
+          utter = null;
+          listener(null);
+        },
+        // 속도를 바꿨을 때 지금 문장을 새 속도로 다시 재생
+        restart() {
+          if (!synth || !playing) return;
+          halt();
+          speakCurrent();
+        },
+      };
+      return api;
+    })();
+
+    /* =========================================================
+       재생 상태 → 화면 반영
+       ========================================================= */
+    function syncPlaybackUI(item) {
+      if (!item) relayList = null;
+
+      cards.forEach((card, it) => {
+        const on = it === item;
+        card.row.classList.toggle('playing', on);
+        card.playBtn.textContent = on ? '⏹' : '▶';
       });
 
-      if (filtered.length === 0) {
-        container.innerHTML = `<div class="text-center py-10 text-slate-400">해당 단계에 등록된 문장이 없습니다.</div>`;
-        return;
-      }
-
-      filtered.forEach((item) => {
-        const rowDiv = document.createElement('div');
-        rowDiv.className = "flex items-center gap-2 bg-white p-2.5 sm:p-3 rounded-2xl shadow-sm border border-slate-200";
-
-        const leftCol = document.createElement('div');
-        leftCol.className = "flex-1 min-w-0";
-        
-        const sentenceBtn = document.createElement('button');
-        sentenceBtn.className = "sentence-btn w-full font-black";
-        sentenceBtn.style.fontSize = currentFontSize + 'px';
-        sentenceBtn.dataset.state = 'kr';
-        sentenceBtn.dataset.kr = `${item.id}.\n${item.kr}`;
-        sentenceBtn.dataset.en = `${item.id}.\n${item.en}`;
-        sentenceBtn.textContent = sentenceBtn.dataset.kr;
-
-        leftCol.appendChild(sentenceBtn);
-
-        const rightCol = document.createElement('div');
-        rightCol.className = "w-14 shrink-0 flex items-center justify-end";
-
-        const energyBtn = document.createElement('button');
-        energyBtn.className = "energy-btn w-full text-xs font-black p-1.5";
-        energyBtn.innerHTML = getEnergyBlockText(Number(item.energy));
-        
-        energyBtn.onclick = () => {
-          item.energy = Number(item.energy) < 3 ? Number(item.energy) + 1 : 0;
-          energyBtn.innerHTML = getEnergyBlockText(item.energy);
-          localStorage.setItem(`sheet_cache_${currentSheetName}`, JSON.stringify(rows));
-
-          fetch(GAS_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              sheet: currentSheetName,
-              rowIndex: item.rowIndex,
-              energy: item.energy
-            })
-          }).catch(e => {});
-        };
-
-        const playBtn = document.createElement('button');
-        playBtn.className = "w-full py-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-black text-sm shadow-sm transition flex items-center justify-center";
-        playBtn.innerHTML = "▶";
-        playBtn.onclick = (e) => {
-          e.stopPropagation();
-          playSingleLoop(item.en);
-        };
-
-        rightCol.appendChild(energyBtn);
-
-        sentenceBtn.onclick = () => {
-          if (sentenceBtn.dataset.state === 'kr') {
-            sentenceBtn.textContent = sentenceBtn.dataset.en;
-            sentenceBtn.dataset.state = 'en';
-            
-            rightCol.innerHTML = '';
-            rightCol.appendChild(playBtn);
-          } else {
-            sentenceBtn.textContent = sentenceBtn.dataset.kr;
-            sentenceBtn.dataset.state = 'kr';
-            
-            if (activeSingleLoopText) stopAllAudio();
-            rightCol.innerHTML = '';
-            rightCol.appendChild(energyBtn);
-          }
-        };
-
-        rowDiv.appendChild(leftCol);
-        rowDiv.appendChild(rightCol);
-        container.appendChild(rowDiv);
-      });
-    }
-
-    function stopAllAudio() {
-      playSession++;
-      isRelayPlaying = false;
-      activeSingleLoopText = null;
-      currentUtterance = null;
-      if (relayTimer) {
-        clearTimeout(relayTimer);
-        relayTimer = null;
-      }
-      if ('speechSynthesis' in window) {
-        speechSynthesis.cancel();
-      }
-      const playerContainer = document.getElementById('relayPlayerContainer');
-      if (playerContainer) {
-        playerContainer.innerHTML = '';
+      const bar = $('relayBar');
+      if (relayList) {
+        const n = relayList.indexOf(item) + 1;
+        bar.innerHTML = `
+          <div class="bg-emerald-50 border-2 border-emerald-500 p-3 rounded-2xl flex items-center justify-between shadow-md">
+            <div class="font-bold text-emerald-800 text-sm">▶ 연속 재생 중 (${n} / ${relayList.length})</div>
+            <button data-stop class="px-3 py-1 bg-rose-600 text-white font-bold rounded-xl text-xs">정지</button>
+          </div>`;
+        cards.get(item)?.row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      } else {
+        bar.innerHTML = '';
       }
     }
+    audio.onChange(syncPlaybackUI);
 
-    function playSingleLoop(text) {
-      if (!('speechSynthesis' in window)) return;
-      stopAllAudio();
-
-      const session = playSession;
-      activeSingleLoopText = text;
-
-      function speakLoop() {
-        if (session !== playSession) return;
-
-        currentUtterance = makeUtterance(text);
-        const next = () => {
-          if (session === playSession) {
-            relayTimer = setTimeout(speakLoop, 600);
-          }
-        };
-        currentUtterance.onend = next;
-        currentUtterance.onerror = next;
-
-        // 💡 지연 시간(setTimeout) 제거: 사용자 터치 즉시 실행하여 아이폰 보안 제스처 충돌 방지
-        speechSynthesis.speak(currentUtterance);
-      }
-
-      speakLoop();
-    }
-
-    function stopSingleLoop() {
-      if (activeSingleLoopText) stopAllAudio();
+    function playSingle(item) {
+      relayList = null;
+      audio.play([item]);
     }
 
     function playRelay(level) {
-      if (!('speechSynthesis' in window)) return;
-      stopAllAudio();
+      const list = filterRows(state.data[state.sheet] || [], level);
+      if (list.length === 0) { alert('재생할 문장이 없습니다!'); return; }
 
-      const filterSelect = document.getElementById('stageFilterSelect');
-      if (filterSelect) {
-        filterSelect.value = level;
+      audio.stop();
+      $('stageFilter').value = level;
+      renderSentenceList();
+
+      relayList = list;
+      audio.play(list);
+    }
+
+    /* =========================================================
+       시트 데이터
+       ========================================================= */
+    const normEnergy = (v) => {
+      const n = Number(v);
+      return Number.isInteger(n) && n >= 0 && n <= 3 ? n : 0;
+    };
+    const normalizeRows = (rows) => rows.map((r) => ({ ...r, energy: normEnergy(r.energy) }));
+    const filterRows = (rows, stage) => (stage === 'all' ? rows : rows.filter((r) => r.energy === Number(stage)));
+
+    async function fetchJson(url) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(res.status);
+      return res.json();
+    }
+
+    function readCache(sheet) {
+      try {
+        const raw = localStorage.getItem(cacheKey(sheet));
+        return raw ? normalizeRows(JSON.parse(raw)) : null;
+      } catch (e) { return null; }
+    }
+    function writeCache(sheet, rows) {
+      try { localStorage.setItem(cacheKey(sheet), JSON.stringify(rows)); } catch (e) {}
+    }
+
+    function showMessage(text, isError = false) {
+      cards.clear();
+      const div = document.createElement('div');
+      div.className = `text-center py-10 ${isError ? 'text-rose-500 font-bold' : 'text-slate-400'}`;
+      div.textContent = text;
+      $('sentenceContainer').replaceChildren(div);
+    }
+
+    async function loadSheet(name, force = false) {
+      if (force) localStorage.removeItem(cacheKey(name));
+
+      const cached = readCache(name);
+      if (cached) {
+        state.data[name] = cached;
         renderSentenceList();
-      }
-
-      const rows = cachedSheetsData[currentSheetName] || [];
-      const targetRows = level === 'all' ? rows : rows.filter(item => Number(item.energy) === Number(level));
-      
-      if (targetRows.length === 0) {
-        alert("재생할 문장이 없습니다!");
         return;
       }
 
-      const session = playSession;
-      isRelayPlaying = true;
-      const texts = targetRows.map(r => r.en);
-      let idx = 0;
+      showMessage('구글 시트 데이터 로딩 중...');
+      try {
+        const rows = normalizeRows(await fetchJson(`${GAS_URL}?action=getData&sheet=${encodeURIComponent(name)}`));
+        state.data[name] = rows;
+        writeCache(name, rows);
+        if (name === state.sheet) renderSentenceList(); // 로딩 중 다른 시트로 바꿨다면 무시
+      } catch (e) {
+        if (name === state.sheet) showMessage('데이터를 불러오는 중 오류가 발생했습니다.', true);
+      }
+    }
 
-      const playerContainer = document.getElementById('relayPlayerContainer');
-      playerContainer.innerHTML = `
-        <div class="bg-emerald-50 border-2 border-emerald-500 p-3 rounded-2xl flex items-center justify-between shadow-sm">
-          <div class="font-bold text-emerald-800 text-sm">▶ 연속 재생 중 (${targetRows.length}개 문장)</div>
-          <button onclick="stopRelay()" class="px-3 py-1 bg-rose-600 text-white font-bold rounded-xl text-xs">정지</button>
-        </div>
-      `;
+    function selectSheet(name) {
+      audio.stop();
+      state.sheet = name;
+      $('sheetSelect').value = name;
+      $('title').textContent = `👑 ${name} 스피킹 마스터 👑`;
+      loadSheet(name);
+    }
 
-      function playNext() {
-        if (session !== playSession) return;
+    async function init() {
+      showMessage('구글 시트에서 문장 불러오는 중...');
+      try {
+        const names = await fetchJson(`${GAS_URL}?action=getSheets`);
+        const select = $('sheetSelect');
+        select.replaceChildren(...names.map((n) => new Option(n, n)));
+        if (names.length > 0) selectSheet(names[0]);
+      } catch (e) {
+        showMessage('시트 목록을 불러오는 데 실패했습니다.', true);
+      }
+    }
 
-        if (idx >= texts.length) {
-          idx = 0;
-        }
+    /* =========================================================
+       문장 목록 화면
+       ========================================================= */
+    function renderSentenceList() {
+      const rows = state.data[state.sheet] || [];
+      const list = filterRows(rows, $('stageFilter').value);
 
-        currentUtterance = makeUtterance(texts[idx]);
-        const next = () => {
-          if (session !== playSession) return;
-          idx++;
-          relayTimer = setTimeout(playNext, 600);
-        };
-        currentUtterance.onend = next;
-        currentUtterance.onerror = next;
-
-        // 💡 지연 시간(setTimeout) 제거: 사용자 터치 즉시 실행하여 아이폰 보안 제스처 충돌 방지
-        speechSynthesis.speak(currentUtterance);
+      if (list.length === 0) {
+        showMessage('해당 단계에 등록된 문장이 없습니다.');
+        return;
       }
 
-      playNext();
+      cards.clear();
+      $('sentenceContainer').replaceChildren(...list.map((item) => createCard(item, rows)));
+      syncPlaybackUI(audio.current()); // 재생 중이면 표시 유지
     }
 
-    function stopRelay() {
-      stopAllAudio();
+    function createCard(item, rows) {
+      const sheet = state.sheet;
+
+      const row = document.createElement('div');
+      row.className = 'flex items-center gap-2 bg-white p-2.5 sm:p-3 rounded-2xl shadow-sm border border-slate-200';
+
+      const left = document.createElement('div');
+      left.className = 'flex-1 min-w-0';
+      const sentenceBtn = document.createElement('button');
+      sentenceBtn.className = 'sentence-btn w-full font-black';
+      left.appendChild(sentenceBtn);
+
+      const right = document.createElement('div');
+      right.className = 'w-14 shrink-0 flex items-center justify-end';
+
+      // 단계 변경 버튼 (한글 보기 상태)
+      const energyBtn = document.createElement('button');
+      energyBtn.className = 'energy-btn w-full text-xs font-black p-1.5';
+      energyBtn.innerHTML = ENERGY_BLOCKS[item.energy];
+      energyBtn.onclick = () => {
+        item.energy = (item.energy + 1) % 4;
+        energyBtn.innerHTML = ENERGY_BLOCKS[item.energy];
+        writeCache(sheet, rows);
+        fetch(GAS_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: JSON.stringify({ sheet, rowIndex: item.rowIndex, energy: item.energy }),
+        }).catch(() => {});
+      };
+
+      // 재생/정지 버튼 (영어 보기 상태)
+      const playBtn = document.createElement('button');
+      playBtn.className = 'w-full py-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-black text-sm shadow-sm transition flex items-center justify-center';
+      playBtn.textContent = '▶';
+      playBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (audio.current() === item) audio.stop();
+        else playSingle(item);
+      };
+
+      let showingEn = false;
+      const show = (en) => {
+        showingEn = en;
+        sentenceBtn.textContent = `${item.id}.\n${en ? item.en : item.kr}`;
+        right.replaceChildren(en ? playBtn : energyBtn);
+      };
+      sentenceBtn.onclick = () => {
+        // 영어 → 한글로 돌아갈 때, 이 카드의 문장이 재생 중일 때만 멈춤
+        if (showingEn && audio.current() === item) audio.stop();
+        show(!showingEn);
+      };
+      show(false);
+
+      row.append(left, right);
+      cards.set(item, { row, playBtn });
+      return row;
     }
 
-    function getEnergyBlockText(energy) {
-      if (energy === 0) return "🟥<br>🟥<br>🟥<br>🟥";
-      if (energy === 1) return "🟧<br>🟧<br>🟧";
-      if (energy === 2) return "🟨<br>🟨";
-      return "🟩";
-    }
+    /* =========================================================
+       이벤트 연결
+       ========================================================= */
+    $('sheetSelect').addEventListener('change', (e) => selectSheet(e.target.value));
+    $('refreshBtn').addEventListener('click', () => {
+      if (!state.sheet) return;
+      audio.stop();
+      loadSheet(state.sheet, true);
+    });
+    $('stageFilter').addEventListener('change', () => {
+      audio.stop();
+      renderSentenceList();
+    });
 
-    function loadListeningTracks() {
-      const container = document.getElementById('listeningTrackContainer');
-      container.innerHTML = `
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-2">
-          <div class="font-bold text-slate-800">🎵 1. 오디오 트랙 샘플.mp3</div>
-          <audio controls class="w-full"></audio>
-          <textarea placeholder="나만의 청취 메모를 입력하세요..." class="w-full p-2 border border-slate-200 rounded-xl text-xs" rows="2"></textarea>
-          <button class="py-2 bg-emerald-600 text-white font-bold rounded-xl text-xs">💾 메모 저장하기</button>
-        </div>
-      `;
-    }
+    document.querySelectorAll('[data-relay]').forEach((btn) => {
+      btn.addEventListener('click', () => playRelay(btn.dataset.relay));
+    });
+    $('relayBar').addEventListener('click', (e) => {
+      if (e.target.closest('[data-stop]')) audio.stop();
+    });
+
+    $('fontSizeSlider').addEventListener('input', (e) => {
+      document.documentElement.style.setProperty('--fs', `${e.target.value}px`);
+      $('fontSizeVal').textContent = `${e.target.value}px`;
+    });
+    $('speedSlider').addEventListener('input', (e) => {
+      audio.rate = parseFloat(e.target.value);
+      $('speedVal').textContent = `${audio.rate}배속`;
+    });
+    $('speedSlider').addEventListener('change', () => audio.restart()); // 손을 뗐을 때 새 속도로 재생
+
+    init();
   </script>
 </body>
 </html>
