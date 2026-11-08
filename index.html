@@ -48,6 +48,17 @@
 
     /* 지금 재생 중인 문장 카드 */
     .playing { box-shadow: 0 0 0 3px #f1c40f; }
+
+    /* 책갈피 카드 (길게 눌러서 지정) */
+    .sentence-btn { -webkit-touch-callout: none; }
+    .bookmarked { border-color: #3b82f6 !important; border-width: 3px !important; }
+    .bm-badge { display: none; position: absolute; top: -12px; left: 12px; font-size: 22px; line-height: 1; pointer-events: none; }
+    .bookmarked .bm-badge { display: block; }
+    @keyframes bmflash {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+      50% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.45); }
+    }
+    .bm-flash { animation: bmflash 0.6s ease-in-out 3; }
   </style>
 </head>
 
@@ -59,11 +70,16 @@
       <h1 id="title" class="text-2xl sm:text-3xl font-black text-slate-800 text-center">👑 스피킹 마스터 👑</h1>
 
       <div>
-        <div class="flex justify-between items-center mb-1">
+        <div class="flex justify-between items-center flex-wrap gap-1.5 mb-1">
           <label class="text-xs font-bold text-slate-500">학습 시트 선택</label>
-          <button id="refreshBtn" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-1 rounded-lg transition border border-indigo-100 shadow-sm">
-            🔄 최신 시트 불러오기
-          </button>
+          <div class="flex gap-1.5 flex-wrap justify-end">
+            <button id="bookmarkBtn" class="text-xs font-bold text-amber-700 hover:text-amber-900 bg-amber-50 px-2 py-1 rounded-lg transition border border-amber-200 shadow-sm">
+              🔖 책갈피로 이동
+            </button>
+            <button id="refreshBtn" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-1 rounded-lg transition border border-indigo-100 shadow-sm">
+              🔄 최신 시트 불러오기
+            </button>
+          </div>
         </div>
         <select id="sheetSelect" class="w-full p-2.5 rounded-xl border border-slate-300 font-bold bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500">
           <option value="">시트 목록 불러오는 중...</option>
@@ -345,6 +361,59 @@
     /* =========================================================
        문장 목록 화면
        ========================================================= */
+    /* =========================================================
+       책갈피 (시트마다 하나, 이 기기에만 저장)
+       ========================================================= */
+    const LONG_PRESS_MS = 600;
+    const bookmarkKey = (sheet) => `bookmark_${sheet}`;
+
+    function getBookmark(sheet) {
+      try { return localStorage.getItem(bookmarkKey(sheet)); } catch (e) { return null; }
+    }
+    function setBookmark(sheet, id) {
+      try {
+        if (id === null) localStorage.removeItem(bookmarkKey(sheet));
+        else localStorage.setItem(bookmarkKey(sheet), String(id));
+      } catch (e) {}
+    }
+
+    function applyBookmarkUI() {
+      const saved = getBookmark(state.sheet);
+      cards.forEach((card, item) => {
+        card.row.classList.toggle('bookmarked', saved !== null && String(item.id) === saved);
+      });
+    }
+
+    // 같은 카드를 다시 길게 누르면 해제, 다른 카드면 책갈피 이동
+    function toggleBookmark(sheet, item) {
+      const same = getBookmark(sheet) === String(item.id);
+      setBookmark(sheet, same ? null : item.id);
+      applyBookmarkUI();
+      if (navigator.vibrate) navigator.vibrate(30);
+    }
+
+    function goToBookmark() {
+      const saved = getBookmark(state.sheet);
+      if (saved === null) return;
+
+      const target = (state.data[state.sheet] || []).find((r) => String(r.id) === saved);
+      if (!target) return;
+
+      // 단계 필터 때문에 안 보이면 전체 보기로 바꿔서 다시 그림
+      if (!cards.has(target)) {
+        $('stageFilter').value = 'all';
+        renderSentenceList();
+      }
+      const card = cards.get(target);
+      if (!card) return;
+
+      card.row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      card.row.classList.remove('bm-flash');
+      void card.row.offsetWidth; // 애니메이션 재시작
+      card.row.classList.add('bm-flash');
+      card.row.addEventListener('animationend', () => card.row.classList.remove('bm-flash'), { once: true });
+    }
+
     function renderSentenceList() {
       const rows = state.data[state.sheet] || [];
       const list = filterRows(rows, $('stageFilter').value);
@@ -357,13 +426,14 @@
       cards.clear();
       $('sentenceContainer').replaceChildren(...list.map((item) => createCard(item, rows)));
       syncPlaybackUI(audio.current()); // 재생 중이면 표시 유지
+      applyBookmarkUI();
     }
 
     function createCard(item, rows) {
       const sheet = state.sheet;
 
       const row = document.createElement('div');
-      row.className = 'flex items-center gap-2 bg-white p-2.5 sm:p-3 rounded-2xl shadow-sm border border-slate-200';
+      row.className = 'relative flex items-center gap-2 bg-white p-2.5 sm:p-3 rounded-2xl shadow-sm border border-slate-200';
 
       const left = document.createElement('div');
       left.className = 'flex-1 min-w-0';
@@ -405,14 +475,38 @@
         sentenceBtn.textContent = `${item.id}.\n${en ? item.en : item.kr}`;
         right.replaceChildren(en ? playBtn : energyBtn);
       };
+      // 길게 누르면 책갈피 (움직이거나 손을 떼면 취소)
+      let pressTimer = null, longPressed = false, startX = 0, startY = 0;
+      const cancelPress = () => { clearTimeout(pressTimer); pressTimer = null; };
+      sentenceBtn.addEventListener('pointerdown', (e) => {
+        longPressed = false;
+        startX = e.clientX;
+        startY = e.clientY;
+        pressTimer = setTimeout(() => {
+          pressTimer = null;
+          longPressed = true;
+          toggleBookmark(sheet, item);
+        }, LONG_PRESS_MS);
+      });
+      sentenceBtn.addEventListener('pointermove', (e) => {
+        if (pressTimer && Math.hypot(e.clientX - startX, e.clientY - startY) > 10) cancelPress();
+      });
+      ['pointerup', 'pointercancel', 'pointerleave'].forEach((t) => sentenceBtn.addEventListener(t, cancelPress));
+      sentenceBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
       sentenceBtn.onclick = () => {
+        if (longPressed) { longPressed = false; return; } // 길게 누른 뒤의 클릭은 무시
         // 영어 → 한글로 돌아갈 때, 이 카드의 문장이 재생 중일 때만 멈춤
         if (showingEn && audio.current() === item) audio.stop();
         show(!showingEn);
       };
       show(false);
 
-      row.append(left, right);
+      const badge = document.createElement('span');
+      badge.className = 'bm-badge';
+      badge.textContent = '🔖';
+
+      row.append(left, right, badge);
       cards.set(item, { row, playBtn });
       return row;
     }
@@ -426,6 +520,7 @@
       audio.stop();
       loadSheet(state.sheet, true);
     });
+    $('bookmarkBtn').addEventListener('click', goToBookmark);
     $('stageFilter').addEventListener('change', () => {
       audio.stop();
       renderSentenceList();
