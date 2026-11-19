@@ -49,6 +49,19 @@
     /* 지금 재생 중인 문장 카드 */
     .playing { box-shadow: 0 0 0 3px #f1c40f; }
 
+    /* 단계 선택 버튼: 선택되면 진한 색으로 채워짐 */
+    .stage-btn {
+      border: 2px solid var(--c);
+      background: var(--bg);
+      color: var(--tx);
+      border-radius: 12px;
+      font-weight: 900;
+      text-align: center;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      transition: background 0.1s, color 0.1s;
+    }
+    .stage-btn.active { background: var(--c); color: var(--on); }
+
     /* 책갈피 카드 (길게 눌러서 지정) */
     .sentence-btn { -webkit-touch-callout: none; }
     .bookmarked { border-color: #3b82f6 !important; border-width: 3px !important; }
@@ -104,28 +117,17 @@
       </div>
     </section>
 
-    <!-- 단계별 연속 재생 · 단계 필터 -->
+    <!-- 학습할 단계 선택 · 연속 재생 -->
     <section class="bg-white rounded-3xl p-4 shadow-sm border border-slate-200 flex flex-col gap-2">
-      <button data-relay="all" class="p-3 bg-[#f0fdf4] border-2 border-[#2ecc71] rounded-xl text-[#15803d] font-black text-sm sm:text-base text-center shadow-sm hover:bg-emerald-100 transition">
-        📻 🔁 🟥🟧🟨🟩 전체 문장 연속 반복 재생
-      </button>
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <button data-relay="0" class="p-2.5 bg-[#fef2f2] border-2 border-[#ef4444] rounded-xl text-[#b91c1c] font-black text-xs text-center shadow-sm hover:bg-rose-100 transition">📻 🔁 🟥 4단계</button>
-        <button data-relay="1" class="p-2.5 bg-[#fff7ed] border-2 border-[#f97316] rounded-xl text-[#c2410c] font-black text-xs text-center shadow-sm hover:bg-orange-100 transition">📻 🔁 🟧 3단계</button>
-        <button data-relay="2" class="p-2.5 bg-[#fefce8] border-2 border-[#eab308] rounded-xl text-[#a16207] font-black text-xs text-center shadow-sm hover:bg-yellow-100 transition">📻 🔁 🟨 2단계</button>
-        <button data-relay="3" class="p-2.5 bg-[#f0fdf4] border-2 border-[#22c55e] rounded-xl text-[#15803d] font-black text-xs text-center shadow-sm hover:bg-emerald-100 transition">📻 🔁 🟩 1단계</button>
+      <label class="text-xs font-bold text-slate-500">🎯 학습할 단계 선택</label>
+      <button data-stage="all" class="stage-btn p-3 text-sm sm:text-base" style="--c:#22c55e;--bg:#f0fdf4;--tx:#15803d;--on:#fff">🟥🟧🟨🟩 전체 보기</button>
+      <div class="grid grid-cols-4 gap-2">
+        <button data-stage="0" class="stage-btn p-2.5 text-xs sm:text-sm" style="--c:#ef4444;--bg:#fef2f2;--tx:#b91c1c;--on:#fff">🟥 4단계</button>
+        <button data-stage="1" class="stage-btn p-2.5 text-xs sm:text-sm" style="--c:#f97316;--bg:#fff7ed;--tx:#c2410c;--on:#fff">🟧 3단계</button>
+        <button data-stage="2" class="stage-btn p-2.5 text-xs sm:text-sm" style="--c:#eab308;--bg:#fefce8;--tx:#a16207;--on:#451a03">🟨 2단계</button>
+        <button data-stage="3" class="stage-btn p-2.5 text-xs sm:text-sm" style="--c:#22c55e;--bg:#f0fdf4;--tx:#15803d;--on:#fff">🟩 1단계</button>
       </div>
-
-      <div class="mt-2">
-        <label class="text-xs font-bold text-slate-500 mb-1 block">🎯 학습할 단계 선택</label>
-        <select id="stageFilter" class="w-full p-2.5 rounded-xl border border-slate-300 font-bold bg-slate-50 text-slate-800">
-          <option value="all">🟥🟧🟨🟩 전체 보기</option>
-          <option value="0">🟥 4단계만 보기</option>
-          <option value="1">🟧 3단계만 보기</option>
-          <option value="2">🟨 2단계만 보기</option>
-          <option value="3">🟩 1단계만 보기</option>
-        </select>
-      </div>
+      <button id="playBtn" class="mt-1 p-3 bg-[#f0fdf4] border-2 border-[#2ecc71] rounded-xl text-[#15803d] font-black text-sm sm:text-base text-center shadow-sm hover:bg-emerald-100 transition"></button>
     </section>
 
     <!-- 연속 재생 중에만 나타나는 바 (스크롤해도 따라다님) -->
@@ -143,7 +145,8 @@
     const $ = (id) => document.getElementById(id);
     const cacheKey = (sheet) => `sheet_cache_${sheet}`;
 
-    const state = { sheet: '', data: {} };
+    const STAGE_LABELS = { all: '🟥🟧🟨🟩 전체 문장', 0: '🟥 4단계', 1: '🟧 3단계', 2: '🟨 2단계', 3: '🟩 1단계' };
+    const state = { sheet: '', data: {}, stage: 'all' };
     const cards = new Map();   // 문장(item) -> { row, playBtn }
     let relayList = null;      // 연속 재생 중인 문장 목록 (단일 재생이면 null)
 
@@ -271,12 +274,21 @@
       audio.play([item]);
     }
 
-    function playRelay(level) {
-      const list = filterRows(state.data[state.sheet] || [], level);
+    // 단계 선택 (버튼 모양과 재생 버튼 글자도 같이 바꿈)
+    function setStage(stage) {
+      state.stage = stage;
+      document.querySelectorAll('[data-stage]').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.stage === String(stage));
+      });
+      $('playBtn').textContent = `📻 🔁 ${STAGE_LABELS[stage]} 연속 반복 재생`;
+    }
+
+    // 지금 선택된 단계의 문장을 연속 재생
+    function playRelay() {
+      const list = filterRows(state.data[state.sheet] || [], state.stage);
       if (list.length === 0) { alert('재생할 문장이 없습니다!'); return; }
 
       audio.stop();
-      $('stageFilter').value = level;
       renderSentenceList();
 
       relayList = list;
@@ -407,7 +419,7 @@
 
       // 단계 필터 때문에 안 보이면 전체 보기로 바꿔서 다시 그림
       if (!cards.has(target)) {
-        $('stageFilter').value = 'all';
+        setStage('all');
         renderSentenceList();
       }
       const card = cards.get(target);
@@ -425,7 +437,7 @@
        ========================================================= */
     function renderSentenceList() {
       const rows = state.data[state.sheet] || [];
-      const list = filterRows(rows, $('stageFilter').value);
+      const list = filterRows(rows, state.stage);
 
       if (list.length === 0) {
         showMessage('해당 단계에 등록된 문장이 없습니다.');
@@ -546,14 +558,15 @@
       loadSheet(state.sheet, true);
     });
     $('bookmarkBtn').addEventListener('click', goToBookmark);
-    $('stageFilter').addEventListener('change', () => {
-      audio.stop();
-      renderSentenceList();
+    // 단계 버튼: 누르면 바로 그 단계만 보여줌 (재생 중이면 멈춤)
+    document.querySelectorAll('[data-stage]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        audio.stop();
+        setStage(btn.dataset.stage);
+        renderSentenceList();
+      });
     });
-
-    document.querySelectorAll('[data-relay]').forEach((btn) => {
-      btn.addEventListener('click', () => playRelay(btn.dataset.relay));
-    });
+    $('playBtn').addEventListener('click', playRelay);
     $('relayBar').addEventListener('click', (e) => {
       if (e.target.closest('[data-stop]')) { audio.stop(); return; }
       const jumpBtn = e.target.closest('[data-jump]');
@@ -570,6 +583,7 @@
     });
     $('speedSlider').addEventListener('change', () => audio.restart()); // 손을 뗐을 때 새 속도로 재생
 
+    setStage('all');
     init();
   </script>
 </body>
