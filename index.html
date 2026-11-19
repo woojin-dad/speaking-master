@@ -448,7 +448,8 @@
 
     function createGroupBand(title, withGap) {
       const band = document.createElement('div');
-      band.className = `bg-[#2c3e50] text-[#f1c40f] rounded-xl px-4 py-2 text-base font-black shadow-sm ${withGap ? 'mt-3' : ''}`;
+      band.className = `bg-[#2c3e50] text-[#f1c40f] rounded-xl px-4 py-2 font-black shadow-sm ${withGap ? 'mt-3' : ''}`;
+      band.style.fontSize = 'var(--fs)'; // 문장 카드와 같은 글자 크기 (슬라이더 연동)
       band.textContent = title;
       return band;
     }
