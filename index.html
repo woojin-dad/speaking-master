@@ -290,7 +290,15 @@
       const n = Number(v);
       return Number.isInteger(n) && n >= 0 && n <= 3 ? n : 0;
     };
-    const normalizeRows = (rows) => rows.map((r) => ({ ...r, energy: normEnergy(r.energy) }));
+    // 1열(id)에서 끝의 숫자를 떼어낸 앞부분이 제목. 1열이 비어 있으면 바로 앞 제목의 묶음으로 본다
+    const headingOf = (id) => String(id ?? '').replace(/\s*\d+\s*$/, '').trim();
+    const normalizeRows = (rows) => {
+      let group = '';
+      return rows.map((r) => {
+        group = headingOf(r.id) || group;
+        return { ...r, energy: normEnergy(r.energy), group };
+      });
+    };
     const filterRows = (rows, stage) => (stage === 'all' ? rows : rows.filter((r) => r.energy === Number(stage)));
 
     async function fetchJson(url) {
@@ -359,9 +367,6 @@
     }
 
     /* =========================================================
-       문장 목록 화면
-       ========================================================= */
-    /* =========================================================
        책갈피 (시트마다 하나, 이 기기에만 저장)
        ========================================================= */
     const LONG_PRESS_MS = 600;
@@ -380,14 +385,15 @@
     function applyBookmarkUI() {
       const saved = getBookmark(state.sheet);
       cards.forEach((card, item) => {
-        card.row.classList.toggle('bookmarked', saved !== null && String(item.id) === saved);
+        card.row.classList.toggle('bookmarked', saved !== null && String(item.rowIndex) === saved);
       });
     }
 
     // 같은 카드를 다시 길게 누르면 해제, 다른 카드면 책갈피 이동
+    // (번호가 비어 있거나 겹쳐도 되도록 시트의 줄 위치 rowIndex로 기억)
     function toggleBookmark(sheet, item) {
-      const same = getBookmark(sheet) === String(item.id);
-      setBookmark(sheet, same ? null : item.id);
+      const same = getBookmark(sheet) === String(item.rowIndex);
+      setBookmark(sheet, same ? null : item.rowIndex);
       applyBookmarkUI();
       if (navigator.vibrate) navigator.vibrate(30);
     }
@@ -396,7 +402,7 @@
       const saved = getBookmark(state.sheet);
       if (saved === null) return;
 
-      const target = (state.data[state.sheet] || []).find((r) => String(r.id) === saved);
+      const target = (state.data[state.sheet] || []).find((r) => String(r.rowIndex) === saved);
       if (!target) return;
 
       // 단계 필터 때문에 안 보이면 전체 보기로 바꿔서 다시 그림
@@ -414,6 +420,9 @@
       card.row.addEventListener('animationend', () => card.row.classList.remove('bm-flash'), { once: true });
     }
 
+    /* =========================================================
+       문장 목록 화면
+       ========================================================= */
     function renderSentenceList() {
       const rows = state.data[state.sheet] || [];
       const list = filterRows(rows, $('stageFilter').value);
@@ -423,10 +432,25 @@
         return;
       }
 
+      // 제목이 바뀌는 곳마다 띠를 한 번만 넣는다 (필터 후 남은 카드 기준)
       cards.clear();
-      $('sentenceContainer').replaceChildren(...list.map((item) => createCard(item, rows)));
+      const elements = [];
+      let lastGroup = null;
+      list.forEach((item) => {
+        if (item.group && item.group !== lastGroup) elements.push(createGroupBand(item.group, elements.length > 0));
+        lastGroup = item.group;
+        elements.push(createCard(item, rows));
+      });
+      $('sentenceContainer').replaceChildren(...elements);
       syncPlaybackUI(audio.current()); // 재생 중이면 표시 유지
       applyBookmarkUI();
+    }
+
+    function createGroupBand(title, withGap) {
+      const band = document.createElement('div');
+      band.className = `bg-[#2c3e50] text-[#f1c40f] rounded-xl px-4 py-2 text-base font-black shadow-sm ${withGap ? 'mt-3' : ''}`;
+      band.textContent = title;
+      return band;
     }
 
     function createCard(item, rows) {
@@ -472,7 +496,7 @@
       let showingEn = false;
       const show = (en) => {
         showingEn = en;
-        sentenceBtn.textContent = `${item.id}.\n${en ? item.en : item.kr}`;
+        sentenceBtn.textContent = en ? item.en : item.kr;
         right.replaceChildren(en ? playBtn : energyBtn);
       };
       // 길게 누르면 책갈피 (움직이거나 손을 떼면 취소)
